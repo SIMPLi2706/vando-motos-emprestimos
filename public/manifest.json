@@ -1,0 +1,18 @@
+{
+  "name": "Vando Motos - Gestão de Empréstimos & Locadora",
+  "short_name": "Vando Motos",
+  "description": "Sistema de Gestão de Empréstimos, Contratos e Notas Promissórias - Vando Motos Locadora LTDA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

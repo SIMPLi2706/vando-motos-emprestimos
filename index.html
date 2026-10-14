@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="description" content="Sistema de Gestão de Empréstimos, Contratos e Notas Promissórias - Vando Motos Locadora LTDA." />
+    <meta name="theme-color" content="#050608" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Vando Motos - Gestão de Empréstimos & Locadora</title>
+    <link rel="stylesheet" href="/src/css/main.css" />
+  </head>
+  <body>
+    <div class="app-container" id="app">
+      
+      <!-- Backdrop do menu mobile -->
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+      <!-- SIDEBAR DESKTOP & GAVETA MOBILE -->
+      <aside class="sidebar" id="app-sidebar">
+        <div class="brand-section">
+          <img src="/logo-vandomotos.png" alt="Vando Motos Locadora" class="brand-logo-img" id="display-brand-logo" />
+          <button class="mobile-drawer-close" id="btn-close-sidebar" aria-label="Fechar Menu">✕</button>
+        </div>
+
+        <nav class="nav-menu">
+          <button class="nav-item active" data-tab="dashboard" id="nav-btn-dashboard">
+            <span>📊</span> Dashboard
+          </button>
+          <button class="nav-item" data-tab="loans" id="nav-btn-loans">
+            <span>➕</span> Simular & Empréstimos
+          </button>
+          <button class="nav-item" data-tab="installments" id="nav-btn-installments">
+            <span>💳</span> Parcelas & Cobrança
+            <span class="nav-badge" id="badge-overdue-count" style="display: none;">0</span>
+          </button>
+          <button class="nav-item" data-tab="renegotiation" id="nav-btn-renegotiation">
+            <span>🔄</span> Renegociar Dívida
+          </button>
+          <button class="nav-item" data-tab="clients" id="nav-btn-clients">
+            <span>👥</span> Clientes
+          </button>
+          <button class="nav-item" data-tab="settings" id="nav-btn-settings">
+            <span>⚙️</span> Configurações & PIX
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="business-badge">
+            <img src="/logo-vandomotos.png" class="business-avatar-logo" alt="Vando Motos" />
+            <div>
+              <div class="business-name" id="footer-business-name">Vando motos locadora LTDA</div>
+              <div class="business-role">CNPJ: 28.623.431-0001-23</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- WRAPPER PRINCIPAL -->
+      <main class="main-wrapper">
+        
+        <!-- HEADER SUPERIOR -->
+        <header class="top-header">
+          <div class="header-left">
+            <button class="mobile-menu-btn" id="mobile-toggle-btn" aria-label="Abrir Menu">
+              ☰
+            </button>
+            <img src="/logo-vandomotos.png" class="header-logo-compact" alt="Vando Motos" />
+            <div class="page-title-group">
+              <h1 id="top-page-title">Painel Geral</h1>
+              <p id="top-page-subtitle">Acompanhamento financeiro em tempo real</p>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <button class="btn btn-secondary btn-sm header-action-btn" id="btn-header-caixa" title="Resumo e Fechamento do Caixa Diário">
+              <span class="header-btn-icon">💰</span>
+              <span class="header-btn-text">Caixa</span>
+            </button>
+            <button class="btn btn-secondary btn-sm header-action-btn" id="btn-header-quick-sim" title="Simulador Rápido">
+              <span class="header-btn-icon">⚡</span>
+              <span class="header-btn-text">Simular</span>
+            </button>
+            <button class="btn btn-primary btn-sm header-action-btn" id="btn-header-quick-client" title="Novo Cliente">
+              <span class="header-btn-icon">+</span>
+              <span class="header-btn-text">Cliente</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- CONTEÚDO PRINCIPAL (RENDERIZADO VIA JS) -->
+        <section class="page-content" id="main-content-view">
+          <!-- Renderizado dinamicamente -->
+        </section>
+
+      </main>
+
+      <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA CELULARES (MOBILE BOTTOM BAR) -->
+      <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+        <button class="mobile-nav-item active" data-tab="dashboard">
+          <span>📊</span>
+          <span>Início</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="loans">
+          <span>➕</span>
+          <span>Simular</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="installments">
+          <span>💳</span>
+          <span>Parcelas</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="renegotiation">
+          <span>🔄</span>
+          <span>Renegociar</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="clients">
+          <span>👥</span>
+          <span>Clientes</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
