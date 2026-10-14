@@ -1,1272 +1,192 @@
-/* ============================================================
-   VANDO MOTOS LOCADORA - DESIGN SYSTEM v3.0
-   Mobile-First Premium Dark Theme
-   ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-
-/* ============================================================
-   1. CUSTOM PROPERTIES
-   ============================================================ */
-:root {
-  /* Brand Colors */
-  --yellow:        #f5c518;
-  --yellow-light:  #fde047;
-  --yellow-hover:  #eab308;
-  --yellow-dark:   #ca8a04;
-  --yellow-glow:   rgba(245, 197, 24, 0.35);
-  --yellow-subtle: rgba(245, 197, 24, 0.10);
-  --yellow-border: rgba(245, 197, 24, 0.22);
-
-  /* Background Scale */
-  --bg-0: #020304;
-  --bg-1: #080a0f;
-  --bg-2: #0f1117;
-  --bg-3: #181a22;
-  --bg-4: #22242e;
-  --bg-5: #2d3040;
-
-  /* Text */
-  --text-100: #ffffff;
-  --text-200: #e2e8f0;
-  --text-300: #94a3b8;
-  --text-400: #64748b;
-  --text-500: #475569;
-
-  /* Borders */
-  --border-soft: rgba(255,255,255,0.06);
-  --border-mid:  rgba(245,197,24,0.16);
-  --border-hot:  rgba(245,197,24,0.45);
-
-  /* Status */
-  --green:       #10b981;
-  --green-light: #34d399;
-  --green-glow:  rgba(16,185,129,0.18);
-  --red:         #f43f5e;
-  --red-light:   #fb7185;
-  --red-glow:    rgba(244,63,94,0.18);
-  --amber:       #f59e0b;
-  --amber-light: #fbbf24;
-
-  /* Shape */
-  --r-xs:   6px;
-  --r-sm:  10px;
-  --r-md:  14px;
-  --r-lg:  20px;
-  --r-xl:  28px;
-  --r-full: 9999px;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 6px rgba(0,0,0,0.5);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.65);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.85);
-
-  /* Layout */
-  --sidebar-w: 268px;
-  --header-h:  64px;
-  --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-}
-
-/* ============================================================
-   2. RESET
-   ============================================================ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { height: 100%; }
-
-body {
-  font-family: var(--font);
-  background: var(--bg-1);
-  color: var(--text-100);
-  min-height: 100%;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
-
-button, input, select, textarea {
-  font-family: inherit;
-  color: inherit;
-  font-size: max(16px, 1em); /* Prevents iOS zoom */
-}
-button { font-size: inherit; cursor: pointer; }
-
-a { color: inherit; text-decoration: none; }
-
-/* ============================================================
-   3. APP SHELL
-   ============================================================ */
-.app-container {
-  display: flex;
-  min-height: 100vh;
-  background:
-    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(245,197,24,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 60% at 90% 100%, rgba(245,197,24,0.04) 0%, transparent 60%),
-    var(--bg-0);
-}
-
-/* ============================================================
-   4. SIDEBAR
-   ============================================================ */
-.sidebar {
-  width: var(--sidebar-w);
-  background: var(--bg-1);
-  border-right: 1px solid var(--border-soft);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 40;
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-
-.brand-section {
-  padding: 18px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  border-bottom: 1px solid var(--border-soft);
-  background: linear-gradient(180deg, rgba(245,197,24,0.05) 0%, transparent 100%);
-  min-height: 90px;
-}
-
-.brand-logo-img {
-  width: 100%;
-  max-width: 180px;
-  height: auto;
-  max-height: 68px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 12px rgba(245,197,24,0.25));
-}
-
-.mobile-drawer-close {
-  display: none;
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  background: var(--bg-3);
-  border: 1px solid var(--border-soft);
-  color: var(--text-300);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-full);
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-}
-.mobile-drawer-close:hover {
-  background: var(--bg-4);
-  color: var(--text-100);
-}
-
-.nav-menu {
-  padding: 12px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.nav-menu::-webkit-scrollbar { display: none; }
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 14px;
-  border-radius: var(--r-md);
-  color: var(--text-300);
-  font-size: 0.9rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  background: transparent;
-  width: 100%;
-  text-align: left;
-  transition: all 0.18s ease;
-  position: relative;
-}
-
-.nav-icon { font-size: 1.1rem; flex-shrink: 0; width: 22px; text-align: center; }
-.nav-label { flex: 1; }
-
-.nav-item:hover {
-  background: var(--bg-3);
-  color: var(--text-200);
-  border-color: var(--border-soft);
-}
-
-.nav-item.active {
-  background: linear-gradient(90deg, rgba(245,197,24,0.15) 0%, rgba(245,197,24,0.04) 100%);
-  color: var(--yellow);
-  border-color: var(--yellow-border);
-  font-weight: 700;
-}
-
-.nav-item.active .nav-icon { filter: none; }
-
-.nav-badge {
-  margin-left: auto;
-  font-size: 0.72rem;
-  padding: 2px 7px;
-  border-radius: var(--r-full);
-  background: rgba(244,63,94,0.18);
-  color: var(--red-light);
-  font-weight: 800;
-  border: 1px solid rgba(244,63,94,0.25);
-}
-
-.sidebar-footer {
-  padding: 14px;
-  border-top: 1px solid var(--border-soft);
-}
-
-.business-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.business-avatar-logo {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-  border-radius: var(--r-sm);
-  background: #000;
-  border: 1px solid var(--yellow-border);
-  padding: 2px;
-  flex-shrink: 0;
-}
-
-.business-name {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--yellow);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.business-role {
-  font-size: 0.7rem;
-  color: var(--text-400);
-}
-
-/* ============================================================
-   5. MAIN WRAPPER & HEADER
-   ============================================================ */
-.main-wrapper {
-  flex: 1;
-  margin-left: var(--sidebar-w);
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.top-header {
-  height: var(--header-h);
-  background: rgba(8,10,15,0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-soft);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  gap: 12px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-}
-
-/* Hamburger Button */
-.mobile-menu-btn {
-  display: none;
-  flex-direction: column;
-  gap: 5px;
-  background: var(--bg-3);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-sm);
-  padding: 8px 9px;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s;
-}
-.mobile-menu-btn:hover { background: var(--bg-4); border-color: var(--border-mid); }
-
-.hamburger-line {
-  display: block;
-  width: 18px;
-  height: 2px;
-  background: var(--text-200);
-  border-radius: 2px;
-  transition: all 0.2s;
-}
-
-.header-logo-compact {
-  height: 32px;
-  width: auto;
-  object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 1px 6px rgba(245,197,24,0.25));
-}
-
-.page-title-group {
-  min-width: 0;
-}
-
-.page-title-group h1 {
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-
-.page-title-group p {
-  font-size: 0.72rem;
-  color: var(--text-400);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: none; /* Hide subtitle on mobile header to save space */
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-/* Icon-only header buttons */
-.header-icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-md);
-  background: var(--bg-3);
-  border: 1px solid var(--border-soft);
-  color: var(--text-200);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  transition: all 0.18s ease;
-  flex-shrink: 0;
-}
-.header-icon-btn:hover {
-  background: var(--bg-4);
-  border-color: var(--border-mid);
-  transform: translateY(-1px);
-}
-
-.header-icon-btn--primary {
-  background: var(--yellow);
-  border-color: var(--yellow);
-  color: #020304;
-  font-size: 1.3rem;
-  font-weight: 800;
-  box-shadow: 0 2px 12px var(--yellow-glow);
-}
-.header-icon-btn--primary:hover {
-  background: var(--yellow-light);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 18px var(--yellow-glow);
-}
-
-/* ============================================================
-   6. PAGE CONTENT
-   ============================================================ */
-.page-content {
-  padding: 20px;
-  flex: 1;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.22s ease both;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ============================================================
-   7. CARDS
-   ============================================================ */
-.card {
-  background: var(--bg-2);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-lg);
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.card-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text-100);
-}
-
-.card-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-400);
-  margin-top: 2px;
-}
-
-/* ============================================================
-   8. KPI CARDS (DASHBOARD)
-   ============================================================ */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.kpi-card {
-  background: var(--bg-2);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-lg);
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.kpi-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 80% 20%, rgba(245,197,24,0.04) 0%, transparent 60%);
-  pointer-events: none;
-}
-
-.kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--yellow-border);
-}
-
-.kpi-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.kpi-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-400);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.kpi-icon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.kpi-icon-emerald { background: rgba(245,197,24,0.12); border: 1px solid rgba(245,197,24,0.22); }
-.kpi-icon-indigo  { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
-.kpi-icon-amber   { background: rgba(245,158,11,0.12);  border: 1px solid rgba(245,158,11,0.22); }
-.kpi-icon-rose    { background: rgba(244,63,94,0.12);   border: 1px solid rgba(244,63,94,0.22); }
-
-.kpi-value {
-  font-size: 1.7rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text-100);
-  line-height: 1;
-}
-
-.kpi-footer {
-  font-size: 0.75rem;
-  color: var(--text-400);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ============================================================
-   9. BUTTONS
-   ============================================================ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 10px 18px;
-  border-radius: var(--r-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  transition: all 0.18s ease;
-  text-decoration: none;
-  min-height: 42px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--yellow), var(--yellow-hover));
-  color: #020304;
-  font-weight: 800;
-  border-color: rgba(255,255,255,0.15);
-  box-shadow: 0 2px 14px var(--yellow-glow);
-}
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--yellow-light), var(--yellow));
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px var(--yellow-glow);
-}
-.btn-primary:active { transform: translateY(0); }
-
-.btn-secondary {
-  background: var(--bg-3);
-  color: var(--text-200);
-  border-color: var(--border-soft);
-}
-.btn-secondary:hover {
-  background: var(--bg-4);
-  border-color: var(--border-mid);
-  color: var(--text-100);
-}
-
-.btn-danger {
-  background: rgba(244,63,94,0.12);
-  color: var(--red-light);
-  border-color: rgba(244,63,94,0.22);
-}
-.btn-danger:hover {
-  background: rgba(244,63,94,0.22);
-  border-color: rgba(244,63,94,0.4);
-}
-
-.btn-success {
-  background: rgba(16,185,129,0.12);
-  color: var(--green-light);
-  border-color: rgba(16,185,129,0.22);
-}
-.btn-success:hover {
-  background: rgba(16,185,129,0.22);
-}
-
-.btn-sm {
-  padding: 7px 13px;
-  font-size: 0.82rem;
-  min-height: 36px;
-  border-radius: var(--r-sm);
-}
-
-.btn-lg {
-  padding: 13px 24px;
-  font-size: 0.95rem;
-  min-height: 50px;
-}
-
-/* Quick action buttons (dashboard) */
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.quick-action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 18px 14px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border-soft);
-  background: var(--bg-2);
-  color: var(--text-200);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-
-.quick-action-btn:hover {
-  background: var(--bg-3);
-  border-color: var(--yellow-border);
-  color: var(--yellow);
-  transform: translateY(-2px);
-}
-
-.quick-action-icon {
-  font-size: 1.6rem;
-  line-height: 1;
-}
-
-/* ============================================================
-   10. FORMS
-   ============================================================ */
-.form-group { margin-bottom: 14px; }
-
-.form-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-300);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.form-control {
-  width: 100%;
-  background: var(--bg-3);
-  border: 1.5px solid var(--border-soft);
-  border-radius: var(--r-md);
-  color: var(--text-100);
-  padding: 11px 14px;
-  font-size: max(16px, 0.9rem);
-  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
-  min-height: 46px;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--yellow);
-  background: var(--bg-4);
-  box-shadow: 0 0 0 3px rgba(245,197,24,0.12);
-}
-
-.form-control::placeholder { color: var(--text-500); }
-
-select.form-control {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 38px;
-  cursor: pointer;
-}
-
-textarea.form-control { resize: vertical; min-height: 80px; }
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-/* ============================================================
-   11. TABLES
-   ============================================================ */
-.table-responsive {
-  overflow-x: auto;
-  border-radius: var(--r-md);
-  -webkit-overflow-scrolling: touch;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.table th {
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-400);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--border-soft);
-  white-space: nowrap;
-  background: var(--bg-2);
-}
-
-.table td {
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  vertical-align: middle;
-  color: var(--text-200);
-}
-
-.table tbody tr:hover { background: rgba(255,255,255,0.025); }
-.table tbody tr:last-child td { border-bottom: none; }
-
-/* Mobile Card View for Tables */
-@media (max-width: 640px) {
-  .table-mobile-card-view thead { display: none; }
-  .table-mobile-card-view tbody { display: flex; flex-direction: column; gap: 10px; }
-  .table-mobile-card-view tbody tr {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px 12px;
-    background: var(--bg-3);
-    border: 1px solid var(--border-soft);
-    border-radius: var(--r-md);
-    padding: 12px;
-    position: relative;
+// src/main.js
+// Ponto de Entrada da Aplicação e Roteamento de Telas - Vando Motos Locadora LTDA
+
+import { state } from './js/state.js';
+import { renderDashboard } from './js/components/dashboard.js';
+import { renderLoans } from './js/components/loans.js';
+import { renderInstallments } from './js/components/installments.js';
+import { renderRenegotiation } from './js/components/renegotiation.js';
+import { renderClients } from './js/components/clients.js';
+import { renderSettings } from './js/components/settings.js';
+import { createPaymentModal } from './js/components/paymentModal.js';
+import { createClientModal } from './js/components/clientModal.js';
+import { createReceiptModal } from './js/components/receiptModal.js';
+import { createPixModal } from './js/pix.js';
+import { createCashRegisterModal } from './js/components/cashRegisterModal.js';
+import { formatDateForInput } from './js/utils.js';
+
+let currentTab = 'dashboard';
+let currentTabOptions = {};
+
+// Inicializa os Modais Globais
+createPaymentModal();
+createClientModal();
+createReceiptModal();
+createPixModal();
+createCashRegisterModal();
+
+// Roteamento de Abas
+export function navigateToTab(tabName, options = {}) {
+  currentTab = tabName;
+  currentTabOptions = options;
+
+  const contentView = document.getElementById('main-content-view');
+  const titleEl = document.getElementById('top-page-title');
+  const subtitleEl = document.getElementById('top-page-subtitle');
+
+  // Atualiza botões ativos na Sidebar e no Mobile Nav
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+
+  // Fecha a gaveta mobile se estiver aberta
+  closeMobileDrawer();
+
+  // Limpa o conteúdo anterior
+  contentView.innerHTML = '';
+
+  // Renderiza a tela selecionada
+  switch (tabName) {
+    case 'dashboard':
+      titleEl.textContent = 'Painel Geral';
+      subtitleEl.textContent = 'Vando motos locadora LTDA • Acompanhamento em tempo real';
+      contentView.appendChild(renderDashboard());
+      break;
+
+    case 'loans':
+      titleEl.textContent = 'Simular & Empréstimos';
+      subtitleEl.textContent = 'Simulador de parcelas e emissão de contratos & promissórias';
+      contentView.appendChild(renderLoans());
+      break;
+
+    case 'installments':
+      titleEl.textContent = 'Parcelas & Cobrança';
+      subtitleEl.textContent = 'Recebimentos, baixas, PIX Copia e Cola e WhatsApp';
+      contentView.appendChild(renderInstallments(options));
+      break;
+
+    case 'renegotiation':
+      titleEl.textContent = 'Renegociação de Dívidas';
+      subtitleEl.textContent = 'Agrupar parcelas em atraso em um novo contrato formal';
+      contentView.appendChild(renderRenegotiation(options.clientId));
+      break;
+
+    case 'clients':
+      titleEl.textContent = 'Gestão de Clientes';
+      subtitleEl.textContent = 'Cadastro de clientes, limites e histórico financeiro';
+      contentView.appendChild(renderClients());
+      break;
+
+    case 'settings':
+      titleEl.textContent = 'Configurações do Sistema';
+      subtitleEl.textContent = 'Vando motos locadora LTDA • CNPJ 28.623.431-0001-23 • Chave PIX e backups';
+      contentView.appendChild(renderSettings());
+      break;
+
+    default:
+      titleEl.textContent = 'Painel Geral';
+      subtitleEl.textContent = 'Acompanhamento financeiro';
+      contentView.appendChild(renderDashboard());
+      break;
   }
-  .table-mobile-card-view td {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 4px 0;
-    border: none;
-    font-size: 0.82rem;
+
+  updateOverdueBadge();
+}
+
+export function refreshCurrentTab() {
+  navigateToTab(currentTab, currentTabOptions);
+}
+
+export function updateBrandDisplay() {
+  const settings = state.getSettings();
+  const brandTitle = document.getElementById('display-brand-title');
+  const footerBusiness = document.getElementById('footer-business-name');
+
+  if (brandTitle) {
+    brandTitle.textContent = 'Vando Motos';
   }
-  .table-mobile-card-view td::before {
-    content: attr(data-label);
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--text-400);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .table-mobile-card-view td[data-label="Ações"],
-  .table-mobile-card-view td:last-child {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-soft);
-    margin-top: 4px;
+  if (footerBusiness && settings.businessName) {
+    footerBusiness.textContent = settings.businessName;
   }
 }
 
-/* ============================================================
-   12. BADGES & STATUS
-   ============================================================ */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--r-full);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
+function updateOverdueBadge() {
+  const todayStr = formatDateForInput(new Date());
+  const insts = state.getInstallments();
+  const overdueCount = insts.filter(i => i.status !== 'paid' && i.status !== 'renegotiated' && i.dueDate < todayStr).length;
 
-.badge-paid {
-  background: rgba(16,185,129,0.12);
-  color: var(--green-light);
-  border-color: rgba(16,185,129,0.25);
-}
-.badge-pending {
-  background: rgba(245,197,24,0.12);
-  color: var(--yellow);
-  border-color: var(--yellow-border);
-}
-.badge-overdue {
-  background: rgba(244,63,94,0.12);
-  color: var(--red-light);
-  border-color: rgba(244,63,94,0.25);
-}
-.badge-renegotiated {
-  background: rgba(99,102,241,0.12);
-  color: #a5b4fc;
-  border-color: rgba(99,102,241,0.25);
-}
-
-/* ============================================================
-   13. ALERTS (DASHBOARD)
-   ============================================================ */
-.alert-overdue {
-  background: linear-gradient(135deg, rgba(244,63,94,0.10) 0%, rgba(244,63,94,0.06) 100%);
-  border: 1px solid rgba(244,63,94,0.3);
-  border-radius: var(--r-lg);
-  padding: 16px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.alert-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r-full);
-  background: rgba(244,63,94,0.15);
-  color: var(--red-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 1rem;
-}
-
-.alert-content { flex: 1; min-width: 0; }
-.alert-title { font-size: 0.9rem; font-weight: 700; color: var(--red-light); margin-bottom: 2px; }
-.alert-body { font-size: 0.8rem; color: var(--text-300); }
-
-/* ============================================================
-   14. MODALS
-   ============================================================ */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 100;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.22s ease, visibility 0.22s ease;
-}
-
-.modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.modal-card {
-  background: var(--bg-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--r-xl);
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-lg);
-  transform: translateY(24px) scale(0.97);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-
-.modal-overlay.active .modal-card {
-  transform: translateY(0) scale(1);
-}
-
-.modal-header {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border-soft);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-
-.modal-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-
-.modal-close-btn {
-  background: var(--bg-3);
-  border: 1px solid var(--border-soft);
-  color: var(--text-400);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  transition: all 0.18s;
-  flex-shrink: 0;
-}
-.modal-close-btn:hover {
-  background: var(--bg-4);
-  color: var(--text-100);
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-.modal-footer {
-  padding: 14px 20px;
-  border-top: 1px solid var(--border-soft);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  background: var(--bg-1);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-/* ============================================================
-   15. TABS
-   ============================================================ */
-.tabs-bar {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 18px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 2px;
-}
-.tabs-bar::-webkit-scrollbar { display: none; }
-
-.tab-btn {
-  flex-shrink: 0;
-  padding: 9px 18px;
-  border-radius: var(--r-full);
-  font-size: 0.82rem;
-  font-weight: 700;
-  border: 1.5px solid var(--border-soft);
-  background: transparent;
-  color: var(--text-300);
-  cursor: pointer;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-}
-.tab-btn:hover {
-  background: var(--bg-3);
-  color: var(--text-200);
-  border-color: var(--border-mid);
-}
-.tab-btn.active {
-  background: var(--yellow);
-  color: #020304;
-  border-color: var(--yellow);
-  box-shadow: 0 2px 12px var(--yellow-glow);
-}
-
-/* ============================================================
-   16. LOAN SIMULATOR LAYOUT
-   ============================================================ */
-.loan-simulator-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
-
-.loan-card-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-/* ============================================================
-   17. CLIENTS VIEW
-   ============================================================ */
-.clients-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.client-card {
-  background: var(--bg-3);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-lg);
-  padding: 16px;
-  transition: border-color 0.18s;
-}
-.client-card:hover { border-color: var(--border-mid); }
-
-/* ============================================================
-   18. SIDEBAR BACKDROP (MOBILE)
-   ============================================================ */
-.sidebar-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 35;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-.sidebar-backdrop.open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* ============================================================
-   19. TOAST NOTIFICATIONS
-   ============================================================ */
-#toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 999;
-  max-width: calc(100vw - 32px);
-}
-
-.toast {
-  background: var(--bg-4);
-  border: 1px solid var(--border-soft);
-  color: var(--text-100);
-  padding: 12px 16px;
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  max-width: 360px;
-  animation: slideInRight 0.3s ease;
-}
-
-.toast-success { border-color: rgba(16,185,129,0.35); }
-.toast-success .toast-icon { color: var(--green-light); }
-.toast-error { border-color: rgba(244,63,94,0.35); }
-.toast-error .toast-icon { color: var(--red-light); }
-
-@keyframes slideInRight {
-  from { transform: translateX(110%); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
-}
-
-.fade-out {
-  opacity: 0;
-  transform: translateY(8px) translateX(0);
-  transition: all 0.3s ease;
-}
-
-/* ============================================================
-   20. RENEGOTIATION LAYOUT
-   ============================================================ */
-.renegotiation-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ============================================================
-   21. INSTALLMENT FILTERS
-   ============================================================ */
-.filter-bar {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-
-/* ============================================================
-   22. GRID UTILITIES
-   ============================================================ */
-.grid-auto-fit {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-}
-
-.flex-wrap-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-/* ============================================================
-   23. PROGRESS BAR
-   ============================================================ */
-.progress-wrap {
-  height: 6px;
-  background: var(--bg-4);
-  border-radius: var(--r-full);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: var(--r-full);
-  background: linear-gradient(90deg, var(--green), var(--green-light));
-  transition: width 0.4s ease;
-}
-
-/* ============================================================
-   24. SCROLLBAR (WEBKIT)
-   ============================================================ */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-5); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--bg-4); }
-
-/* ============================================================
-   25. PRINT STYLES
-   ============================================================ */
-@media print {
-  .sidebar, .top-header, #toast-container, .modal-overlay { display: none !important; }
-  .main-wrapper { margin-left: 0 !important; }
-  body { background: #fff !important; color: #000 !important; }
-}
-
-/* ============================================================
-   26. RESPONSIVE — TABLET (< 1024px)
-   ============================================================ */
-@media (max-width: 1024px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-    box-shadow: 4px 0 40px rgba(0,0,0,0.8);
-  }
-  .sidebar-backdrop { display: block; }
-  .mobile-drawer-close { display: flex; }
-
-  .main-wrapper { margin-left: 0; }
-  .mobile-menu-btn { display: flex; }
-
-  .loan-simulator-layout {
-    grid-template-columns: 1fr;
+  const badge = document.getElementById('badge-overdue-count');
+  if (badge) {
+    if (overdueCount > 0) {
+      badge.textContent = overdueCount;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 }
 
-/* ============================================================
-   27. RESPONSIVE — MOBILE (< 768px)
-   ============================================================ */
-@media (max-width: 768px) {
-  .page-content { padding: 14px 12px; }
+// Controle do Menu Lateral Mobile
+const sidebar = document.getElementById('app-sidebar');
+const backdrop = document.getElementById('sidebar-backdrop');
+const mobileToggleBtn = document.getElementById('mobile-toggle-btn');
+const closeSidebarBtn = document.getElementById('btn-close-sidebar');
 
-  .kpi-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .kpi-card { padding: 14px; }
-  .kpi-value { font-size: 1.35rem; }
-
-  .card { padding: 14px; border-radius: var(--r-lg); }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .quick-actions-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .quick-action-btn { padding: 14px 10px; }
-
-  .modal-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
-  .modal-card {
-    max-height: 92dvh;
-    border-radius: var(--r-xl) var(--r-xl) 0 0;
-    width: 100%;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .modal-body {
-    padding: 16px 14px;
-  }
-  .modal-header { padding: 14px 16px; }
-  .modal-footer {
-    padding: 12px 14px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
-    flex-direction: column-reverse;
-    gap: 8px;
-  }
-  .modal-footer .btn {
-    width: 100%;
-    justify-content: center;
-    min-height: 46px;
-  }
-
-  .top-header { padding: 0 12px; height: 58px; }
-
-  .loan-card-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .loan-card-actions .btn { width: 100%; justify-content: center; font-size: 0.78rem; }
-
-  .tabs-bar { gap: 6px; margin-bottom: 14px; }
-  .tab-btn { padding: 8px 14px; font-size: 0.78rem; }
-
-  #toast-container { bottom: 16px; right: 12px; left: 12px; }
-  .toast { max-width: 100%; }
+function openMobileDrawer() {
+  sidebar.classList.add('open');
+  backdrop.classList.add('open');
 }
 
-/* ============================================================
-   28. RESPONSIVE — SMALL MOBILE (< 480px)
-   ============================================================ */
-@media (max-width: 480px) {
-  .kpi-value { font-size: 1.2rem; }
-  .kpi-label { font-size: 0.68rem; }
-  .kpi-icon-wrap { width: 32px; height: 32px; font-size: 0.95rem; }
-
-  .quick-action-btn { padding: 12px 8px; font-size: 0.75rem; gap: 6px; }
-  .quick-action-icon { font-size: 1.3rem; }
-
-  .btn-sm { padding: 6px 10px; font-size: 0.78rem; min-height: 34px; }
-
-  .client-card { padding: 12px; }
-
-  .page-content { padding: 10px 10px; }
+function closeMobileDrawer() {
+  sidebar.classList.remove('open');
+  backdrop.classList.remove('open');
 }
 
-/* ============================================================
-   29. TOUCH DEVICES — REMOVE HOVER EFFECTS
-   ============================================================ */
-@media (hover: none) and (pointer: coarse) {
-  .kpi-card:hover { transform: none; border-color: var(--border-soft); }
-  .btn-primary:hover { transform: none; box-shadow: 0 2px 14px var(--yellow-glow); }
-  .header-icon-btn:hover { transform: none; }
-  .quick-action-btn:hover { transform: none; }
+if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', openMobileDrawer);
+if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeMobileDrawer);
+if (backdrop) backdrop.addEventListener('click', closeMobileDrawer);
 
-  /* Bigger tap targets */
-  .btn { min-height: 44px; }
-  .btn-sm { min-height: 38px; }
-  .form-control { min-height: 48px; }
-  .tab-btn { min-height: 40px; }
-  .nav-item { min-height: 48px; }
+// Listeners de Navegação (Desktop Sidebar)
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigateToTab(btn.dataset.tab);
+  });
+});
+
+// Atalhos do Cabeçalho Superior
+document.getElementById('btn-header-caixa')?.addEventListener('click', () => {
+  if (window.openCashRegisterModal) {
+    window.openCashRegisterModal();
+  }
+});
+
+document.getElementById('btn-header-quick-sim')?.addEventListener('click', () => {
+  navigateToTab('loans');
+});
+
+document.getElementById('btn-header-quick-client')?.addEventListener('click', () => {
+  window.openClientModal();
+});
+
+// Registra funções globais de janela
+window.navigateToTab = navigateToTab;
+window.refreshCurrentTab = refreshCurrentTab;
+window.updateBrandDisplay = updateBrandDisplay;
+
+// Observa mudanças de estado para atualizar badges
+state.subscribe(() => {
+  updateOverdueBadge();
+});
+
+// Registra Service Worker (PWA para Celular e Computador)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.log('SW registration error:', err);
+    });
+  });
 }
+
+// Inicialização
+updateBrandDisplay();
+navigateToTab('dashboard');
