@@ -1220,7 +1220,6 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   }
 
   .top-header { padding: 0 12px; height: 58px; }
-  --header-h: 58px;
 
   .loan-card-actions {
     display: grid;
