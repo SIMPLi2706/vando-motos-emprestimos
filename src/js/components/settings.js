@@ -114,31 +114,35 @@ export function renderSettings() {
       </div>
 
       <!-- Card: Backup e Segurança de Dados -->
-      <div class="card" style="grid-column: 1 / -1;">
+      <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">🛡️ Backup e Segurança dos Dados</h3>
-            <p class="card-subtitle">Exporte seus dados com segurança ou restaure cópias anteriores</p>
+            <h3 class="card-title">🛡️ Backup & Segurança</h3>
+            <p class="card-subtitle">Exporte, restaure ou redefina o sistema</p>
           </div>
         </div>
 
-        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-          <button class="btn btn-primary" id="btn-export-backup">
-            📥 Baixar Backup Completo (JSON)
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="btn btn-primary" id="btn-export-backup" style="justify-content: flex-start;">
+            📥 Baixar Backup (JSON)
           </button>
 
-          <label class="btn btn-secondary" style="cursor: pointer; margin-bottom: 0;">
+          <label class="btn btn-secondary" style="cursor: pointer; margin-bottom: 0; justify-content: flex-start;">
             📤 Restaurar Backup de Arquivo
             <input type="file" id="input-import-backup" accept=".json" style="display: none;">
           </label>
 
-          <button class="btn btn-secondary" id="btn-reset-demo" style="color: var(--amber-400);">
-            🔄 Recarregar Dados de Exemplo
-          </button>
-
-          <button class="btn btn-danger" id="btn-wipe-all">
-            🗑️ Zerar Todos os Dados
-          </button>
+          <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; margin-top: 4px;">
+            <p style="font-size: 0.75rem; color: var(--text-400); margin-bottom: 10px;">⚠️ Zona de perigo — ações irreversíveis</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-secondary" id="btn-reset-demo" style="color: var(--amber-light); border-color: rgba(245,158,11,0.22); justify-content: flex-start;">
+                🔄 Recarregar Dados de Exemplo
+              </button>
+              <button class="btn btn-danger" id="btn-wipe-all" style="justify-content: flex-start;">
+                🗑️ ZERAR TODOS OS DADOS (Sistema Novo)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -216,12 +220,12 @@ export function renderSettings() {
 
     // Zerar Todos os Dados
     container.querySelector('#btn-wipe-all').addEventListener('click', () => {
-      if (confirm('ATENÇÃO: Deseja apagar TODOS os clientes, empréstimos e parcelas? Esta ação não pode ser desfeita.')) {
+      if (confirm('ATENÇÃO: Isso vai apagar TODOS os clientes, empréstimos e parcelas. O sistema ficará vazio como novo. Confirmar?')) {
         state.data.clients = [];
         state.data.loans = [];
         state.data.installments = [];
         state.save();
-        showToast('Todos os dados foram zerados.', 'info');
+        showToast('Sistema zerado. Pronto para uso!', 'success');
         window.refreshCurrentTab();
       }
     });

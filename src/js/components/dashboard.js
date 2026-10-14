@@ -77,32 +77,33 @@ export function renderDashboard() {
   container.innerHTML = `
     <!-- Banner de Alerta se houver atrasos -->
     ${atrasadasQtd > 0 ? `
-      <div class="alert-banner">
-        <div class="alert-banner-left">
-          <div class="alert-icon">⚠️</div>
-          <div>
-            <h4 style="font-weight: 700; color: #fff;">Atenção: ${atrasadasQtd} parcela(s) em atraso</h4>
-            <p style="font-size: 0.85rem; color: #cbd5e1;">
-              Total pendente atualizado com juros e multa: <strong>${formatBRL(atrasadasTotal)}</strong>
-            </p>
+      <div class="alert-overdue">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+          <div class="alert-title">Atenção: ${atrasadasQtd} parcela(s) em atraso</div>
+          <div class="alert-body">
+            Total pendente com juros e multa: <strong style="color: var(--red-light);">${formatBRL(atrasadasTotal)}</strong>
           </div>
+          <button class="btn btn-danger btn-sm" id="btn-ver-atrasadas" style="margin-top: 10px;">
+            Ver Inadimplentes e Cobrar
+          </button>
         </div>
-        <button class="btn btn-danger btn-sm" id="btn-ver-atrasadas">
-          Ver Inadimplentes e Cobrar
-        </button>
       </div>
     ` : ''}
 
     <!-- Atalhos Rápidos do Dia -->
-    <div class="quick-actions-row">
-      <button class="btn btn-secondary btn-sm" id="btn-dash-caixa">
-        💰 Fechamento de Caixa Diário
+    <div class="quick-actions-grid">
+      <button class="quick-action-btn" id="btn-dash-caixa">
+        <span class="quick-action-icon">💰</span>
+        <span>Fechamento de Caixa</span>
       </button>
-      <button class="btn btn-secondary btn-sm" id="btn-dash-reneg" style="color: var(--amber-400);">
-        🔄 Renegociar Dívidas
+      <button class="quick-action-btn" id="btn-dash-reneg">
+        <span class="quick-action-icon">🔄</span>
+        <span>Renegociar Dívidas</span>
       </button>
-      <button class="btn btn-secondary btn-sm" id="btn-dash-novo-emp">
-        ➕ Novo Empréstimo
+      <button class="quick-action-btn" id="btn-dash-novo-emp">
+        <span class="quick-action-icon">➕</span>
+        <span>Novo Empréstimo</span>
       </button>
     </div>
 

@@ -39,9 +39,6 @@ export function navigateToTab(tabName, options = {}) {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
 
-  document.querySelectorAll('.mobile-nav-item').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tabName);
-  });
 
   // Fecha a gaveta mobile se estiver aberta
   closeMobileDrawer();
@@ -157,12 +154,6 @@ document.querySelectorAll('.nav-item').forEach(btn => {
   });
 });
 
-// Listeners de Navegação (Mobile Bottom Bar)
-document.querySelectorAll('.mobile-nav-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    navigateToTab(btn.dataset.tab);
-  });
-});
 
 // Atalhos do Cabeçalho Superior
 document.getElementById('btn-header-caixa')?.addEventListener('click', () => {
