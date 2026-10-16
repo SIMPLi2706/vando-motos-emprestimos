@@ -104,38 +104,46 @@ export function renderClients(options = {}) {
       return `
         <tr>
           <td data-label="Cliente">
-            <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${c.name}</div>
-            <div style="font-size: 0.75rem; color: var(--text-400);">
-              CPF: ${c.cpf || 'Não informado'} ${c.address ? `• ${c.address}` : ''}
+            <div class="td-cell-val">
+              <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${c.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-400);">CPF: ${c.cpf || 'Não informado'}</div>
             </div>
           </td>
           <td data-label="Telefone">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span>${c.phone || '-'}</span>
-              ${c.phone ? `
-                <a href="${createWhatsAppUrl(c.phone, `Olá, ${c.name}! Tudo bem?`)}" target="_blank" class="btn btn-whatsapp btn-sm" style="padding: 2px 8px; font-size: 0.72rem; min-height: 26px;">
-                  WhatsApp
-                </a>
-              ` : ''}
+            <div class="td-cell-val">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span>${c.phone || '-'}</span>
+                ${c.phone ? `
+                  <a href="${createWhatsAppUrl(c.phone, `Olá, ${c.name}!`)}" target="_blank" class="btn btn-whatsapp btn-sm" style="padding: 2px 8px; font-size: 0.72rem; min-height: 24px;">
+                    WhatsApp
+                  </a>
+                ` : ''}
+              </div>
             </div>
           </td>
           <td data-label="Limite">
-            <span style="font-weight: 600; color: var(--yellow);">${formatBRL(c.creditLimit || 0)}</span>
+            <div class="td-cell-val">
+              <span style="font-weight: 700; color: var(--yellow);">${formatBRL(c.creditLimit || 0)}</span>
+            </div>
           </td>
           <td data-label="Contratos">
-            <span style="font-weight: 700;">${activeLoans.length}</span> contrato(s)
+            <div class="td-cell-val">
+              <span style="font-weight: 700;">${activeLoans.length}</span> contrato(s)
+            </div>
           </td>
-          <td data-label="Status">${statusBadge}</td>
+          <td data-label="Status">
+            <div class="td-cell-val">${statusBadge}</div>
+          </td>
           <td class="td-actions" data-label="Ações">
             <div class="client-actions-wrap">
+              <button class="btn btn-secondary btn-sm btn-edit-client" data-id="${c.id}" title="Editar Dados">
+                Editar
+              </button>
               <button class="btn btn-secondary btn-sm btn-pdf-client" data-id="${c.id}" title="Gerar Dossiê do Cliente (PDF)">
                 PDF
               </button>
               <button class="btn btn-secondary btn-sm btn-reneg-client" data-id="${c.id}" title="Renegociar Dívidas">
                 Renegociar
-              </button>
-              <button class="btn btn-secondary btn-sm btn-edit-client" data-id="${c.id}" title="Editar Dados">
-                Editar
               </button>
               <button class="btn btn-danger btn-sm btn-del-client" data-id="${c.id}" title="Excluir Cliente">
                 Excluir

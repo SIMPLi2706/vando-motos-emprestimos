@@ -143,8 +143,14 @@ export function renderLoans(options = {}) {
             Cronograma de Vencimentos:
           </div>
 
-          <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
-            <table class="table" id="sim-tabela-parcelas">
+          <div class="scroll-hint-mobile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span>Deslize a tabela para ver todas as colunas</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+
+          <div class="table-responsive table-scroll-x" style="max-height: 320px; overflow-x: auto !important; overflow-y: auto;">
+            <table class="table" id="sim-tabela-parcelas" style="min-width: 500px;">
               <thead>
                 <tr>
                   <th>Nº</th>

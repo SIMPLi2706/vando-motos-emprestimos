@@ -74,7 +74,7 @@ export function createCashRegisterModal() {
           <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-dim);" id="caixa-contagem-lancamentos">0 lançamentos</span>
         </h4>
 
-        <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+        <div class="table-responsive table-scroll-x" style="max-height: 360px; overflow-x: auto !important; overflow-y: auto;">
           <table class="table table-mobile-card-view" id="caixa-table-entries">
             <thead>
               <tr>
@@ -149,20 +149,30 @@ export function createCashRegisterModal() {
     tbody.innerHTML = report.entries.map(e => `
       <tr>
         <td data-label="Cliente">
-          <div style="font-weight: 700; color: #fff;">${e.clientName}</div>
-          <div style="font-size: 0.75rem; color: var(--text-dim);">${e.clientPhone || ''}</div>
+          <div class="td-cell-val">
+            <div style="font-weight: 700; color: #fff;">${e.clientName}</div>
+            <div style="font-size: 0.75rem; color: var(--text-400);">${e.clientPhone || ''}</div>
+          </div>
         </td>
-        <td data-label="Parcela">#${e.installmentNumber}</td>
+        <td data-label="Parcela">
+          <div class="td-cell-val">#${e.installmentNumber}</div>
+        </td>
         <td data-label="Forma">
-          <span class="badge ${e.method.toUpperCase().includes('PIX') ? 'badge-paid' : 'badge-today'}">
-            ${e.method}
-          </span>
+          <div class="td-cell-val">
+            <span class="badge ${e.method.toUpperCase().includes('PIX') ? 'badge-paid' : 'badge-today'}">
+              ${e.method}
+            </span>
+          </div>
         </td>
-        <td data-label="Valor Pago" style="font-weight: 700; color: var(--emerald-400);">${formatBRL(e.amount)}</td>
-        <td data-label="Observação" style="font-size: 0.8rem; color: var(--text-muted);">${e.notes || '-'}</td>
+        <td data-label="Valor">
+          <div class="td-cell-val" style="font-weight: 700; color: var(--green);">${formatBRL(e.amount)}</div>
+        </td>
+        <td data-label="Obs" class="${!e.notes ? 'desktop-only-cell' : ''}">
+          <div class="td-cell-val" style="font-size: 0.8rem; color: var(--text-400);">${e.notes || '-'}</div>
+        </td>
         <td class="td-actions" data-label="Ação">
-          <button class="btn btn-secondary btn-sm btn-caixa-view-receipt" data-inst-id="${e.installmentId}">
-            📄 Recibo
+          <button class="btn btn-secondary btn-sm btn-caixa-view-receipt" data-inst-id="${e.installmentId}" style="width: 100%;">
+            Recibo
           </button>
         </td>
       </tr>

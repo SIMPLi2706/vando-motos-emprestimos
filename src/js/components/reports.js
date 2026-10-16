@@ -96,30 +96,34 @@ export function renderReports() {
     <!-- Topo de Ações do Relatório -->
     <div class="reports-header-bar">
       <div>
-        <h2 class="reports-page-title">Relatórios & Análise de Desempenho</h2>
-        <p class="reports-page-desc">Métricas gerenciais, receitas acumuladas e projeções da carteira da Vando Motos Locadora</p>
+        <h2 class="reports-page-title">Relatórios Financeiros</h2>
       </div>
       <div class="reports-actions">
         <button class="btn btn-secondary btn-sm" id="btn-export-csv" title="Exportar dados em formato CSV">
-          📥 Exportar CSV
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Exportar CSV
         </button>
         <button class="btn btn-secondary btn-sm" id="btn-print-reports" title="Imprimir Visão Atual">
-          🖨️ Imprimir
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Imprimir
         </button>
         <button class="btn btn-primary btn-sm" id="btn-generate-pdf-report" title="Gerar Relatório Oficial Mensal em PDF">
-          📄 Gerar Relatório PDF
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Relatório PDF
         </button>
       </div>
     </div>
 
     <!-- Grade de KPIs Resumidos -->
-    <div class="kpi-grid" style="margin-bottom: 24px;">
+    <div class="kpi-grid" style="margin-bottom: 20px;">
       <div class="kpi-card">
         <div class="kpi-header">
           <span class="kpi-label">Receita Realizada</span>
-          <div class="kpi-icon-wrap kpi-icon-emerald">📥</div>
+          <div class="kpi-icon-wrap kpi-icon-emerald">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
+          </div>
         </div>
-        <div class="kpi-value" style="color: var(--emerald-400);">${formatBRL(totalRecebidoHistorico)}</div>
+        <div class="kpi-value" style="color: var(--green);">${formatBRL(totalRecebidoHistorico)}</div>
         <div class="kpi-footer">
           <span>Total acumulado baixado em caixa</span>
         </div>
@@ -127,10 +131,12 @@ export function renderReports() {
 
       <div class="kpi-card">
         <div class="kpi-header">
-          <span class="kpi-label">Capital na Rua Atual</span>
-          <div class="kpi-icon-wrap kpi-icon-amber">💰</div>
+          <span class="kpi-label">Capital na Rua</span>
+          <div class="kpi-icon-wrap kpi-icon-amber">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
         </div>
-        <div class="kpi-value">${formatBRL(capitalNaRua)}</div>
+        <div class="kpi-value text-yellow">${formatBRL(capitalNaRua)}</div>
         <div class="kpi-footer">
           <span>Principal ainda não amortizado</span>
         </div>
@@ -138,10 +144,12 @@ export function renderReports() {
 
       <div class="kpi-card">
         <div class="kpi-header">
-          <span class="kpi-label">Taxa de Inadimplência</span>
-          <div class="kpi-icon-wrap kpi-icon-rose">🚨</div>
+          <span class="kpi-label">Inadimplência</span>
+          <div class="kpi-icon-wrap kpi-icon-rose">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </div>
         </div>
-        <div class="kpi-value" style="color: ${countOverdue > 0 ? 'var(--rose-400)' : 'var(--emerald-400)'};">${taxaInadimplencia}%</div>
+        <div class="kpi-value" style="color: ${countOverdue > 0 ? 'var(--red)' : 'var(--green)'};">${taxaInadimplencia}%</div>
         <div class="kpi-footer">
           <span>${countOverdue} parcela(s) vencida(s) em aberto</span>
         </div>
@@ -150,7 +158,9 @@ export function renderReports() {
       <div class="kpi-card">
         <div class="kpi-header">
           <span class="kpi-label">Contratos Ativos</span>
-          <div class="kpi-icon-wrap kpi-icon-indigo">📁</div>
+          <div class="kpi-icon-wrap kpi-icon-indigo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          </div>
         </div>
         <div class="kpi-value">${loans.filter(l => l.status === 'active').length}</div>
         <div class="kpi-footer">

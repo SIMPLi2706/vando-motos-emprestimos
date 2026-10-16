@@ -46,8 +46,14 @@ export function renderRenegotiation(initialClientId = null) {
             </div>
           </div>
 
-          <div class="table-responsive" style="max-height: 280px; overflow-y: auto; margin-bottom: 16px;">
-            <table class="table table-mobile-card-view" id="reneg-table-installments">
+          <div class="scroll-hint-mobile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span>Deslize a tabela para ver valores detalhados</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+
+          <div class="table-responsive table-scroll-x" style="max-height: 320px; overflow-x: auto !important; overflow-y: auto; margin-bottom: 16px;">
+            <table class="table table-mobile-card-view" id="reneg-table-installments" style="min-width: 520px;">
               <thead>
                 <tr>
                   <th style="width: 40px;"></th>
@@ -261,19 +267,33 @@ export function renderRenegotiation(initialClientId = null) {
 
       tbodyInsts.innerHTML = currentPendingInsts.map(i => `
         <tr>
-          <td data-label="">
-            <input type="checkbox" class="reneg-checkbox" data-id="${i.id}" ${i.isOverdue ? 'checked' : ''} style="cursor: pointer; width: 20px; height: 20px;">
+          <td data-label="Selecionar">
+            <div class="td-cell-val">
+              <input type="checkbox" class="reneg-checkbox" data-id="${i.id}" ${i.isOverdue ? 'checked' : ''} style="cursor: pointer; width: 20px; height: 20px;">
+            </div>
           </td>
-          <td data-label="Parcela"><strong>#${i.number}</strong></td>
+          <td data-label="Parcela">
+            <div class="td-cell-val"><strong>#${i.number}</strong></div>
+          </td>
           <td data-label="Vencimento">
-            <div>${formatDate(i.dueDate)}</div>
-            ${i.isOverdue ? `<span class="badge badge-overdue" style="font-size: 0.68rem;">Atrasada</span>` : `<span class="badge badge-pending" style="font-size: 0.68rem;">A Vencer</span>`}
+            <div class="td-cell-val">
+              <div>${formatDate(i.dueDate)}</div>
+              ${i.isOverdue ? `<span class="badge badge-overdue" style="font-size: 0.68rem;">Atrasada</span>` : `<span class="badge badge-pending" style="font-size: 0.68rem;">A Vencer</span>`}
+            </div>
           </td>
-          <td data-label="Valor Base">${formatBRL(i.installmentAmount)}</td>
-          <td data-label="Atraso">${i.isOverdue ? `${i.charges.daysOverdue} dias` : '-'}</td>
-          <td data-label="Multa+Juros" style="color: var(--rose-400);">${i.isOverdue ? `+${formatBRL(i.charges.totalLateCharges)}` : 'R$ 0,00'}</td>
-          <td data-label="Total" style="font-weight: 700; color: #fff;">
-            ${formatBRL(i.isOverdue ? i.charges.totalUpdatedAmount : i.installmentAmount)}
+          <td data-label="Valor Base">
+            <div class="td-cell-val">${formatBRL(i.installmentAmount)}</div>
+          </td>
+          <td data-label="Atraso">
+            <div class="td-cell-val">${i.isOverdue ? `${i.charges.daysOverdue} dias` : '-'}</div>
+          </td>
+          <td data-label="Multa+Juros">
+            <div class="td-cell-val" style="color: var(--red);">${i.isOverdue ? `+${formatBRL(i.charges.totalLateCharges)}` : 'R$ 0,00'}</div>
+          </td>
+          <td data-label="Total">
+            <div class="td-cell-val" style="font-weight: 700; color: #fff;">
+              ${formatBRL(i.isOverdue ? i.charges.totalUpdatedAmount : i.installmentAmount)}
+            </div>
           </td>
         </tr>
       `).join('');

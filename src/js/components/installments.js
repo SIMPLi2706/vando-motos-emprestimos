@@ -198,32 +198,39 @@ export function renderInstallments(options = {}) {
 
       return `
         <tr>
-          <td data-label="Status">${badgeHtml}</td>
-          <td data-label="Parcela" style="font-weight: 700;">#${item.number}</td>
+          <td data-label="Status">
+            <div class="td-cell-val">${badgeHtml}</div>
+          </td>
+          <td data-label="Parcela">
+            <div class="td-cell-val" style="font-weight: 700;">#${item.number}</div>
+          </td>
           <td data-label="Cliente">
-            <div style="font-weight: 700; color: #fff;">${item.client.name}</div>
-            <div style="font-size: 0.75rem; color: var(--text-400);">${item.client.phone || item.client.cpf || ''}</div>
+            <div class="td-cell-val">
+              <div style="font-weight: 700; color: #fff;">${item.client.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-400);">${item.client.phone || item.client.cpf || ''}</div>
+            </div>
           </td>
           <td data-label="Vencimento">
-            <div>${formatDate(item.dueDate)}</div>
-            ${item.paidDate ? `<div style="font-size: 0.72rem; color: var(--green);">Pago em ${formatDate(item.paidDate)}</div>` : ''}
+            <div class="td-cell-val">
+              <div>${formatDate(item.dueDate)}</div>
+              ${item.paidDate ? `<div style="font-size: 0.72rem; color: var(--green);">Pago em ${formatDate(item.paidDate)}</div>` : ''}
+            </div>
           </td>
-          <td data-label="Valor Original">${formatBRL(item.installmentAmount)}</td>
-          <td data-label="Valor Atual">${amountDisplay}</td>
+          <td data-label="Original" class="${!item.isOverdue && item.status !== 'partial' ? 'desktop-only-cell' : ''}">
+            <div class="td-cell-val">${formatBRL(item.installmentAmount)}</div>
+          </td>
+          <td data-label="${item.isOverdue ? 'Com Atraso' : 'Valor'}">
+            <div class="td-cell-val">${amountDisplay}</div>
+          </td>
           <td class="td-actions" data-label="Ações">
             <div class="installment-actions-wrap">
-              
-              <button class="btn btn-secondary btn-sm btn-inst-promissory" data-loan-id="${item.loanId}" data-inst-num="${item.number}" title="Emitir Nota Promissória">
-                Promissória
-              </button>
-
               ${item.status !== 'paid' ? `
+                <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Dar Baixa">
+                  Baixar
+                </button>
                 <button class="btn btn-secondary btn-sm btn-inst-pix" data-id="${item.id}" title="Gerar PIX">
                   PIX
                 </button>
-              ` : ''}
-
-              ${item.status !== 'paid' ? `
                 <button class="btn btn-whatsapp btn-sm btn-wpp" 
                   data-client="${encodeURIComponent(item.client.name)}"
                   data-phone="${item.client.phone}"
@@ -235,11 +242,8 @@ export function renderInstallments(options = {}) {
                   title="Cobrar via WhatsApp">
                   WhatsApp
                 </button>
-              ` : ''}
-
-              ${item.status !== 'paid' ? `
-                <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Dar Baixa">
-                  Baixar
+                <button class="btn btn-secondary btn-sm btn-inst-promissory" data-loan-id="${item.loanId}" data-inst-num="${item.number}" title="Emitir Nota Promissória">
+                  Promissória
                 </button>
               ` : `
                 <button class="btn btn-secondary btn-sm btn-receipt" data-id="${item.id}" title="Ver Recibo">
@@ -249,7 +253,6 @@ export function renderInstallments(options = {}) {
                   Estornar
                 </button>
               `}
-
             </div>
           </td>
         </tr>

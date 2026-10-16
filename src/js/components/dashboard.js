@@ -330,12 +330,24 @@ export function renderDashboard() {
             <tbody>
               ${recentPayments.slice(0, 5).map(r => `
                 <tr>
-                  <td data-label="Data">${formatDate(r.date)}</td>
-                  <td data-label="Cliente" style="font-weight: 600;">${r.client.name}</td>
-                  <td data-label="Parcela">Parcela nº ${r.installmentNumber}</td>
-                  <td data-label="Forma"><span class="badge badge-paid">${r.method || 'PIX'}</span></td>
-                  <td data-label="Valor" style="font-weight: 700; color: var(--green);">${formatBRL(r.amount)}</td>
-                  <td data-label="Status"><span class="badge badge-paid">Recebido</span></td>
+                  <td data-label="Data">
+                    <div class="td-cell-val">${formatDate(r.date)}</div>
+                  </td>
+                  <td data-label="Cliente">
+                    <div class="td-cell-val" style="font-weight: 700; color: #fff;">${r.client.name}</div>
+                  </td>
+                  <td data-label="Parcela">
+                    <div class="td-cell-val">Parcela nº ${r.installmentNumber}</div>
+                  </td>
+                  <td data-label="Forma">
+                    <div class="td-cell-val"><span class="badge badge-paid">${r.method || 'PIX'}</span></div>
+                  </td>
+                  <td data-label="Valor">
+                    <div class="td-cell-val" style="font-weight: 700; color: var(--green);">${formatBRL(r.amount)}</div>
+                  </td>
+                  <td data-label="Status">
+                    <div class="td-cell-val"><span class="badge badge-paid">Recebido</span></div>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
