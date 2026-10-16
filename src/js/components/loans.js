@@ -1,5 +1,5 @@
 // src/js/components/loans.js
-// Simulador Dinâmico, Emissão de Novos Empréstimos e Gestão de Contratos
+// Simulador Dinâmico, Emissão de Novos Empréstimos e Gestão de Contratos - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, showToast } from '../utils.js';
@@ -16,8 +16,8 @@ export function renderLoans(options = {}) {
   container.innerHTML = `
     <!-- Topo da Visão: Alternar entre Novo Empréstimo e Contratos Ativos -->
     <div class="tabs-bar">
-      <button class="tab-btn active" id="tab-btn-simulador">➕ Simular & Novo Empréstimo</button>
-      <button class="tab-btn" id="tab-btn-contratos">📁 Contratos Ativos (${loans.length})</button>
+      <button class="tab-btn active" id="tab-btn-simulador">Simular & Novo Empréstimo</button>
+      <button class="tab-btn" id="tab-btn-contratos">Contratos Ativos (${loans.length})</button>
     </div>
 
     <!-- SEÇÃO 1: SIMULADOR E NOVO EMPRÉSTIMO -->
@@ -98,52 +98,53 @@ export function renderLoans(options = {}) {
             <div class="form-grid">
               <div class="form-group">
                 <label class="form-label">Carência (Dias p/ 1ª parcela)</label>
-                <input type="number" class="form-control" id="sim-carencia" value="0" min="0">
+                <input type="number" inputmode="numeric" class="form-control" id="sim-carencia" value="0" min="0">
               </div>
 
               <div class="form-group">
                 <label class="form-label">Multa por Atraso (%)</label>
-                <input type="number" class="form-control" id="sim-multa" value="2.0" step="0.1">
+                <input type="number" inputmode="decimal" class="form-control" id="sim-multa" value="2.0" step="0.5">
               </div>
             </div>
 
             <div class="form-group">
               <label class="form-label">Observações / Garantias</label>
-              <textarea class="form-control" id="sim-notas" rows="2" placeholder="Ex: Deixou cheque caução, nota promissória assinada..."></textarea>
+              <textarea class="form-control" id="sim-notas" rows="2" placeholder="Veículo em garantia, avalista, observações..."></textarea>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
-              💾 Efetivar e Emitir Empréstimo
+              Efetivar Empréstimo
             </button>
           </form>
         </div>
 
-        <!-- Painel de Resumo e Prévia da Tabela de Amortização -->
+        <!-- Painel de Resultados do Simulador -->
         <div class="card">
           <div class="card-header">
             <div>
               <h3 class="card-title">Resumo da Simulação</h3>
-              <p class="card-subtitle">Prévia dos valores calculados</p>
+              <p class="card-subtitle">Cálculo detalhado do retorno financeiro</p>
             </div>
-            <span class="badge badge-pending" id="sim-badge-parcelas">5 parcelas</span>
+            <span class="badge badge-pending" id="sim-badge-parcelas">5x parcelas</span>
           </div>
 
-          <!-- Cards de Totais Calculados -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-            <div style="background: var(--bg-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-              <div style="font-size: 0.75rem; color: var(--silver-metallic); text-transform: uppercase; font-weight: 700;">Total a Receber</div>
-              <div style="font-size: 1.4rem; font-weight: 800; color: var(--brand-yellow);" id="sim-total-pagar">R$ 0,00</div>
+          <div class="kpi-grid" style="margin-bottom: 16px;">
+            <div class="kpi-card" style="padding: 12px;">
+              <span class="kpi-label">Total a Receber</span>
+              <div class="kpi-value text-green" id="sim-total-pagar">R$ 0,00</div>
             </div>
-
-            <div style="background: var(--bg-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-              <div style="font-size: 0.75rem; color: var(--silver-metallic); text-transform: uppercase; font-weight: 700;">Lucro em Juros</div>
-              <div style="font-size: 1.4rem; font-weight: 800; color: var(--silver-chrome);" id="sim-total-juros">R$ 0,00</div>
+            <div class="kpi-card" style="padding: 12px;">
+              <span class="kpi-label">Total de Juros</span>
+              <div class="kpi-value text-yellow" id="sim-total-juros">R$ 0,00</div>
             </div>
           </div>
 
-          <!-- Tabela de Prévia das Parcelas -->
-          <div class="table-responsive" style="max-height: 380px;">
-            <table class="table table-mobile-card-view" id="sim-tabela-parcelas">
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-300); margin-bottom: 8px;">
+            Cronograma de Vencimentos:
+          </div>
+
+          <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+            <table class="table" id="sim-tabela-parcelas">
               <thead>
                 <tr>
                   <th>Nº</th>
@@ -155,7 +156,7 @@ export function renderLoans(options = {}) {
                 </tr>
               </thead>
               <tbody>
-                <!-- Preenchido via script -->
+                <!-- Inserido dinamicamente -->
               </tbody>
             </table>
           </div>
@@ -169,47 +170,45 @@ export function renderLoans(options = {}) {
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">Empréstimos Cadastrados (${loans.length})</h3>
-            <p class="card-subtitle">Acompanhamento dos contratos vigentes</p>
+            <h3 class="card-title">Contratos de Empréstimo</h3>
+            <p class="card-subtitle">Histórico de contratos firmados e andamento de amortizações</p>
           </div>
         </div>
 
         ${loans.length === 0 ? `
-          <div style="text-align: center; padding: 40px; color: var(--text-dim);">
-            Nenhum empréstimo cadastrado ainda. Use o simulador ao lado para criar o primeiro!
+          <div class="empty-state-box">
+            <p>Nenhum contrato cadastrado no momento.</p>
           </div>
         ` : `
-          <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 14px;">
             ${loans.map(loan => {
               const client = state.getClientById(loan.clientId) || { name: 'Cliente Removido' };
               const loanInsts = installments.filter(i => i.loanId === loan.id);
-              const paidInsts = loanInsts.filter(i => i.status === 'paid').length;
               const totalInsts = loanInsts.length;
+              const paidInsts = loanInsts.filter(i => i.status === 'paid').length;
+              const totalPaid = loanInsts.reduce((acc, i) => acc + Number(i.paidAmount || 0), 0);
               const progressPct = totalInsts > 0 ? Math.round((paidInsts / totalInsts) * 100) : 0;
-              const totalPaid = loanInsts.reduce((acc, i) => acc + (Number(i.paidAmount) || 0), 0);
 
-              const tipoFormatado = {
-                price: 'Tabela Price',
-                simple: 'Juros Simples',
-                sac: 'Tabela SAC',
-                interest_only: 'Só Juros'
-              }[loan.interestType] || loan.interestType;
+              let tipoFormatado = 'Price';
+              if (loan.interestType === 'simple') tipoFormatado = 'Simples';
+              if (loan.interestType === 'sac') tipoFormatado = 'SAC';
+              if (loan.interestType === 'interest_only') tipoFormatado = 'Só Juros';
 
               return `
-                <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px;">
+                <div class="card" style="background: var(--bg-3); border-color: var(--border-soft); margin-bottom: 0;">
                   <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
                     <div>
-                      <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">${client.name}</div>
-                      <div style="font-size: 0.8rem; color: var(--text-muted);">
+                      <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">${client.name}</div>
+                      <div style="font-size: 0.8rem; color: var(--text-400);">
                         Liberado em: ${formatDate(loan.startDate)} • Tipo: <strong>${tipoFormatado}</strong> (${loan.interestRate}% ${loan.periodicity === 'monthly' ? 'a.m.' : 'período'})
                       </div>
-                      ${loan.notes ? `<div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">📝 ${loan.notes}</div>` : ''}
+                      ${loan.notes ? `<div style="font-size: 0.75rem; color: var(--text-400); margin-top: 4px;">Obs: ${loan.notes}</div>` : ''}
                     </div>
                     <div style="text-align: right;">
                       <span class="badge ${loan.status === 'paid' ? 'badge-paid' : 'badge-pending'}">
-                        ${loan.status === 'paid' ? '✓ Quitado' : 'Em Andamento'}
+                        ${loan.status === 'paid' ? 'Quitado' : 'Em Andamento'}
                       </span>
-                      <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-400); margin-top: 4px;">
+                      <div style="font-size: 1.2rem; font-weight: 800; color: var(--green); margin-top: 4px;">
                         ${formatBRL(loan.totalPayable)}
                       </div>
                     </div>
@@ -217,25 +216,25 @@ export function renderLoans(options = {}) {
 
                   <!-- Barra de Progresso de Quitação -->
                   <div style="margin: 12px 0;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-400); margin-bottom: 6px;">
                       <span>Progresso: ${paidInsts} de ${totalInsts} parcelas pagas (${progressPct}%)</span>
-                      <span>Total recebido: <strong>${formatBRL(totalPaid)}</strong></span>
+                      <span>Total recebido: <strong style="color: var(--text-100);">${formatBRL(totalPaid)}</strong></span>
                     </div>
-                    <div style="height: 8px; background: var(--bg-primary); border-radius: var(--radius-full); overflow: hidden;">
-                      <div style="height: 100%; width: ${progressPct}%; background: linear-gradient(90deg, var(--emerald-500), var(--emerald-400)); border-radius: var(--radius-full); transition: width 0.3s ease;"></div>
+                    <div style="height: 6px; background: var(--bg-1); border-radius: var(--r-full); overflow: hidden;">
+                      <div style="height: 100%; width: ${progressPct}%; background: var(--green); border-radius: var(--r-full); transition: width 0.3s ease;"></div>
                     </div>
                   </div>
 
                   <!-- Ações do Empréstimo -->
                   <div class="loan-card-actions">
                     <button class="btn btn-secondary btn-sm btn-print-promissoria" data-loan-id="${loan.id}">
-                      📄 Promissória
+                      Promissória
                     </button>
                     <button class="btn btn-secondary btn-sm btn-ver-parcelas-loan" data-loan-id="${loan.id}">
-                      🔍 Parcelas
+                      Parcelas
                     </button>
                     <button class="btn btn-danger btn-sm btn-excluir-loan" data-loan-id="${loan.id}">
-                      🗑️ Excluir
+                      Excluir
                     </button>
                   </div>
                 </div>
@@ -247,7 +246,6 @@ export function renderLoans(options = {}) {
     </div>
   `;
 
-  // Função interna para rodar a simulação ao vivo
   function updateSimulation() {
     const val = Number(container.querySelector('#sim-valor').value) || 0;
     const taxa = Number(container.querySelector('#sim-taxa').value) || 0;
@@ -276,17 +274,15 @@ export function renderLoans(options = {}) {
       <tr>
         <td data-label="Nº" style="font-weight: 700;">#${item.number}</td>
         <td data-label="Vencimento">${formatDate(item.dueDate)}</td>
-        <td data-label="Parcela" style="font-weight: 700; color: var(--emerald-400);">${formatBRL(item.installmentAmount)}</td>
-        <td data-label="Juros" style="color: var(--indigo-400);">${formatBRL(item.interestAmount)}</td>
+        <td data-label="Parcela" style="font-weight: 700; color: var(--green);">${formatBRL(item.installmentAmount)}</td>
+        <td data-label="Juros" style="color: var(--yellow);">${formatBRL(item.interestAmount)}</td>
         <td data-label="Amortização">${formatBRL(item.amortizationAmount)}</td>
-        <td data-label="Saldo" style="color: var(--text-dim);">${formatBRL(item.remainingBalance)}</td>
+        <td data-label="Saldo" style="color: var(--text-400);">${formatBRL(item.remainingBalance)}</td>
       </tr>
     `).join('');
   }
 
-  // Event Listeners
   setTimeout(() => {
-    // Alternar abas
     const tabSim = container.querySelector('#tab-btn-simulador');
     const tabCont = container.querySelector('#tab-btn-contratos');
     const secSim = container.querySelector('#section-simulador');
@@ -310,7 +306,6 @@ export function renderLoans(options = {}) {
       tabCont.click();
     }
 
-    // Inputs que disparam re-cálculo da simulação
     const inputs = ['#sim-valor', '#sim-taxa', '#sim-tipo-juros', '#sim-periodicidade', '#sim-parcelas', '#sim-data-inicio', '#sim-carencia'];
     inputs.forEach(sel => {
       const el = container.querySelector(sel);
@@ -320,15 +315,12 @@ export function renderLoans(options = {}) {
       }
     });
 
-    // Roda a simulação inicial
     updateSimulation();
 
-    // Atalho para cadastrar cliente rápido
-    container.querySelector('#btn-quick-new-client').addEventListener('click', () => {
+    container.querySelector('#btn-quick-new-client')?.addEventListener('click', () => {
       window.openClientModal();
     });
 
-    // Submissão do novo empréstimo
     const form = container.querySelector('#form-novo-emprestimo');
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -354,14 +346,12 @@ export function renderLoans(options = {}) {
       try {
         const created = state.createLoan(newLoanData);
         showToast('Empréstimo efetivado com sucesso!');
-        // Redireciona para visualização de parcelas
         window.navigateToTab('installments', { loanId: created.id });
       } catch (err) {
         showToast(err.message || 'Erro ao criar empréstimo', 'error');
       }
     });
 
-    // Ações na lista de contratos
     container.querySelectorAll('.btn-ver-parcelas-loan').forEach(btn => {
       btn.addEventListener('click', () => {
         window.navigateToTab('installments', { loanId: btn.dataset.loanId });

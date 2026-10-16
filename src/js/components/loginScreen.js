@@ -1,17 +1,39 @@
 // src/js/components/loginScreen.js
-// Tela de Login com PIN de 4 Dígitos - Vando Motos Locadora LTDA
+// Tela de Login com PIN de 4 Dígitos - Vando Motos Locadora LTDA (Opcional & 100% Responsiva)
 
 import { showToast } from '../utils.js';
 
 const PIN_STORAGE_KEY = 'vandomotos_pin';
+const PIN_ENABLED_KEY = 'vandomotos_pin_enabled';
 const AUTH_SESSION_KEY = 'vandomotos_authenticated';
 const DEFAULT_PIN = '1234';
+
+/**
+ * Verifica se a proteção por PIN está ativada no sistema
+ * @returns {boolean} Padrão: false (desativado para não bloquear acesso)
+ */
+export function isPinEnabled() {
+  return localStorage.getItem(PIN_ENABLED_KEY) === 'true';
+}
+
+/**
+ * Ativa ou desativa a exigência de PIN ao entrar no sistema
+ * @param {boolean} enabled
+ */
+export function setPinEnabled(enabled) {
+  localStorage.setItem(PIN_ENABLED_KEY, enabled ? 'true' : 'false');
+  if (!enabled) {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+  }
+}
 
 /**
  * Verifica se a sessão atual está autenticada
  * @returns {boolean}
  */
 export function isAuthenticated() {
+  // Se o PIN não estiver ativado, o acesso é direto e livre
+  if (!isPinEnabled()) return true;
   return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
 }
 
@@ -43,7 +65,16 @@ export function setStoredPin(newPin) {
 }
 
 /**
- * Encerra a sessão e recarrega para solicitar o PIN novamente
+ * Bloqueia o sistema manualmente exigindo o PIN
+ */
+export function lockSession() {
+  setPinEnabled(true);
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  window.location.reload();
+}
+
+/**
+ * Encerra a sessão e recarrega
  */
 export function logout() {
   sessionStorage.removeItem(AUTH_SESSION_KEY);
@@ -51,12 +82,12 @@ export function logout() {
 }
 
 /**
- * Cria e renderiza a tela de login por PIN
+ * Cria e renderiza a tela de login por PIN (caso ativada)
  * @param {Function} [onSuccess] Callback executado ao validar o PIN com sucesso
  * @returns {HTMLElement|null}
  */
 export function createLoginScreen(onSuccess) {
-  // Se já estiver autenticado na sessão atual, executa callback no próximo tick e não exibe a tela
+  // Se o PIN estiver desativado ou já autenticado, prossegue direto
   if (isAuthenticated()) {
     const cb = onSuccess || window.onAuthSuccess || window.onLoginSuccess;
     if (typeof cb === 'function') {
@@ -71,7 +102,6 @@ export function createLoginScreen(onSuccess) {
     return existingScreen;
   }
 
-  // Inicializa o PIN padrão se ainda não existir
   getStoredPin();
 
   let enteredPin = '';
@@ -114,7 +144,7 @@ export function createLoginScreen(onSuccess) {
         </button>
         <button type="button" class="pin-btn" data-key="0">0</button>
         <button type="button" class="pin-btn pin-btn--action" data-action="backspace" aria-label="Apagar">
-          <svg class="pin-backspace-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
             <line x1="18" y1="9" x2="12" y2="15"></line>
             <line x1="12" y1="9" x2="18" y2="15"></line>
@@ -122,8 +152,10 @@ export function createLoginScreen(onSuccess) {
         </button>
       </div>
 
-      <div class="pin-footer-tip">
-        <span class="pin-footer-text">🔒 Sistema de Gestão Financeira • Acesso Seguro</span>
+      <div class="pin-footer-actions">
+        <button type="button" class="pin-skip-btn" id="btn-skip-pin">
+          Entrar sem PIN
+        </button>
       </div>
     </div>
   `;
@@ -136,11 +168,7 @@ export function createLoginScreen(onSuccess) {
 
   function updateDots() {
     dots.forEach((dot, idx) => {
-      if (idx < enteredPin.length) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
-      }
+      dot.classList.toggle('active', idx < enteredPin.length);
     });
   }
 
@@ -166,25 +194,25 @@ export function createLoginScreen(onSuccess) {
     updateDots();
   }
 
+  function closeAndProceed() {
+    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+    screen.classList.add('fade-out');
+
+    const cb = onSuccess || window.onAuthSuccess || window.onLoginSuccess;
+    if (typeof cb === 'function') {
+      cb();
+    }
+
+    cleanupListeners();
+    setTimeout(() => screen.remove(), 280);
+  }
+
   function validatePin() {
     isChecking = true;
     const correctPin = getStoredPin();
 
     if (enteredPin === correctPin) {
-      sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
-      screen.classList.add('fade-out');
-
-      // Executa o callback informado ou global
-      const cb = onSuccess || window.onAuthSuccess || window.onLoginSuccess;
-      if (typeof cb === 'function') {
-        cb();
-      }
-
-      cleanupListeners();
-
-      setTimeout(() => {
-        screen.remove();
-      }, 380);
+      closeAndProceed();
     } else {
       dotsContainer.classList.add('shake');
       showToast('PIN incorreto', 'error');
@@ -194,11 +222,10 @@ export function createLoginScreen(onSuccess) {
         enteredPin = '';
         updateDots();
         isChecking = false;
-      }, 500);
+      }, 450);
     }
   }
 
-  // Cliques no teclado na tela
   const handleKeypadClick = (e) => {
     const btn = e.target.closest('.pin-btn');
     if (!btn) return;
@@ -216,38 +243,24 @@ export function createLoginScreen(onSuccess) {
   };
   keypad.addEventListener('click', handleKeypadClick);
 
-  // Digitação pelo teclado físico
-  const handleKeyDown = (e) => {
-    if (isChecking) return;
+  screen.querySelector('#btn-skip-pin')?.addEventListener('click', () => {
+    closeAndProceed();
+  });
 
+  const handleKeyDown = (e) => {
     if (e.key >= '0' && e.key <= '9') {
-      const btn = keypad.querySelector(`.pin-btn[data-key="${e.key}"]`);
-      if (btn) {
-        btn.classList.add('btn-pressed');
-        setTimeout(() => btn.classList.remove('btn-pressed'), 120);
-      }
       handleDigit(e.key);
     } else if (e.key === 'Backspace') {
-      const btn = keypad.querySelector('.pin-btn[data-action="backspace"]');
-      if (btn) {
-        btn.classList.add('btn-pressed');
-        setTimeout(() => btn.classList.remove('btn-pressed'), 120);
-      }
       handleBackspace();
     } else if (e.key === 'Escape' || e.key === 'Delete') {
-      const btn = keypad.querySelector('.pin-btn[data-action="clear"]');
-      if (btn) {
-        btn.classList.add('btn-pressed');
-        setTimeout(() => btn.classList.remove('btn-pressed'), 120);
-      }
       handleClear();
     }
   };
   window.addEventListener('keydown', handleKeyDown);
 
   function cleanupListeners() {
-    window.removeEventListener('keydown', handleKeyDown);
     keypad.removeEventListener('click', handleKeypadClick);
+    window.removeEventListener('keydown', handleKeyDown);
   }
 
   return screen;

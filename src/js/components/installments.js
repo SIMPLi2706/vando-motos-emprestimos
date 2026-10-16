@@ -1,5 +1,5 @@
 // src/js/components/installments.js
-// Gestão Geral de Parcelas, Filtros, Cobrança e Ações de Baixa
+// Gestão Geral de Parcelas, Filtros, Cobrança e Ações de Baixa - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, formatDateForInput, showToast } from '../utils.js';
@@ -16,12 +16,10 @@ export function renderInstallments(options = {}) {
 
   const todayStr = formatDateForInput(new Date());
 
-  // Se veio filtrado por um empréstimo específico
   if (options.loanId) {
     installments = installments.filter(i => i.loanId === options.loanId);
   }
 
-  // Prepara dados calculados para cada parcela
   const enrichedList = installments.map(inst => {
     const client = state.getClientById(inst.clientId) || { name: 'Cliente Removido', phone: '' };
     const loan = state.getLoanById(inst.loanId) || { notes: '' };
@@ -54,14 +52,12 @@ export function renderInstallments(options = {}) {
     };
   });
 
-  // Contadores para as abas
   const totalCount = enrichedList.length;
   const overdueCount = enrichedList.filter(i => i.isOverdue).length;
   const todayCount = enrichedList.filter(i => i.isToday).length;
   const pendingCount = enrichedList.filter(i => i.status === 'pending').length;
   const paidCount = enrichedList.filter(i => i.status === 'paid').length;
 
-  // Filtro padrão inicial
   let activeTab = options.filter || 'all';
 
   container.innerHTML = `
@@ -70,16 +66,16 @@ export function renderInstallments(options = {}) {
         <div>
           <h3 class="card-title">Gestão de Parcelas & Cobrança</h3>
           <p class="card-subtitle">
-            ${options.loanId ? `Exibindo parcelas do contrato selecionado` : 'Controle geral de recebimentos e baixas'}
+            ${options.loanId ? `Exibindo parcelas do contrato selecionado` : 'Controle completo de recebimentos, cobrança e baixas'}
           </p>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary btn-sm" id="btn-renegociar-topo" style="color: var(--amber-400);">
-            🔄 Renegociar Dívida
+        <div class="card-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-renegociar-topo">
+            Renegociar
           </button>
           ${options.loanId ? `
             <button class="btn btn-secondary btn-sm" id="btn-voltar-todas">
-              ← Ver Todas as Parcelas
+              Ver Todas
             </button>
           ` : ''}
         </div>
@@ -90,24 +86,29 @@ export function renderInstallments(options = {}) {
         <button class="tab-btn ${activeTab === 'all' ? 'active' : ''}" data-tab="all">
           Todas (${totalCount})
         </button>
-        <button class="tab-btn ${activeTab === 'overdue' ? 'active' : ''}" data-tab="overdue" style="color: var(--rose-400);">
-          🚨 Atrasadas (${overdueCount})
+        <button class="tab-btn ${activeTab === 'overdue' ? 'active' : ''}" data-tab="overdue">
+          Atrasadas (${overdueCount})
         </button>
-        <button class="tab-btn ${activeTab === 'today' ? 'active' : ''}" data-tab="today" style="color: var(--amber-400);">
-          📅 Vencem Hoje (${todayCount})
+        <button class="tab-btn ${activeTab === 'today' ? 'active' : ''}" data-tab="today">
+          Hoje (${todayCount})
         </button>
         <button class="tab-btn ${activeTab === 'pending' ? 'active' : ''}" data-tab="pending">
           Pendentes (${pendingCount})
         </button>
-        <button class="tab-btn ${activeTab === 'paid' ? 'active' : ''}" data-tab="paid" style="color: var(--emerald-400);">
-          ✓ Pagas (${paidCount})
+        <button class="tab-btn ${activeTab === 'paid' ? 'active' : ''}" data-tab="paid">
+          Pagas (${paidCount})
         </button>
       </div>
 
       <!-- Barra de Busca -->
       <div class="search-bar-wrap">
         <div class="search-input-box">
-          <span class="search-icon-inside">🔍</span>
+          <span class="search-icon-inside">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
           <input type="text" class="form-control" id="search-input-parcelas" placeholder="Buscar por cliente, documento ou parcela...">
         </div>
       </div>
@@ -122,7 +123,7 @@ export function renderInstallments(options = {}) {
               <th>Cliente</th>
               <th>Vencimento</th>
               <th>Valor Original</th>
-              <th>Valor Atual / Pago</th>
+              <th>Valor Atual</th>
               <th style="text-align: right;">Ações</th>
             </tr>
           </thead>
@@ -132,26 +133,23 @@ export function renderInstallments(options = {}) {
         </table>
       </div>
 
-      <div id="empty-parcelas-msg" style="display: none; text-align: center; padding: 40px; color: var(--text-dim);">
-        Nenhuma parcela encontrada com os filtros atuais.
+      <div id="empty-parcelas-msg" class="empty-state-box" style="display: none;">
+        <p>Nenhuma parcela encontrada com os filtros selecionados.</p>
       </div>
     </div>
   `;
 
-  // Função interna para renderizar as linhas da tabela
   function renderTableRows(filterTab, searchTerm = '') {
     const tbody = container.querySelector('#table-parcelas tbody');
     const emptyMsg = container.querySelector('#empty-parcelas-msg');
     const term = searchTerm.toLowerCase().trim();
 
     let filtered = enrichedList.filter(item => {
-      // Filtro por aba
       if (filterTab === 'overdue' && !item.isOverdue) return false;
       if (filterTab === 'today' && !item.isToday) return false;
       if (filterTab === 'pending' && item.status !== 'pending') return false;
       if (filterTab === 'paid' && item.status !== 'paid') return false;
 
-      // Filtro por termo de busca
       if (term) {
         const matchName = item.client.name.toLowerCase().includes(term);
         const matchPhone = (item.client.phone || '').includes(term);
@@ -175,23 +173,23 @@ export function renderInstallments(options = {}) {
       let amountDisplay = '';
 
       if (item.status === 'paid') {
-        badgeHtml = `<span class="badge badge-paid">✓ Pago</span>`;
-        amountDisplay = `<span style="font-weight: 700; color: var(--emerald-400);">${formatBRL(item.paidAmount)}</span>`;
+        badgeHtml = `<span class="badge badge-paid">Pago</span>`;
+        amountDisplay = `<span style="font-weight: 700; color: var(--green);">${formatBRL(item.paidAmount)}</span>`;
       } else if (item.isOverdue) {
-        badgeHtml = `<span class="badge badge-overdue">🚨 Atrasada (${item.lateCharges.daysOverdue}d)</span>`;
+        badgeHtml = `<span class="badge badge-overdue">Atrasada (${item.lateCharges.daysOverdue}d)</span>`;
         amountDisplay = `
-          <div style="font-weight: 800; color: var(--rose-400);">${formatBRL(item.lateCharges.totalUpdatedAmount)}</div>
-          <div style="font-size: 0.72rem; color: var(--text-dim);">(+${formatBRL(item.lateCharges.totalLateCharges)} juros/multa)</div>
+          <div style="font-weight: 800; color: var(--red);">${formatBRL(item.lateCharges.totalUpdatedAmount)}</div>
+          <div style="font-size: 0.72rem; color: var(--text-400);">(+${formatBRL(item.lateCharges.totalLateCharges)} juros)</div>
         `;
       } else if (item.isToday) {
         badgeHtml = `<span class="badge badge-today">Hoje</span>`;
-        amountDisplay = `<span style="font-weight: 700; color: var(--amber-400);">${formatBRL(item.installmentAmount)}</span>`;
+        amountDisplay = `<span style="font-weight: 700; color: var(--yellow);">${formatBRL(item.installmentAmount)}</span>`;
       } else if (item.status === 'partial') {
         const saldoRestante = Number(item.installmentAmount) - Number(item.paidAmount);
         badgeHtml = `<span class="badge badge-partial">Parcial</span>`;
         amountDisplay = `
           <div style="font-weight: 700; color: #60a5fa;">Restante: ${formatBRL(saldoRestante)}</div>
-          <div style="font-size: 0.72rem; color: var(--text-dim);">Pago: ${formatBRL(item.paidAmount)}</div>
+          <div style="font-size: 0.72rem; color: var(--text-400);">Pago: ${formatBRL(item.paidAmount)}</div>
         `;
       } else {
         badgeHtml = `<span class="badge badge-pending">Pendente</span>`;
@@ -204,30 +202,27 @@ export function renderInstallments(options = {}) {
           <td data-label="Parcela" style="font-weight: 700;">#${item.number}</td>
           <td data-label="Cliente">
             <div style="font-weight: 700; color: #fff;">${item.client.name}</div>
-            <div style="font-size: 0.75rem; color: var(--text-dim);">${item.client.phone || item.client.cpf || ''}</div>
+            <div style="font-size: 0.75rem; color: var(--text-400);">${item.client.phone || item.client.cpf || ''}</div>
           </td>
           <td data-label="Vencimento">
             <div>${formatDate(item.dueDate)}</div>
-            ${item.paidDate ? `<div style="font-size: 0.72rem; color: var(--emerald-400);">Pago em ${formatDate(item.paidDate)}</div>` : ''}
+            ${item.paidDate ? `<div style="font-size: 0.72rem; color: var(--green);">Pago em ${formatDate(item.paidDate)}</div>` : ''}
           </td>
           <td data-label="Valor Original">${formatBRL(item.installmentAmount)}</td>
           <td data-label="Valor Atual">${amountDisplay}</td>
           <td class="td-actions" data-label="Ações">
             <div class="installment-actions-wrap">
               
-              <!-- Botão Nota Promissória -->
-              <button class="btn btn-secondary btn-sm btn-inst-promissory" data-loan-id="${item.loanId}" data-inst-num="${item.number}" title="Emitir Nota Promissória desta Parcela">
-                📄 Promissória
+              <button class="btn btn-secondary btn-sm btn-inst-promissory" data-loan-id="${item.loanId}" data-inst-num="${item.number}" title="Emitir Nota Promissória">
+                Promissória
               </button>
 
-              <!-- Botão PIX QR Code & Copia e Cola -->
               ${item.status !== 'paid' ? `
-                <button class="btn btn-secondary btn-sm btn-inst-pix" data-id="${item.id}" title="Gerar QR Code e Copia e Cola PIX">
-                  <span style="color: var(--brand-yellow);">⚡</span> PIX
+                <button class="btn btn-secondary btn-sm btn-inst-pix" data-id="${item.id}" title="Gerar PIX">
+                  PIX
                 </button>
               ` : ''}
 
-              <!-- Botão WhatsApp se pendente ou atrasada -->
               ${item.status !== 'paid' ? `
                 <button class="btn btn-whatsapp btn-sm btn-wpp" 
                   data-client="${encodeURIComponent(item.client.name)}"
@@ -242,18 +237,16 @@ export function renderInstallments(options = {}) {
                 </button>
               ` : ''}
 
-              <!-- Botão Dar Baixa se pendente/parcial/atrasada -->
               ${item.status !== 'paid' ? `
-                <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Receber Pagamento">
+                <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Dar Baixa">
                   Baixar
                 </button>
               ` : `
-                <!-- Botão Recibo se paga -->
-                <button class="btn btn-secondary btn-sm btn-receipt" data-id="${item.id}" title="Ver Recibo de Pagamento">
+                <button class="btn btn-secondary btn-sm btn-receipt" data-id="${item.id}" title="Ver Recibo">
                   Recibo
                 </button>
-                <button class="btn btn-secondary btn-sm btn-revert" data-id="${item.id}" title="Estornar baixa" style="color: var(--rose-400);">
-                  ↩ Estornar
+                <button class="btn btn-secondary btn-sm btn-revert" data-id="${item.id}" title="Estornar baixa" style="color: var(--red);">
+                  Estornar
                 </button>
               `}
 
@@ -263,12 +256,10 @@ export function renderInstallments(options = {}) {
       `;
     }).join('');
 
-    // Reanexa listeners dos botões gerados
     attachActionListeners(tbody);
   }
 
   function attachActionListeners(tbody) {
-    // WhatsApp
     tbody.querySelectorAll('.btn-wpp').forEach(btn => {
       btn.addEventListener('click', () => {
         const client = decodeURIComponent(btn.dataset.client);
@@ -297,21 +288,18 @@ export function renderInstallments(options = {}) {
       });
     });
 
-    // Baixa
     tbody.querySelectorAll('.btn-pay').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openPaymentModal(btn.dataset.id);
       });
     });
 
-    // Recibo
     tbody.querySelectorAll('.btn-receipt').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openReceiptModal(btn.dataset.id);
       });
     });
 
-    // PIX QR Code & Copia e Cola
     tbody.querySelectorAll('.btn-inst-pix').forEach(btn => {
       btn.addEventListener('click', () => {
         if (window.openPixModal) {
@@ -320,14 +308,12 @@ export function renderInstallments(options = {}) {
       });
     });
 
-    // Promissória Individual da Parcela
     tbody.querySelectorAll('.btn-inst-promissory').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openPromissoryModal(btn.dataset.loanId, btn.dataset.instNum);
       });
     });
 
-    // Estorno
     tbody.querySelectorAll('.btn-revert').forEach(btn => {
       btn.addEventListener('click', () => {
         if (confirm('Deseja realmente estornar o pagamento desta parcela? Ela voltará para o status pendente.')) {
@@ -339,16 +325,11 @@ export function renderInstallments(options = {}) {
     });
   }
 
-  // Event Listeners locais
   setTimeout(() => {
-    // Botão de Renegociação no topo
-    const btnRenegTopo = container.querySelector('#btn-renegociar-topo');
-    if (btnRenegTopo) {
-      btnRenegTopo.addEventListener('click', () => {
-        window.navigateToTab('renegotiation');
-      });
-    }
-    // Clique nas abas
+    container.querySelector('#btn-renegociar-topo')?.addEventListener('click', () => {
+      window.navigateToTab('renegotiation');
+    });
+
     container.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -358,21 +339,14 @@ export function renderInstallments(options = {}) {
       });
     });
 
-    // Busca ao digitar
-    const searchInput = container.querySelector('#search-input-parcelas');
-    searchInput.addEventListener('input', (e) => {
+    container.querySelector('#search-input-parcelas')?.addEventListener('input', (e) => {
       renderTableRows(activeTab, e.target.value);
     });
 
-    // Voltar para todas
-    const btnVoltar = container.querySelector('#btn-voltar-todas');
-    if (btnVoltar) {
-      btnVoltar.addEventListener('click', () => {
-        window.navigateToTab('installments');
-      });
-    }
+    container.querySelector('#btn-voltar-todas')?.addEventListener('click', () => {
+      window.navigateToTab('installments');
+    });
 
-    // Render inicial
     renderTableRows(activeTab);
   }, 0);
 

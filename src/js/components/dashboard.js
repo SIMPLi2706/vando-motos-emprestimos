@@ -1,5 +1,5 @@
 // src/js/components/dashboard.js
-// Visão Geral, Indicadores Financeiros e Painel Rápido
+// Visão Geral, Indicadores Financeiros e Painel Rápido - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, formatDateForInput } from '../utils.js';
@@ -38,10 +38,7 @@ export function renderDashboard() {
 
   installments.forEach(inst => {
     const isPaid = inst.status === 'paid';
-    const isPartial = inst.status === 'partial';
-    const client = state.getClientById(inst.clientId) || { name: 'Cliente Removido', phone: '' };
-
-    // Saldo pendente da parcela
+    const client = state.getClientById(inst.clientId) || { name: 'Cliente', phone: '' };
     const pendingAmount = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
 
     if (!isPaid) {
@@ -50,15 +47,18 @@ export function renderDashboard() {
       if (inst.dueDate === todayStr) {
         todayDueList.push({ ...inst, client });
       } else if (inst.dueDate < todayStr) {
-        // Parcela atrasada
-        const charges = calculateLateCharges(inst, new Date(), inst.penaltyRate || settings.defaultPenaltyRate, inst.dailyInterestRate || settings.defaultDailyRate);
+        const charges = calculateLateCharges(
+          inst,
+          new Date(),
+          inst.penaltyRate || settings.defaultPenaltyRate,
+          inst.dailyInterestRate || settings.defaultDailyRate
+        );
         atrasadasTotal += charges.totalUpdatedAmount;
         atrasadasQtd++;
         overdueList.push({ ...inst, client, charges });
       }
     }
 
-    // Histórico de pagamentos no mês
     if (inst.paymentHistory && inst.paymentHistory.length > 0) {
       inst.paymentHistory.forEach(rec => {
         const recDate = new Date(rec.date);
@@ -70,120 +70,168 @@ export function renderDashboard() {
     }
   });
 
-  // Ordena recentes
   recentPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
   overdueList.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
   container.innerHTML = `
-    <!-- Banner de Alerta se houver atrasos -->
+    <!-- Banner de Alerta para Parcelas em Atraso -->
     ${atrasadasQtd > 0 ? `
       <div class="alert-overdue">
-        <div class="alert-icon">⚠️</div>
-        <div class="alert-content">
-          <div class="alert-title">Atenção: ${atrasadasQtd} parcela(s) em atraso</div>
-          <div class="alert-body">
-            Total pendente com juros e multa: <strong style="color: var(--red-light);">${formatBRL(atrasadasTotal)}</strong>
-          </div>
-          <button class="btn btn-danger btn-sm" id="btn-ver-atrasadas" style="margin-top: 10px;">
-            Ver Inadimplentes e Cobrar
-          </button>
+        <div class="alert-icon-box">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
         </div>
+        <div class="alert-content">
+          <div class="alert-title">${atrasadasQtd} parcela${atrasadasQtd > 1 ? 's' : ''} em atraso</div>
+          <div class="alert-body">
+            Total atualizado com juros e multa: <strong class="text-danger">${formatBRL(atrasadasTotal)}</strong>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" id="btn-ver-atrasadas">
+          Cobrar Inadimplentes
+        </button>
       </div>
     ` : ''}
 
-    <!-- Atalhos Rápidos do Dia -->
-    <div class="quick-actions-grid">
-      <button class="quick-action-btn" id="btn-dash-caixa">
-        <span class="quick-action-icon">💰</span>
-        <span>Fechamento de Caixa</span>
+    <!-- Atalhos Rápidos Operacionais -->
+    <div class="quick-actions-bar">
+      <button class="quick-action-item" id="btn-dash-novo-emp">
+        <span class="quick-action-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </span>
+        <span class="quick-action-label">Novo Empréstimo</span>
       </button>
-      <button class="quick-action-btn" id="btn-dash-reneg">
-        <span class="quick-action-icon">🔄</span>
-        <span>Renegociar Dívidas</span>
+
+      <button class="quick-action-item" id="btn-dash-caixa">
+        <span class="quick-action-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+            <circle cx="12" cy="12" r="2"></circle>
+            <path d="M6 12h.01M18 12h.01"></path>
+          </svg>
+        </span>
+        <span class="quick-action-label">Caixa do Dia</span>
       </button>
-      <button class="quick-action-btn" id="btn-dash-novo-emp">
-        <span class="quick-action-icon">➕</span>
-        <span>Novo Empréstimo</span>
+
+      <button class="quick-action-item" id="btn-dash-reneg">
+        <span class="quick-action-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <polyline points="23 20 23 14 17 14"></polyline>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+          </svg>
+        </span>
+        <span class="quick-action-label">Renegociar</span>
       </button>
     </div>
 
-    <!-- Grade de KPIs -->
+    <!-- Grade de KPIs Financeiros -->
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-header">
           <span class="kpi-label">Capital na Rua</span>
-          <div class="kpi-icon-wrap kpi-icon-emerald">💰</div>
+          <div class="kpi-icon-wrap kpi-icon-emerald">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
         </div>
-        <div class="kpi-value">${formatBRL(capitalNaRua)}</div>
+        <div class="kpi-value text-yellow">${formatBRL(capitalNaRua)}</div>
         <div class="kpi-footer">
-          <span>Total de capital emprestado em aberto</span>
+          <span>Capital emprestado ativo</span>
         </div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-header">
           <span class="kpi-label">Lucro Previsto</span>
-          <div class="kpi-icon-wrap kpi-icon-indigo">📈</div>
+          <div class="kpi-icon-wrap kpi-icon-indigo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
         </div>
         <div class="kpi-value">${formatBRL(lucroPrevisto)}</div>
         <div class="kpi-footer">
-          <span>Juros contratados nos empréstimos ativos</span>
+          <span>Juros nos contratos ativos</span>
         </div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-header">
           <span class="kpi-label">Recebido no Mês</span>
-          <div class="kpi-icon-wrap kpi-icon-amber">📥</div>
+          <div class="kpi-icon-wrap kpi-icon-amber">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 12 20 22 4 22 4 12"></polyline>
+              <rect x="2" y="7" width="20" height="5"></rect>
+              <line x1="12" y1="22" x2="12" y2="7"></line>
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+            </svg>
+          </div>
         </div>
-        <div class="kpi-value">${formatBRL(recebidoNoMes)}</div>
+        <div class="kpi-value text-green">${formatBRL(recebidoNoMes)}</div>
         <div class="kpi-footer">
-          <span>Amortizações e juros baixados no mês</span>
+          <span>Total baixado este mês</span>
         </div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-header">
           <span class="kpi-label">Em Atraso</span>
-          <div class="kpi-icon-wrap kpi-icon-rose">🚨</div>
+          <div class="kpi-icon-wrap kpi-icon-rose">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
         </div>
-        <div class="kpi-value">${formatBRL(atrasadasTotal)}</div>
-        <div class="kpi-footer" style="color: var(--rose-400);">
-          <span>${atrasadasQtd} parcela(s) vencida(s)</span>
+        <div class="kpi-value ${atrasadasQtd > 0 ? 'text-danger' : ''}">${formatBRL(atrasadasTotal)}</div>
+        <div class="kpi-footer ${atrasadasQtd > 0 ? 'text-danger' : ''}">
+          <span>${atrasadasQtd} parcela${atrasadasQtd !== 1 ? 's' : ''} em atraso</span>
         </div>
       </div>
     </div>
 
-    <!-- Seção de Ações Rápidas & Vencimentos -->
-    <div class="grid-auto-fit">
+    <!-- Seção de Acompanhamento: Vencimentos e Inadimplência -->
+    <div class="dashboard-columns-grid">
       
       <!-- Card: Vencem Hoje -->
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">📅 Vencendo Hoje (${todayDueList.length})</h3>
-            <p class="card-subtitle">Parcelas com vencimento para o dia de hoje</p>
+            <h3 class="card-title">Vencem Hoje (${todayDueList.length})</h3>
+            <p class="card-subtitle">Parcelas com vencimento para o dia atual</p>
           </div>
         </div>
 
         ${todayDueList.length === 0 ? `
-          <div style="text-align: center; padding: 32px 0; color: var(--text-dim);">
-            <div style="font-size: 2rem; margin-bottom: 8px;">✨</div>
-            Nenhuma parcela vence hoje!
+          <div class="empty-state-box">
+            <p>Nenhuma parcela vence hoje.</p>
           </div>
         ` : `
-          <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="due-items-list">
             ${todayDueList.map(item => `
               <div class="due-item-card">
-                <div class="due-item-info">
-                  <div style="font-weight: 700; font-size: 0.95rem;">${item.client.name}</div>
-                  <div style="font-size: 0.78rem; color: var(--text-muted);">
-                    Parcela nº ${item.number} • ${formatBRL(item.installmentAmount)}
-                  </div>
+                <div class="due-item-header">
+                  <div class="due-item-name">${item.client.name}</div>
+                  <div class="due-item-amount text-yellow">${formatBRL(item.installmentAmount)}</div>
+                </div>
+                <div class="due-item-sub">
+                  Parcela nº ${item.number} • Vence hoje
                 </div>
                 <div class="due-item-actions">
-                  <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}" title="Gerar QR Code PIX">
-                    ⚡ PIX
+                  <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}">
+                    PIX
                   </button>
                   <button class="btn btn-whatsapp btn-sm btn-action-whatsapp" 
                     data-client="${encodeURIComponent(item.client.name)}"
@@ -194,7 +242,7 @@ export function renderDashboard() {
                     WhatsApp
                   </button>
                   <button class="btn btn-primary btn-sm btn-action-pay" data-id="${item.id}">
-                    Dar Baixa
+                    Baixar
                   </button>
                 </div>
               </div>
@@ -207,33 +255,30 @@ export function renderDashboard() {
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">🚨 Inadimplentes Críticos (${overdueList.length})</h3>
-            <p class="card-subtitle">Cobrança prioritária com juros atualizados</p>
+            <h3 class="card-title">Inadimplentes (${overdueList.length})</h3>
+            <p class="card-subtitle">Cobrança prioritária com juros calculados</p>
           </div>
           <button class="btn btn-secondary btn-sm" id="btn-ir-parcelas">Ver Todas</button>
         </div>
 
         ${overdueList.length === 0 ? `
-          <div style="text-align: center; padding: 32px 0; color: var(--emerald-400);">
-            <div style="font-size: 2rem; margin-bottom: 8px;">🎉</div>
-            Excelente! Nenhuma parcela em atraso no momento.
+          <div class="empty-state-box">
+            <p class="text-green">Tudo em dia! Nenhuma parcela atrasada.</p>
           </div>
         ` : `
-          <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="due-items-list">
             ${overdueList.slice(0, 4).map(item => `
               <div class="due-item-card due-item-overdue">
-                <div class="due-item-info">
-                  <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">${item.client.name}</div>
-                  <div style="font-size: 0.78rem; color: var(--rose-400);">
-                    Atrasado há ${item.charges.daysOverdue} dias • Total: <strong>${formatBRL(item.charges.totalUpdatedAmount)}</strong>
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--text-dim);">
-                    Original: ${formatBRL(item.installmentAmount)} (+${formatBRL(item.charges.totalLateCharges)} juros/multa)
-                  </div>
+                <div class="due-item-header">
+                  <div class="due-item-name">${item.client.name}</div>
+                  <div class="due-item-amount text-danger">${formatBRL(item.charges.totalUpdatedAmount)}</div>
+                </div>
+                <div class="due-item-sub">
+                  ${item.charges.daysOverdue} dias de atraso • Original: ${formatBRL(item.installmentAmount)}
                 </div>
                 <div class="due-item-actions">
-                  <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}" title="Gerar QR Code PIX">
-                    ⚡ PIX
+                  <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}">
+                    PIX
                   </button>
                   <button class="btn btn-whatsapp btn-sm btn-action-whatsapp-overdue" 
                     data-client="${encodeURIComponent(item.client.name)}"
@@ -257,17 +302,17 @@ export function renderDashboard() {
     </div>
 
     <!-- Histórico de Últimos Recebimentos -->
-    <div class="card" style="margin-top: 24px;">
+    <div class="card" style="margin-top: 20px;">
       <div class="card-header">
         <div>
-          <h3 class="card-title">📝 Últimos Recebimentos Confirmados</h3>
+          <h3 class="card-title">Últimos Recebimentos</h3>
           <p class="card-subtitle">Extrato das baixas recentes no sistema</p>
         </div>
       </div>
 
       ${recentPayments.length === 0 ? `
-        <div style="text-align: center; padding: 24px; color: var(--text-dim);">
-          Nenhum recebimento registrado recentemente.
+        <div class="empty-state-box">
+          <p>Nenhum recebimento registrado recentemente.</p>
         </div>
       ` : `
         <div class="table-responsive">
@@ -278,18 +323,18 @@ export function renderDashboard() {
                 <th>Cliente</th>
                 <th>Parcela</th>
                 <th>Forma</th>
-                <th>Valor Pago</th>
+                <th>Valor</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              ${recentPayments.slice(0, 6).map(r => `
+              ${recentPayments.slice(0, 5).map(r => `
                 <tr>
                   <td data-label="Data">${formatDate(r.date)}</td>
                   <td data-label="Cliente" style="font-weight: 600;">${r.client.name}</td>
                   <td data-label="Parcela">Parcela nº ${r.installmentNumber}</td>
                   <td data-label="Forma"><span class="badge badge-paid">${r.method || 'PIX'}</span></td>
-                  <td data-label="Valor" style="font-weight: 700; color: var(--emerald-400);">${formatBRL(r.amount)}</td>
+                  <td data-label="Valor" style="font-weight: 700; color: var(--green);">${formatBRL(r.amount)}</td>
                   <td data-label="Status"><span class="badge badge-paid">Recebido</span></td>
                 </tr>
               `).join('')}
@@ -300,26 +345,17 @@ export function renderDashboard() {
     </div>
   `;
 
-  // Event Listeners locais do Dashboard
   setTimeout(() => {
-    // Botão de ver atrasadas do banner
-    const btnBanner = container.querySelector('#btn-ver-atrasadas');
-    if (btnBanner) {
-      btnBanner.addEventListener('click', () => {
-        window.navigateToTab('installments', { filter: 'overdue' });
-      });
-    }
+    container.querySelector('#btn-ver-atrasadas')?.addEventListener('click', () => {
+      window.navigateToTab('installments', { filter: 'overdue' });
+    });
 
-    const btnIrParcelas = container.querySelector('#btn-ir-parcelas');
-    if (btnIrParcelas) {
-      btnIrParcelas.addEventListener('click', () => {
-        window.navigateToTab('installments', { filter: 'overdue' });
-      });
-    }
+    container.querySelector('#btn-ir-parcelas')?.addEventListener('click', () => {
+      window.navigateToTab('installments', { filter: 'overdue' });
+    });
 
-    // Botões de cobrança via WhatsApp
     container.querySelectorAll('.btn-action-whatsapp').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const client = decodeURIComponent(btn.dataset.client);
         const phone = btn.dataset.phone;
         const amount = formatBRL(btn.dataset.amount);
@@ -340,7 +376,7 @@ export function renderDashboard() {
     });
 
     container.querySelectorAll('.btn-action-whatsapp-overdue').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const client = decodeURIComponent(btn.dataset.client);
         const phone = btn.dataset.phone;
         const amount = formatBRL(btn.dataset.amount);
@@ -355,14 +391,12 @@ export function renderDashboard() {
       });
     });
 
-    // Botões de Dar Baixa
     container.querySelectorAll('.btn-action-pay').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openPaymentModal(btn.dataset.id);
       });
     });
 
-    // Botões de Gerar PIX
     container.querySelectorAll('.btn-action-pix').forEach(btn => {
       btn.addEventListener('click', () => {
         if (window.openPixModal) {
@@ -371,7 +405,6 @@ export function renderDashboard() {
       });
     });
 
-    // Atalhos Rápidos do Dashboard
     container.querySelector('#btn-dash-caixa')?.addEventListener('click', () => {
       if (window.openCashRegisterModal) {
         window.openCashRegisterModal();

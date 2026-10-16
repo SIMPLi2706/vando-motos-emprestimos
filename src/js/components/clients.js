@@ -1,5 +1,5 @@
 // src/js/components/clients.js
-// Gestão Cadastral de Clientes, Limites e Dossiê Financeiro
+// Gestão Cadastral de Clientes, Limites e Dossiê Financeiro - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
@@ -21,14 +21,23 @@ export function renderClients(options = {}) {
           <p class="card-subtitle">Cadastro, limites de crédito e histórico financeiro</p>
         </div>
         <button class="btn btn-primary" id="btn-novo-cliente">
-          ➕ Novo Cliente
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Novo Cliente
         </button>
       </div>
 
       <!-- Barra de Busca -->
       <div class="search-bar-wrap">
         <div class="search-input-box">
-          <span class="search-icon-inside">🔍</span>
+          <span class="search-icon-inside">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
           <input type="text" class="form-control" id="search-input-clients" placeholder="Buscar por nome, CPF ou telefone...">
         </div>
       </div>
@@ -41,7 +50,7 @@ export function renderClients(options = {}) {
               <th>Cliente</th>
               <th>Telefone</th>
               <th>Limite Aprovado</th>
-              <th>Empréstimos Ativos</th>
+              <th>Contratos Ativos</th>
               <th>Status</th>
               <th style="text-align: right;">Ações</th>
             </tr>
@@ -52,8 +61,8 @@ export function renderClients(options = {}) {
         </table>
       </div>
 
-      <div id="empty-clients-msg" style="display: none; text-align: center; padding: 40px; color: var(--text-dim);">
-        Nenhum cliente encontrado.
+      <div id="empty-clients-msg" class="empty-state-box" style="display: none;">
+        <p>Nenhum cliente encontrado.</p>
       </div>
     </div>
   `;
@@ -96,22 +105,22 @@ export function renderClients(options = {}) {
         <tr>
           <td data-label="Cliente">
             <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${c.name}</div>
-            <div style="font-size: 0.75rem; color: var(--text-dim);">
+            <div style="font-size: 0.75rem; color: var(--text-400);">
               CPF: ${c.cpf || 'Não informado'} ${c.address ? `• ${c.address}` : ''}
             </div>
           </td>
           <td data-label="Telefone">
-            <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
               <span>${c.phone || '-'}</span>
               ${c.phone ? `
-                <a href="${createWhatsAppUrl(c.phone, `Olá, ${c.name}! Tudo bem?`)}" target="_blank" class="btn btn-whatsapp btn-sm" style="padding: 2px 6px; font-size: 0.7rem; min-height: 24px;">
-                  Wpp
+                <a href="${createWhatsAppUrl(c.phone, `Olá, ${c.name}! Tudo bem?`)}" target="_blank" class="btn btn-whatsapp btn-sm" style="padding: 2px 8px; font-size: 0.72rem; min-height: 26px;">
+                  WhatsApp
                 </a>
               ` : ''}
             </div>
           </td>
           <td data-label="Limite">
-            <span style="font-weight: 600; color: var(--brand-yellow);">${formatBRL(c.creditLimit || 0)}</span>
+            <span style="font-weight: 600; color: var(--yellow);">${formatBRL(c.creditLimit || 0)}</span>
           </td>
           <td data-label="Contratos">
             <span style="font-weight: 700;">${activeLoans.length}</span> contrato(s)
@@ -120,16 +129,16 @@ export function renderClients(options = {}) {
           <td class="td-actions" data-label="Ações">
             <div class="client-actions-wrap">
               <button class="btn btn-secondary btn-sm btn-pdf-client" data-id="${c.id}" title="Gerar Dossiê do Cliente (PDF)">
-                📄 PDF
+                PDF
               </button>
-              <button class="btn btn-secondary btn-sm btn-reneg-client" data-id="${c.id}" title="Renegociar Dívidas deste Cliente" style="color: var(--amber-400);">
-                🔄 Acordo
+              <button class="btn btn-secondary btn-sm btn-reneg-client" data-id="${c.id}" title="Renegociar Dívidas">
+                Renegociar
               </button>
               <button class="btn btn-secondary btn-sm btn-edit-client" data-id="${c.id}" title="Editar Dados">
-                ✏️ Editar
+                Editar
               </button>
               <button class="btn btn-danger btn-sm btn-del-client" data-id="${c.id}" title="Excluir Cliente">
-                🗑️ Excluir
+                Excluir
               </button>
             </div>
           </td>
@@ -137,7 +146,6 @@ export function renderClients(options = {}) {
       `;
     }).join('');
 
-    // Listeners
     tbody.querySelectorAll('.btn-pdf-client').forEach(btn => {
       btn.addEventListener('click', () => {
         generateClientReportPDF(btn.dataset.id);
@@ -173,20 +181,15 @@ export function renderClients(options = {}) {
   }
 
   setTimeout(() => {
-    container.querySelector('#btn-novo-cliente').addEventListener('click', () => {
+    container.querySelector('#btn-novo-cliente')?.addEventListener('click', () => {
       window.openClientModal();
     });
 
-    const searchInput = container.querySelector('#search-input-clients');
-    searchInput.addEventListener('input', (e) => {
+    container.querySelector('#search-input-clients')?.addEventListener('input', (e) => {
       renderRows(e.target.value);
     });
 
-    const initialSearch = options.search || '';
-    if (initialSearch) {
-      searchInput.value = initialSearch;
-    }
-    renderRows(initialSearch);
+    renderRows();
   }, 0);
 
   return container;
