@@ -3,6 +3,7 @@
 
 import { state } from '../state.js';
 import { maskCPF, maskPhone, showToast } from '../utils.js';
+import { generateClientReportPDF } from './pdfExport.js';
 
 export function createClientModal() {
   const modal = document.createElement('div');
@@ -56,6 +57,7 @@ export function createClientModal() {
         </div>
 
         <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="client-modal-pdf" style="display: none; margin-right: auto;">📄 Dossiê PDF</button>
           <button type="button" class="btn btn-secondary" id="client-modal-cancel">Cancelar</button>
           <button type="submit" class="btn btn-primary">💾 Salvar Cliente</button>
         </div>
@@ -120,6 +122,7 @@ export function createClientModal() {
   });
 
   window.openClientModal = function(clientId = null) {
+    const pdfBtn = modal.querySelector('#client-modal-pdf');
     if (clientId) {
       const client = state.getClientById(clientId);
       if (!client) return;
@@ -131,11 +134,16 @@ export function createClientModal() {
       modal.querySelector('#cli-limit').value = client.creditLimit || 5000;
       modal.querySelector('#cli-address').value = client.address || '';
       modal.querySelector('#cli-notes').value = client.notes || '';
+      if (pdfBtn) {
+        pdfBtn.style.display = 'inline-flex';
+        pdfBtn.onclick = () => generateClientReportPDF(client.id);
+      }
     } else {
       modal.querySelector('#client-modal-title').textContent = '👤 Novo Cliente';
       modal.querySelector('#cli-id').value = '';
       form.reset();
       modal.querySelector('#cli-limit').value = '5000';
+      if (pdfBtn) pdfBtn.style.display = 'none';
     }
     modal.classList.add('active');
   };

@@ -5,7 +5,7 @@ import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, showToast } from '../utils.js';
 import { calculateAmortizationSchedule } from '../finance.js';
 
-export function renderLoans() {
+export function renderLoans(options = {}) {
   const container = document.createElement('div');
   container.className = 'loans-view animate-fade-in';
 
@@ -305,6 +305,10 @@ export function renderLoans() {
       secCont.style.display = 'block';
       secSim.style.display = 'none';
     });
+
+    if (options.tab === 'contratos' || options.loanId) {
+      tabCont.click();
+    }
 
     // Inputs que disparam re-cálculo da simulação
     const inputs = ['#sim-valor', '#sim-taxa', '#sim-tipo-juros', '#sim-periodicidade', '#sim-parcelas', '#sim-data-inicio', '#sim-carencia'];

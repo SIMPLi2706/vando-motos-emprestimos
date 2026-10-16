@@ -3,8 +3,9 @@
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
+import { generateClientReportPDF } from './pdfExport.js';
 
-export function renderClients() {
+export function renderClients(options = {}) {
   const container = document.createElement('div');
   container.className = 'clients-view animate-fade-in';
 
@@ -118,6 +119,9 @@ export function renderClients() {
           <td data-label="Status">${statusBadge}</td>
           <td class="td-actions" data-label="Ações">
             <div class="client-actions-wrap">
+              <button class="btn btn-secondary btn-sm btn-pdf-client" data-id="${c.id}" title="Gerar Dossiê do Cliente (PDF)">
+                📄 PDF
+              </button>
               <button class="btn btn-secondary btn-sm btn-reneg-client" data-id="${c.id}" title="Renegociar Dívidas deste Cliente" style="color: var(--amber-400);">
                 🔄 Acordo
               </button>
@@ -134,6 +138,12 @@ export function renderClients() {
     }).join('');
 
     // Listeners
+    tbody.querySelectorAll('.btn-pdf-client').forEach(btn => {
+      btn.addEventListener('click', () => {
+        generateClientReportPDF(btn.dataset.id);
+      });
+    });
+
     tbody.querySelectorAll('.btn-reneg-client').forEach(btn => {
       btn.addEventListener('click', () => {
         window.navigateToTab('renegotiation', { clientId: btn.dataset.id });
@@ -172,7 +182,11 @@ export function renderClients() {
       renderRows(e.target.value);
     });
 
-    renderRows();
+    const initialSearch = options.search || '';
+    if (initialSearch) {
+      searchInput.value = initialSearch;
+    }
+    renderRows(initialSearch);
   }, 0);
 
   return container;

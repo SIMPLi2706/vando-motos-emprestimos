@@ -3,6 +3,8 @@
 
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
+import { openMonthlyReportModal } from './pdfExport.js';
+import { getStoredPin, setStoredPin, logout } from './loginScreen.js';
 
 export function renderSettings() {
   const container = document.createElement('div');
@@ -132,6 +134,10 @@ export function renderSettings() {
             <input type="file" id="input-import-backup" accept=".json" style="display: none;">
           </label>
 
+          <button type="button" class="btn btn-secondary" id="btn-export-monthly-pdf" style="justify-content: flex-start;">
+            📄 Relatório Mensal (PDF)
+          </button>
+
           <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; margin-top: 4px;">
             <p style="font-size: 0.75rem; color: var(--text-400); margin-bottom: 10px;">⚠️ Zona de perigo — ações irreversíveis</p>
             <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -144,6 +150,48 @@ export function renderSettings() {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Card: Segurança & PIN de Acesso -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">🔐 Segurança & PIN de Acesso</h3>
+            <p class="card-subtitle">Senha de 4 dígitos para bloqueio do sistema</p>
+          </div>
+        </div>
+
+        <form id="form-settings-pin">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">PIN Atual *</label>
+              <input type="password" class="form-control" id="set-current-pin" maxlength="4" placeholder="••••" required inputmode="numeric" autocomplete="current-password">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Novo PIN (4 dígitos) *</label>
+              <input type="password" class="form-control" id="set-new-pin" maxlength="4" placeholder="••••" required inputmode="numeric" autocomplete="new-password">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirmar Novo PIN *</label>
+            <input type="password" class="form-control" id="set-confirm-pin" maxlength="4" placeholder="••••" required inputmode="numeric" autocomplete="new-password">
+          </div>
+
+          <div style="background: var(--bg-2); border: 1px solid var(--border-soft); padding: 12px; border-radius: var(--r-sm); font-size: 0.78rem; color: var(--text-300); margin-bottom: 16px;">
+            💡 <strong>PIN Padrão:</strong> <code>1234</code>. Defina um código pessoal de 4 dígitos numéricos para proteger suas informações financeiras.
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary">
+              💾 Salvar Novo PIN
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-lock-session">
+              🔒 Bloquear Sistema
+            </button>
+          </div>
+        </form>
       </div>
 
     </div>
@@ -189,6 +237,11 @@ export function renderSettings() {
       showToast('Backup baixado com sucesso!');
     });
 
+    // Exportar Relatório Mensal (PDF)
+    container.querySelector('#btn-export-monthly-pdf')?.addEventListener('click', () => {
+      openMonthlyReportModal();
+    });
+
     // Importar Backup
     const fileInput = container.querySelector('#input-import-backup');
     fileInput.addEventListener('change', (e) => {
@@ -229,6 +282,41 @@ export function renderSettings() {
         window.refreshCurrentTab();
       }
     });
+
+    // Alteração de PIN
+    const formPin = container.querySelector('#form-settings-pin');
+    if (formPin) {
+      formPin.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const currentPinInput = container.querySelector('#set-current-pin').value;
+        const newPinInput = container.querySelector('#set-new-pin').value;
+        const confirmPinInput = container.querySelector('#set-confirm-pin').value;
+
+        const storedPin = getStoredPin();
+        if (currentPinInput !== storedPin) {
+          showToast('PIN atual incorreto.', 'error');
+          return;
+        }
+
+        if (!/^\d{4}$/.test(newPinInput)) {
+          showToast('O novo PIN deve conter exatamente 4 números.', 'error');
+          return;
+        }
+
+        if (newPinInput !== confirmPinInput) {
+          showToast('A confirmação do novo PIN não confere.', 'error');
+          return;
+        }
+
+        setStoredPin(newPinInput);
+        formPin.reset();
+        showToast('PIN alterado com sucesso!', 'success');
+      });
+
+      container.querySelector('#btn-lock-session')?.addEventListener('click', () => {
+        logout();
+      });
+    }
 
   }, 0);
 
