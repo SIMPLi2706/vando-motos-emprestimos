@@ -19,10 +19,25 @@ import { createSearchOverlay, openSearch, closeSearch } from './js/components/se
 import { formatDateForInput } from './js/utils.js';
 import { generateMonthlyReportPDF, generateClientReportPDF, openMonthlyReportModal } from './js/components/pdfExport.js';
 
+// Desativa restauração automática de rolagem do navegador para que a página sempre inicie no topo
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
+document.documentElement.scrollTop = 0;
+document.body.scrollTop = 0;
+
+window.addEventListener('pageshow', () => {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+});
+
 // Callback exportado disparado após autenticação bem-sucedida pelo PIN
 export function onAuthSuccess() {
   updateBrandDisplay();
   navigateToTab('dashboard');
+  window.scrollTo(0, 0);
 }
 export const onLoginSuccess = onAuthSuccess;
 
@@ -64,6 +79,11 @@ export function navigateToTab(tabName, options = {}) {
     // Limpa o conteúdo anterior e classes de transição
     contentView.innerHTML = '';
     contentView.classList.remove('page-transition-exit');
+
+    // Força rolagem para o topo absoluto (0, 0) ao renderizar a aba
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
 
     // Renderiza a tela selecionada
     switch (tabName) {
