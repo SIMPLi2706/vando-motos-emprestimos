@@ -202,6 +202,49 @@ function updateOverdueBadge() {
   }
 }
 
+// ============================================================
+// Controle de Bloqueio de Rolagem e Efeito Blur no Fundo
+// ============================================================
+let savedScrollY = 0;
+
+export function lockBodyScroll(type = 'modal') {
+  if (document.body.classList.contains('scroll-locked')) {
+    if (type === 'drawer') document.body.classList.add('drawer-open');
+    if (type === 'modal') document.body.classList.add('modal-open');
+    return;
+  }
+  savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.style.top = `-${savedScrollY}px`;
+  document.body.classList.add('scroll-locked');
+  if (type === 'drawer') {
+    document.body.classList.add('drawer-open');
+  } else {
+    document.body.classList.add('modal-open');
+  }
+}
+
+export function unlockBodyScroll(type = null) {
+  if (type === 'drawer') {
+    document.body.classList.remove('drawer-open');
+  } else if (type === 'modal') {
+    document.body.classList.remove('modal-open');
+  } else {
+    document.body.classList.remove('drawer-open', 'modal-open');
+  }
+
+  const hasActiveModal = document.querySelector('.modal-overlay.active, .global-search-overlay.active');
+  const hasActiveDrawer = sidebar && sidebar.classList.contains('open');
+
+  if (!hasActiveModal && !hasActiveDrawer) {
+    document.body.classList.remove('scroll-locked', 'drawer-open', 'modal-open');
+    document.body.style.top = '';
+    window.scrollTo(0, savedScrollY);
+  }
+}
+
+window.lockBodyScroll = lockBodyScroll;
+window.unlockBodyScroll = unlockBodyScroll;
+
 // Controle do Menu Lateral Mobile
 const sidebar = document.getElementById('app-sidebar');
 const backdrop = document.getElementById('sidebar-backdrop');
@@ -211,16 +254,56 @@ const closeSidebarBtn = document.getElementById('btn-close-sidebar');
 function openMobileDrawer() {
   sidebar.classList.add('open');
   backdrop.classList.add('open');
+  lockBodyScroll('drawer');
 }
 
 function closeMobileDrawer() {
   sidebar.classList.remove('open');
   backdrop.classList.remove('open');
+  unlockBodyScroll('drawer');
 }
 
 if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', openMobileDrawer);
 if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeMobileDrawer);
 if (backdrop) backdrop.addEventListener('click', closeMobileDrawer);
+
+// Impede que o toque/arrasto no backdrop role a tela de trás
+if (backdrop) {
+  backdrop.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+  }, { passive: false });
+}
+
+// Observa abertura e fechamento de qualquer modal ou janela flutuante no DOM
+const modalStateObserver = new MutationObserver(() => {
+  const activeModal = document.querySelector('.modal-overlay.active, .global-search-overlay.active');
+  const isDrawerOpen = sidebar && sidebar.classList.contains('open');
+
+  if (activeModal) {
+    lockBodyScroll('modal');
+  } else if (!isDrawerOpen) {
+    unlockBodyScroll('modal');
+  }
+});
+
+modalStateObserver.observe(document.body, {
+  attributes: true,
+  subtree: true,
+  attributeFilter: ['class']
+});
+
+// Bloqueia rolagem quando tocar no fundo dos modais flutuantes
+document.addEventListener('touchmove', (e) => {
+  const isDrawerOpen = sidebar && sidebar.classList.contains('open');
+  const activeModal = document.querySelector('.modal-overlay.active, .global-search-overlay.active');
+
+  if (isDrawerOpen && e.target === backdrop) {
+    e.preventDefault();
+  }
+  if (activeModal && (e.target.classList.contains('modal-overlay') || e.target.classList.contains('global-search-overlay'))) {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 // Listeners de Navegação (Desktop Sidebar)
 document.querySelectorAll('.nav-item').forEach(btn => {
