@@ -53,7 +53,7 @@ export function renderRenegotiation(initialClientId = null) {
           </div>
 
           <div class="table-responsive table-scroll-x" style="max-height: 320px; overflow-x: auto !important; overflow-y: auto; margin-bottom: 16px;">
-            <table class="table table-mobile-card-view" id="reneg-table-installments" style="min-width: 520px;">
+            <table class="table table-mobile-card-view" id="reneg-table-installments">
               <thead>
                 <tr>
                   <th style="width: 40px;"></th>

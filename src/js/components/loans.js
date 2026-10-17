@@ -25,7 +25,7 @@ export function renderLoans(options = {}) {
       <div class="loan-simulator-layout">
         
         <!-- Formulário de Parâmetros -->
-        <div class="card">
+        <div class="card sim-card-config">
           <div class="card-header">
             <div>
               <h3 class="card-title">Configurar Empréstimo</h3>
@@ -49,98 +49,153 @@ export function renderLoans(options = {}) {
               </div>
             </div>
 
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Valor do Empréstimo (R$) *</label>
-                <input type="number" inputmode="decimal" class="form-control" id="sim-valor" value="5000" min="10" step="10" required>
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0;">Valor do Empréstimo *</label>
+                <span class="sim-val-hint text-yellow" id="sim-val-display" style="font-size: 0.88rem; font-weight: 700;">R$ 5.000,00</span>
               </div>
-
-              <div class="form-group">
-                <label class="form-label">Taxa de Juros (%) *</label>
-                <input type="number" inputmode="decimal" class="form-control" id="sim-taxa" value="10" min="0" step="0.1" required>
-              </div>
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Tipo de Juros *</label>
-                <select class="form-control" id="sim-tipo-juros">
-                  <option value="price">Tabela Price (Parcelas Fixas)</option>
-                  <option value="simple">Juros Simples (Taxa Fixa)</option>
-                  <option value="sac">Tabela SAC (Amortização Constante)</option>
-                  <option value="interest_only">Só Juros (Amortização no Fim)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Periodicidade *</label>
-                <select class="form-control" id="sim-periodicidade">
-                  <option value="monthly">Mensal</option>
-                  <option value="biweekly">Quinzenal (15 dias)</option>
-                  <option value="weekly">Semanal (7 dias)</option>
-                  <option value="daily">Diário</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Qtd. de Parcelas *</label>
-                <input type="number" inputmode="numeric" class="form-control" id="sim-parcelas" value="5" min="1" max="120" required>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Data de Início *</label>
-                <input type="date" class="form-control" id="sim-data-inicio" value="${formatDateForInput()}" required>
-              </div>
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Carência (Dias p/ 1ª parcela)</label>
-                <input type="number" inputmode="numeric" class="form-control" id="sim-carencia" value="0" min="0">
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Multa por Atraso (%)</label>
-                <input type="number" inputmode="decimal" class="form-control" id="sim-multa" value="2.0" step="0.5">
+              <input type="number" inputmode="decimal" class="form-control" id="sim-valor" value="5000" min="10" step="10" required>
+              <div class="amount-quick-chips">
+                <button type="button" class="amount-chip" data-add="500">+ R$ 500</button>
+                <button type="button" class="amount-chip" data-add="1000">+ R$ 1.000</button>
+                <button type="button" class="amount-chip" data-add="2000">+ R$ 2.000</button>
+                <button type="button" class="amount-chip" data-set="5000">R$ 5.000</button>
+                <button type="button" class="amount-chip" data-set="10000">R$ 10.000</button>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Observações / Garantias</label>
-              <textarea class="form-control" id="sim-notas" rows="2" placeholder="Veículo em garantia, avalista, observações..."></textarea>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0;">Quantidade de Parcelas *</label>
+                <span class="sim-parcelas-hint text-yellow" id="sim-parcelas-display" style="font-size: 0.88rem; font-weight: 700;">5 parcelas</span>
+              </div>
+              <div class="installment-pills">
+                <button type="button" class="pill-btn" data-n="2">2x</button>
+                <button type="button" class="pill-btn" data-n="3">3x</button>
+                <button type="button" class="pill-btn active" data-n="5">5x</button>
+                <button type="button" class="pill-btn" data-n="6">6x</button>
+                <button type="button" class="pill-btn" data-n="10">10x</button>
+                <button type="button" class="pill-btn" data-n="12">12x</button>
+              </div>
+              <div style="margin-top: 8px;">
+                <input type="number" inputmode="numeric" class="form-control" id="sim-parcelas" value="5" min="1" max="120" placeholder="Ou digite o número de parcelas" required>
+              </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
-              Efetivar Empréstimo
+            <!-- Hero Box de Resumo Imediato (Fintech) -->
+            <div class="sim-hero-box">
+              <div class="sim-hero-main">
+                <span class="sim-hero-label">Valor Estimado da Parcela</span>
+                <div class="sim-hero-value" id="sim-hero-parcela">5x de R$ 0,00</div>
+              </div>
+              <div class="sim-hero-subgrid">
+                <div class="sim-hero-subitem">
+                  <span class="sim-hero-sublabel">Total a Receber</span>
+                  <span class="sim-hero-subvalue text-green" id="sim-hero-total">R$ 0,00</span>
+                </div>
+                <div class="sim-hero-subitem">
+                  <span class="sim-hero-sublabel">Total de Juros</span>
+                  <span class="sim-hero-subvalue text-yellow" id="sim-hero-juros">R$ 0,00</span>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary sim-submit-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Efetivar Empréstimo</span>
             </button>
+
+            <!-- Detalhes Avançados (Accordion) -->
+            <details class="sim-advanced-details" id="sim-advanced-details">
+              <summary class="sim-advanced-summary">
+                <span class="sim-advanced-summary-left">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                  <span>Opções Avançadas (Taxas, Prazos & Garantias)</span>
+                </span>
+                <span class="sim-details-chevron">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </span>
+              </summary>
+
+              <div class="sim-advanced-body">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Taxa de Juros (%) *</label>
+                    <input type="number" inputmode="decimal" class="form-control" id="sim-taxa" value="10" min="0" step="0.1" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Tipo de Juros *</label>
+                    <select class="form-control" id="sim-tipo-juros">
+                      <option value="price">Tabela Price (Parcelas Fixas)</option>
+                      <option value="simple">Juros Simples (Taxa Fixa)</option>
+                      <option value="sac">Tabela SAC (Amortização Constante)</option>
+                      <option value="interest_only">Só Juros (Amortização no Fim)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Periodicidade *</label>
+                    <select class="form-control" id="sim-periodicidade">
+                      <option value="monthly">Mensal</option>
+                      <option value="biweekly">Quinzenal (15 dias)</option>
+                      <option value="weekly">Semanal (7 dias)</option>
+                      <option value="daily">Diário</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Data de Início *</label>
+                    <input type="date" class="form-control" id="sim-data-inicio" value="${formatDateForInput()}" required>
+                  </div>
+                </div>
+
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Carência (Dias p/ 1ª parcela)</label>
+                    <input type="number" inputmode="numeric" class="form-control" id="sim-carencia" value="0" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Multa por Atraso (%)</label>
+                    <input type="number" inputmode="decimal" class="form-control" id="sim-multa" value="2.0" step="0.5">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Observações / Garantias</label>
+                  <textarea class="form-control" id="sim-notas" rows="2" placeholder="Veículo em garantia, avalista, observações..."></textarea>
+                </div>
+              </div>
+            </details>
           </form>
         </div>
 
         <!-- Painel de Resultados do Simulador -->
-        <div class="card">
+        <div class="card sim-card-schedule">
           <div class="card-header">
             <div>
-              <h3 class="card-title">Resumo da Simulação</h3>
+              <h3 class="card-title">Cronograma de Vencimentos</h3>
               <p class="card-subtitle">Cálculo detalhado do retorno financeiro</p>
             </div>
             <span class="badge badge-pending" id="sim-badge-parcelas">5x parcelas</span>
           </div>
 
-          <div class="kpi-grid" style="margin-bottom: 16px;">
-            <div class="kpi-card" style="padding: 12px;">
+          <div class="kpi-grid" style="margin-bottom: 14px;">
+            <div class="kpi-card" style="padding: 10px 12px;">
               <span class="kpi-label">Total a Receber</span>
               <div class="kpi-value text-green" id="sim-total-pagar">R$ 0,00</div>
             </div>
-            <div class="kpi-card" style="padding: 12px;">
+            <div class="kpi-card" style="padding: 10px 12px;">
               <span class="kpi-label">Total de Juros</span>
               <div class="kpi-value text-yellow" id="sim-total-juros">R$ 0,00</div>
             </div>
-          </div>
-
-          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-300); margin-bottom: 8px;">
-            Cronograma de Vencimentos:
           </div>
 
           <div class="scroll-hint-mobile">
@@ -149,8 +204,8 @@ export function renderLoans(options = {}) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
 
-          <div class="table-responsive table-scroll-x" style="max-height: 320px; overflow-x: auto !important; overflow-y: auto;">
-            <table class="table" id="sim-tabela-parcelas" style="min-width: 500px;">
+          <div class="table-responsive table-scroll-x" style="max-height: 380px; overflow-x: auto !important; overflow-y: auto;">
+            <table class="table" id="sim-tabela-parcelas">
               <thead>
                 <tr>
                   <th>Nº</th>
@@ -271,9 +326,39 @@ export function renderLoans(options = {}) {
       firstPaymentDays: carencia
     });
 
+    const parcelaUnit = res.schedule.length > 0 ? res.schedule[0].installmentAmount : 0;
+
+    const valDisplay = container.querySelector('#sim-val-display');
+    if (valDisplay) valDisplay.textContent = formatBRL(val);
+
+    const parcelasDisplay = container.querySelector('#sim-parcelas-display');
+    if (parcelasDisplay) parcelasDisplay.textContent = `${parcelas} parcela${parcelas > 1 ? 's' : ''}`;
+
+    const heroParcela = container.querySelector('#sim-hero-parcela');
+    if (heroParcela) {
+      if (res.schedule.length > 1 && tipo === 'sac') {
+        const first = res.schedule[0].installmentAmount;
+        const last = res.schedule[res.schedule.length - 1].installmentAmount;
+        heroParcela.textContent = `${parcelas}x (${formatBRL(first)} ~ ${formatBRL(last)})`;
+      } else {
+        heroParcela.textContent = `${parcelas}x de ${formatBRL(parcelaUnit)}`;
+      }
+    }
+
+    const heroTotal = container.querySelector('#sim-hero-total');
+    if (heroTotal) heroTotal.textContent = formatBRL(res.totalPayable);
+
+    const heroJuros = container.querySelector('#sim-hero-juros');
+    if (heroJuros) heroJuros.textContent = `${formatBRL(res.totalInterest)} (${taxa}%)`;
+
     container.querySelector('#sim-total-pagar').textContent = formatBRL(res.totalPayable);
     container.querySelector('#sim-total-juros').textContent = formatBRL(res.totalInterest);
     container.querySelector('#sim-badge-parcelas').textContent = `${parcelas}x parcelas`;
+
+    // Sincroniza active dos botões de parcelas (pills)
+    container.querySelectorAll('.pill-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.n, 10) === parcelas);
+    });
 
     const tbody = container.querySelector('#sim-tabela-parcelas tbody');
     tbody.innerHTML = res.schedule.map(item => `
@@ -310,6 +395,36 @@ export function renderLoans(options = {}) {
 
     if (options.tab === 'contratos' || options.loanId) {
       tabCont.click();
+    }
+
+    // Chips de valor rápido (+R$ 500, +R$ 1.000, +R$ 2.000, R$ 5.000, R$ 10.000)
+    container.querySelectorAll('.amount-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const input = container.querySelector('#sim-valor');
+        let current = Number(input.value) || 0;
+        if (chip.dataset.add) {
+          current += Number(chip.dataset.add);
+        } else if (chip.dataset.set) {
+          current = Number(chip.dataset.set);
+        }
+        input.value = current;
+        updateSimulation();
+      });
+    });
+
+    // Pills de parcelas (2x, 3x, 5x, 6x, 10x, 12x)
+    container.querySelectorAll('.pill-btn').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const input = container.querySelector('#sim-parcelas');
+        input.value = pill.dataset.n;
+        updateSimulation();
+      });
+    });
+
+    // Se estiver no desktop (tela ampla), abre opções avançadas por padrão
+    if (window.innerWidth > 768) {
+      const advDetails = container.querySelector('#sim-advanced-details');
+      if (advDetails) advDetails.open = true;
     }
 
     const inputs = ['#sim-valor', '#sim-taxa', '#sim-tipo-juros', '#sim-periodicidade', '#sim-parcelas', '#sim-data-inicio', '#sim-carencia'];

@@ -71,6 +71,9 @@ export function navigateToTab(tabName, options = {}) {
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
+  document.querySelectorAll('.bottom-nav-item[data-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
 
   // Fecha a gaveta mobile se estiver aberta
   closeMobileDrawer();
@@ -192,12 +195,23 @@ function updateOverdueBadge() {
   const overdueCount = insts.filter(i => i.status !== 'paid' && i.status !== 'renegotiated' && i.dueDate < todayStr).length;
 
   const badge = document.getElementById('badge-overdue-count');
+  const bottomBadge = document.getElementById('bottom-badge-overdue');
+
   if (badge) {
     if (overdueCount > 0) {
       badge.textContent = overdueCount;
       badge.style.display = 'inline-block';
     } else {
       badge.style.display = 'none';
+    }
+  }
+
+  if (bottomBadge) {
+    if (overdueCount > 0) {
+      bottomBadge.textContent = overdueCount;
+      bottomBadge.style.display = 'inline-block';
+    } else {
+      bottomBadge.style.display = 'none';
     }
   }
 }
@@ -335,6 +349,18 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     closeMobileDrawer();
     navigateToTab(tab);
   });
+});
+
+// Listeners de Navegação (Barra Inferior Mobile)
+document.querySelectorAll('.bottom-nav-item[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    navigateToTab(tab);
+  });
+});
+
+document.getElementById('btn-bottom-more')?.addEventListener('click', () => {
+  openMobileDrawer();
 });
 
 // Atalhos do Cabeçalho Superior

@@ -1027,14 +1027,220 @@ body.modal-open #app {
    ============================================================ */
 .loan-simulator-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 16px;
+  min-width: 0;
+  width: 100%;
 }
 
 .settings-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+  min-width: 0;
+}
+
+/* Chips Rápidos de Valor */
+.amount-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.amount-chip {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  color: var(--text-300);
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.amount-chip:hover,
+.amount-chip:active {
+  background: rgba(245, 197, 24, 0.15);
+  border-color: var(--yellow-border);
+  color: var(--yellow);
+  transform: translateY(-1px);
+}
+
+/* Pills de Quantidade de Parcelas */
+.installment-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill-btn {
+  flex: 1;
+  min-width: 44px;
+  padding: 8px 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  color: var(--text-300);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.pill-btn:hover {
+  background: var(--bg-4);
+  color: #fff;
+  border-color: var(--border-mid);
+}
+
+.pill-btn.active {
+  background: var(--yellow);
+  color: #07080a;
+  border-color: var(--yellow);
+  box-shadow: 0 2px 10px var(--yellow-glow);
+}
+
+/* Hero Box de Resumo da Simulação (Estilo Fintech) */
+.sim-hero-box {
+  background: linear-gradient(135deg, rgba(26, 30, 42, 0.85) 0%, rgba(19, 22, 31, 0.95) 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin: 14px 0 12px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.sim-hero-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--yellow), var(--yellow-light), var(--green));
+}
+
+.sim-hero-main {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sim-hero-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sim-hero-value {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--yellow);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.sim-hero-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sim-hero-subitem {
+  display: flex;
+  flex-direction: column;
+}
+
+.sim-hero-sublabel {
+  font-size: 0.72rem;
+  color: var(--text-500);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.sim-hero-subvalue {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+/* Botão de Submissão */
+.sim-submit-btn {
+  width: 100% !important;
+  min-height: 48px !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin-top: 4px !important;
+  margin-bottom: 12px !important;
+  box-sizing: border-box !important;
+  white-space: normal !important;
+}
+
+/* Accordion de Opções Avançadas */
+.sim-advanced-details {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  margin-top: 10px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.sim-advanced-summary {
+  padding: 12px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-300);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  -webkit-user-select: none;
+  list-style: none;
+}
+
+.sim-advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sim-advanced-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-details-chevron {
+  transition: transform 0.22s ease;
+  color: var(--text-400);
+  display: flex;
+  align-items: center;
+}
+
+.sim-advanced-details[open] .sim-details-chevron {
+  transform: rotate(180deg);
+}
+
+.sim-advanced-body {
+  padding: 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-1);
 }
 
 /* ============================================================
@@ -1544,7 +1750,20 @@ body.modal-open #app {
   .settings-grid,
   .loan-simulator-layout,
   .reports-charts-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-columns-grid > *,
+  .settings-grid > *,
+  .loan-simulator-layout > *,
+  .reports-charts-grid > *,
+  .card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -1575,9 +1794,11 @@ body.modal-open #app {
   }
 
   .page-content {
-    padding: 10px 8px;
+    padding: 10px 8px calc(75px + env(safe-area-inset-bottom, 12px)) 8px !important;
     width: 100%;
     max-width: 100%;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .card {
@@ -1664,9 +1885,21 @@ body.modal-open #app {
   }
 
   /* Tabelas que rolam para o lado (ex: simulação de parcelas) */
+  .table-responsive,
+  .table-scroll-x {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    box-sizing: border-box !important;
+  }
+
   .table-scroll-x table,
   .table-responsive > table:not(.table-mobile-card-view) {
-    min-width: 500px;
+    min-width: 440px;
+    width: 100%;
   }
 
   /* Transformação em Cards para Mobile */
@@ -1864,3 +2097,98 @@ body.modal-open #app {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ============================================================
+   15. BARRA DE NAVEGAÇÃO INFERIOR NATIVA MOBILE (PWA / APP STYLE)
+   ============================================================ */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(13, 15, 20, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-soft);
+    z-index: 150;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    color: var(--text-400);
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    gap: 3px;
+    transition: all 0.16s ease;
+    padding: 6px 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .bottom-nav-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .bottom-nav-icon svg {
+    stroke: var(--text-400);
+    transition: all 0.16s ease;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    transition: all 0.16s ease;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--yellow);
+  }
+
+  .bottom-nav-item.active .bottom-nav-icon svg {
+    stroke: var(--yellow);
+    filter: drop-shadow(0 0 6px var(--yellow-glow));
+    transform: translateY(-1px);
+  }
+
+  .bottom-nav-badge {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    background: var(--red);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: var(--r-full);
+    line-height: 1.2;
+    box-shadow: 0 0 8px var(--red-glow);
+  }
+}
+

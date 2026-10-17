@@ -181,6 +181,66 @@
 
       </main>
 
+      <!-- BARRA DE NAVEGAÇÃO INFERIOR NATIVA MOBILE (PWA / SMARTPHONES) -->
+      <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navegação Principal Mobile">
+        <button class="bottom-nav-item active" data-tab="dashboard">
+          <div class="bottom-nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </div>
+          <span class="bottom-nav-label">Início</span>
+        </button>
+
+        <button class="bottom-nav-item" data-tab="loans">
+          <div class="bottom-nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </div>
+          <span class="bottom-nav-label">Simular</span>
+        </button>
+
+        <button class="bottom-nav-item" data-tab="installments">
+          <div class="bottom-nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+            <span class="bottom-nav-badge" id="bottom-badge-overdue" style="display: none;">0</span>
+          </div>
+          <span class="bottom-nav-label">Cobrança</span>
+        </button>
+
+        <button class="bottom-nav-item" data-tab="clients">
+          <div class="bottom-nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <span class="bottom-nav-label">Clientes</span>
+        </button>
+
+        <button class="bottom-nav-item" id="btn-bottom-more">
+          <div class="bottom-nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+              <circle cx="5" cy="12" r="1"></circle>
+            </svg>
+          </div>
+          <span class="bottom-nav-label">Mais</span>
+        </button>
+      </nav>
+
     </div>
 
     <script type="module" src="/src/main.js"></script>
