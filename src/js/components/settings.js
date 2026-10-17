@@ -5,6 +5,7 @@ import { state } from '../state.js';
 import { showToast } from '../utils.js';
 import { openMonthlyReportModal } from './pdfExport.js';
 import { isPinEnabled, setPinEnabled, getStoredPin, setStoredPin, lockSession } from './loginScreen.js';
+import { getSupabaseConfig, saveSupabaseConfig, isSupabaseConfigured, testSupabaseConnection } from '../supabaseClient.js';
 
 export function renderSettings() {
   const container = document.createElement('div');
@@ -12,6 +13,8 @@ export function renderSettings() {
 
   const settings = state.getSettings();
   const pinActive = isPinEnabled();
+  const supabaseConfig = getSupabaseConfig();
+  const isCloudActive = isSupabaseConfigured();
 
   container.innerHTML = `
     <div class="settings-grid">
@@ -196,6 +199,67 @@ export function renderSettings() {
         </div>
       </div>
 
+      <!-- Card: Sincronização em Nuvem (Supabase / Banco de Dados) -->
+      <div class="card" id="card-supabase-sync">
+        <div class="card-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="card-title">Banco de Dados em Nuvem (Supabase)</h3>
+              <span class="badge ${isCloudActive ? 'badge-paid' : 'badge-pending'}" id="supabase-status-badge">
+                ${isCloudActive ? '● Conectado (Nuvem)' : '○ Modo Local Offline'}
+              </span>
+            </div>
+            <p class="card-subtitle">Sincronize clientes, contratos e parcelas em tempo real entre celular e notebook</p>
+          </div>
+        </div>
+
+        <form id="form-settings-supabase">
+          <div class="form-group">
+            <label class="form-label">URL do Projeto Supabase *</label>
+            <input type="url" class="form-control" id="set-supabase-url" value="${supabaseConfig.url || ''}" placeholder="https://xyzcompany.supabase.co" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Chave Pública Anon (API Key) *</label>
+            <input type="password" class="form-control" id="set-supabase-key" value="${supabaseConfig.key || ''}" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
+            <button type="submit" class="btn btn-primary" id="btn-save-supabase">
+              Conectar e Salvar
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-test-supabase">
+              Testar Conexão
+            </button>
+            ${isCloudActive ? `
+              <button type="button" class="btn btn-secondary" id="btn-disconnect-supabase" style="color: var(--red);">
+                Desconectar
+              </button>
+            ` : ''}
+          </div>
+        </form>
+
+        <div style="border-top: 1px solid var(--border-soft); margin-top: 16px; padding-top: 14px;">
+          <p style="font-size: 0.8rem; font-weight: 700; color: var(--text-200); margin-bottom: 8px;">
+            Ações de Sincronização em Nuvem:
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-push-supabase" title="Envia todos os dados deste aparelho para o banco em nuvem">
+              📤 Enviar Dados Locais p/ Nuvem
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-pull-supabase" title="Baixa os dados atualizados da nuvem para este aparelho">
+              📥 Baixar Dados da Nuvem
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-sql-schema" title="Copia o script SQL para criar as tabelas no Supabase">
+              📋 Copiar SQL do Banco
+            </button>
+          </div>
+          <p style="font-size: 0.74rem; color: var(--text-400); margin-top: 10px;">
+            💡 <em>Dica: Ao conectar pela primeira vez, use "Copiar SQL do Banco" e execute no SQL Editor do Supabase. Em seguida, clique em "Enviar Dados Locais p/ Nuvem".</em>
+          </p>
+        </div>
+      </div>
+
     </div>
   `;
 
@@ -316,6 +380,162 @@ export function renderSettings() {
 
     container.querySelector('#btn-lock-session')?.addEventListener('click', () => {
       lockSession();
+    });
+
+    // Eventos do Supabase (Banco de Dados em Nuvem)
+    container.querySelector('#form-settings-supabase')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = container.querySelector('#set-supabase-url').value.trim();
+      const key = container.querySelector('#set-supabase-key').value.trim();
+
+      saveSupabaseConfig(url, key);
+      showToast('Testando conexão com Supabase...');
+
+      const testRes = await testSupabaseConnection();
+      if (testRes.success) {
+        showToast('Conectado ao Supabase com sucesso!', 'success');
+        state.initSupabaseSync();
+        window.refreshCurrentTab();
+      } else {
+        showToast(`Erro ao conectar: ${testRes.error}`, 'error');
+      }
+    });
+
+    container.querySelector('#btn-test-supabase')?.addEventListener('click', async () => {
+      const url = container.querySelector('#set-supabase-url').value.trim();
+      const key = container.querySelector('#set-supabase-key').value.trim();
+
+      if (!url || !key) {
+        showToast('Preencha a URL e a Chave Anon primeiro.', 'error');
+        return;
+      }
+
+      saveSupabaseConfig(url, key);
+      showToast('Testando conexão...');
+      const res = await testSupabaseConnection();
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast(`Falha: ${res.error}`, 'error');
+      }
+    });
+
+    container.querySelector('#btn-disconnect-supabase')?.addEventListener('click', () => {
+      if (confirm('Deseja desconectar do Supabase? O sistema voltará a salvar apenas na memória local deste aparelho.')) {
+        saveSupabaseConfig('', '');
+        showToast('Desconectado do Supabase.');
+        window.refreshCurrentTab();
+      }
+    });
+
+    container.querySelector('#btn-push-supabase')?.addEventListener('click', async () => {
+      if (!isSupabaseConfigured()) {
+        showToast('Configure a URL e Chave Anon antes de enviar dados.', 'error');
+        return;
+      }
+      try {
+        showToast('Enviando clientes e contratos para a nuvem...');
+        const res = await state.syncToSupabase();
+        showToast(`Dados enviados com sucesso! (${res.count.clients} clientes, ${res.count.loans} empréstimos)`, 'success');
+      } catch (err) {
+        showToast(`Erro ao sincronizar: ${err.message}`, 'error');
+      }
+    });
+
+    container.querySelector('#btn-pull-supabase')?.addEventListener('click', async () => {
+      if (!isSupabaseConfigured()) {
+        showToast('Configure a URL e Chave Anon antes de baixar dados.', 'error');
+        return;
+      }
+      try {
+        showToast('Baixando dados mais recentes da nuvem...');
+        await state.syncFromSupabase();
+        showToast('Dados atualizados da nuvem com sucesso!', 'success');
+        window.refreshCurrentTab();
+      } catch (err) {
+        showToast(`Erro ao baixar dados: ${err.message}`, 'error');
+      }
+    });
+
+    container.querySelector('#btn-copy-sql-schema')?.addEventListener('click', async () => {
+      const sql = `-- VANDO MOTOS LOCADORA LTDA - ESQUEMA SUPABASE
+CREATE TABLE IF NOT EXISTS public.clients (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  cpf TEXT,
+  phone TEXT,
+  address TEXT,
+  notes TEXT,
+  credit_limit NUMERIC DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.loans (
+  id TEXT PRIMARY KEY,
+  client_id TEXT REFERENCES public.clients(id) ON DELETE CASCADE,
+  principal NUMERIC NOT NULL,
+  interest_rate NUMERIC NOT NULL,
+  interest_type TEXT DEFAULT 'price',
+  periodicity TEXT DEFAULT 'monthly',
+  installments_count INT NOT NULL,
+  start_date TEXT NOT NULL,
+  total_payable NUMERIC NOT NULL,
+  total_interest NUMERIC NOT NULL,
+  penalty_rate NUMERIC DEFAULT 2.0,
+  daily_interest_rate NUMERIC DEFAULT 0.1,
+  first_payment_days INT DEFAULT 0,
+  notes TEXT,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.installments (
+  id TEXT PRIMARY KEY,
+  loan_id TEXT REFERENCES public.loans(id) ON DELETE CASCADE,
+  client_id TEXT NOT NULL,
+  number INT NOT NULL,
+  due_date TEXT NOT NULL,
+  installment_amount NUMERIC NOT NULL,
+  amortization_amount NUMERIC DEFAULT 0,
+  interest_amount NUMERIC DEFAULT 0,
+  paid_amount NUMERIC DEFAULT 0,
+  paid_date TEXT,
+  status TEXT DEFAULT 'pending',
+  payment_method TEXT,
+  payment_history JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.settings (
+  id TEXT PRIMARY KEY DEFAULT 'global',
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.installments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anon Full Access Clients" ON public.clients FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Anon Full Access Loans" ON public.loans FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Anon Full Access Installments" ON public.installments FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Anon Full Access Settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.clients;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.loans;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.installments;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.settings;`;
+
+      try {
+        await navigator.clipboard.writeText(sql);
+        showToast('Código SQL copiado para a Área de Transferência! Cole no SQL Editor do Supabase.', 'success');
+      } catch (err) {
+        showToast('Consulte o arquivo supabase_schema.sql na raiz do projeto.', 'info');
+      }
     });
   }, 0);
 

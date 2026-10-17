@@ -1,8 +1,9 @@
 // src/js/state.js
-// Gerenciamento de Estado e Persistência Local (LocalStorage)
+// Gerenciamento de Estado, Persistência Local (LocalStorage) e Nuvem (Supabase / PostgreSQL)
 
 import { generateId, formatDateForInput, addDays, addMonths } from './utils.js';
 import { calculateAmortizationSchedule } from './finance.js';
+import { isSupabaseConfigured, pullAllFromSupabase, pushAllToSupabase, setupRealtimeSync } from './supabaseClient.js';
 
 const STORAGE_KEY = 'vandomotos_data_v1';
 
@@ -28,12 +29,64 @@ class StateManager {
       settings: { ...DEFAULT_SETTINGS }
     };
     this.listeners = [];
+    this.isSyncing = false;
     this.load();
+    this.initSupabaseSync();
+  }
+
+  initSupabaseSync() {
+    if (isSupabaseConfigured()) {
+      this.syncFromSupabase().catch(err => {
+        console.warn('Sincronização inicial com Supabase:', err.message || err);
+      });
+
+      setupRealtimeSync(() => {
+        console.log('Atualização em tempo real recebida do Supabase, sincronizando...');
+        this.syncFromSupabase().catch(console.error);
+      });
+    }
+  }
+
+  async syncFromSupabase() {
+    if (!isSupabaseConfigured() || this.isSyncing) return;
+    this.isSyncing = true;
+    try {
+      const remote = await pullAllFromSupabase();
+      let changed = false;
+
+      if (remote.clients && remote.clients.length > 0) {
+        this.data.clients = remote.clients;
+        changed = true;
+      }
+      if (remote.loans && remote.loans.length > 0) {
+        this.data.loans = remote.loans;
+        changed = true;
+      }
+      if (remote.installments && remote.installments.length > 0) {
+        this.data.installments = remote.installments;
+        changed = true;
+      }
+      if (remote.settings) {
+        this.data.settings = { ...this.data.settings, ...remote.settings };
+        changed = true;
+      }
+
+      if (changed) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+        this.notify();
+      }
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  async syncToSupabase() {
+    if (!isSupabaseConfigured()) throw new Error('Supabase não está configurado.');
+    return await pushAllToSupabase(this.data);
   }
 
   load() {
     try {
-      // Tenta carregar chave nova ou migrar chave anterior
       let stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         stored = localStorage.getItem('credisys_data_v3');
@@ -42,7 +95,6 @@ class StateManager {
       if (stored) {
         this.data = JSON.parse(stored);
         this.data.settings = { ...DEFAULT_SETTINGS, ...(this.data.settings || {}) };
-        // Garante a empresa oficial atualizada
         if (!this.data.settings.businessName || this.data.settings.businessName.includes('CrediSys') || !this.data.settings.creditorCpfCnpj || this.data.settings.creditorCpfCnpj !== '28.623.431-0001-23') {
           this.data.settings.businessName = 'Vando motos locadora LTDA';
           this.data.settings.creditorCpfCnpj = '28.623.431-0001-23';
@@ -64,6 +116,13 @@ class StateManager {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
       this.notify();
+
+      // Sincroniza em segundo plano se a nuvem estiver configurada
+      if (isSupabaseConfigured() && !this.isSyncing) {
+        pushAllToSupabase(this.data).catch(err => {
+          console.warn('Erro ao enviar alteração para o Supabase:', err.message || err);
+        });
+      }
     } catch (err) {
       console.error('Erro ao salvar dados no LocalStorage:', err);
     }
