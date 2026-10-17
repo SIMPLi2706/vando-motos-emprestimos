@@ -3,7 +3,7 @@
 
 import { generateId, formatDateForInput, addDays, addMonths } from './utils.js';
 import { calculateAmortizationSchedule } from './finance.js';
-import { isSupabaseConfigured, pullAllFromSupabase, pushAllToSupabase, setupRealtimeSync } from './supabaseClient.js';
+import { isSupabaseConfigured, pullAllFromSupabase, pushAllToSupabase, setupRealtimeSync, deleteClientFromSupabase, deleteLoanFromSupabase, wipeAllFromSupabase } from './supabaseClient.js';
 
 const STORAGE_KEY = 'vandomotos_data_v1';
 
@@ -53,41 +53,42 @@ class StateManager {
     try {
       const remote = await pullAllFromSupabase();
 
-      // Se a nuvem estiver vazia, mas tivermos dados locais, envia os dados locais iniciais automaticamente!
       const isRemoteEmpty = (!remote.clients || remote.clients.length === 0) &&
                             (!remote.loans || remote.loans.length === 0);
-      const hasLocalData = (this.data.clients && this.data.clients.length > 0) ||
-                           (this.data.loans && this.data.loans.length > 0);
+      const isWiped = localStorage.getItem('vandomotos_wiped') === 'true';
 
-      if (isRemoteEmpty && hasLocalData) {
-        console.log('Nuvem Supabase está limpa. Enviando dados locais iniciais para a nuvem...');
+      const demoNames = ['BRUNO VASQUEZ CASTRO', 'Carlos Silva Santos', 'Mariana Souza Oliveira', 'Roberto Ferreira Dias'];
+      const hasOnlyDemoData = this.data.clients && this.data.clients.length > 0 &&
+                              this.data.clients.every(c => demoNames.includes(c.name));
+
+      // Se a nuvem estiver vazia e os dados locais forem apenas os dados de exemplo automáticos ou se o sistema foi zerado:
+      if (isRemoteEmpty && (isWiped || hasOnlyDemoData)) {
+        this.data.clients = [];
+        this.data.loans = [];
+        this.data.installments = [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+        this.notify();
+        return;
+      }
+
+      // Se a nuvem estiver vazia, mas tivermos dados locais REAIS criados pelo usuário, envia para a nuvem
+      const hasRealLocalData = this.data.clients && this.data.clients.length > 0 && !hasOnlyDemoData;
+      if (isRemoteEmpty && hasRealLocalData) {
+        console.log('Nuvem Supabase está limpa. Enviando dados locais para a nuvem...');
         await pushAllToSupabase(this.data);
         return;
       }
 
-      let changed = false;
-
-      if (remote.clients && remote.clients.length > 0) {
-        this.data.clients = remote.clients;
-        changed = true;
-      }
-      if (remote.loans && remote.loans.length > 0) {
-        this.data.loans = remote.loans;
-        changed = true;
-      }
-      if (remote.installments && remote.installments.length > 0) {
-        this.data.installments = remote.installments;
-        changed = true;
-      }
+      // Supabase é a autoridade: sincroniza exatamente o que está na nuvem
+      this.data.clients = remote.clients || [];
+      this.data.loans = remote.loans || [];
+      this.data.installments = remote.installments || [];
       if (remote.settings) {
         this.data.settings = { ...this.data.settings, ...remote.settings };
-        changed = true;
       }
 
-      if (changed) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-        this.notify();
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      this.notify();
     } catch (err) {
       console.warn('Erro ao sincronizar com Supabase:', err);
     } finally {
@@ -107,6 +108,8 @@ class StateManager {
         stored = localStorage.getItem('credisys_data_v3');
       }
 
+      const isWiped = localStorage.getItem('vandomotos_wiped') === 'true';
+
       if (stored) {
         this.data = JSON.parse(stored);
         this.data.settings = { ...DEFAULT_SETTINGS, ...(this.data.settings || {}) };
@@ -117,13 +120,33 @@ class StateManager {
           this.data.settings.pixHolder = 'Vando motos locadora LTDA';
           this.data.settings.creditorCity = 'PORTO VELHO RONDONIA';
         }
+
+        // Se estiver marcado como zerado, assegura que as listas comecem vazias
+        if (isWiped) {
+          this.data.clients = [];
+          this.data.loans = [];
+          this.data.installments = [];
+        }
         this.save();
-      } else {
+      } else if (!isWiped) {
         this.loadSeedData();
+      } else {
+        this.data = {
+          clients: [],
+          loans: [],
+          installments: [],
+          settings: { ...DEFAULT_SETTINGS }
+        };
+        this.save();
       }
     } catch (err) {
       console.error('Erro ao carregar dados do LocalStorage:', err);
-      this.loadSeedData();
+      this.data = {
+        clients: [],
+        loans: [],
+        installments: [],
+        settings: { ...DEFAULT_SETTINGS }
+      };
     }
   }
 
@@ -180,14 +203,26 @@ class StateManager {
     return client;
   }
 
-  deleteClient(id) {
-    // Verifica se possui empréstimos ativos
+  async deleteClient(id, cascade = true) {
     const hasActiveLoans = this.data.loans.some(l => l.clientId === id && l.status === 'active');
-    if (hasActiveLoans) {
+    if (hasActiveLoans && !cascade) {
       throw new Error('Não é possível excluir um cliente com empréstimos ativos.');
     }
+
+    if (cascade) {
+      const loanIds = this.data.loans.filter(l => l.clientId === id).map(l => l.id);
+      this.data.loans = this.data.loans.filter(l => l.clientId !== id);
+      this.data.installments = this.data.installments.filter(i => i.clientId !== id && !loanIds.includes(i.loanId));
+    }
+
     this.data.clients = this.data.clients.filter(c => c.id !== id);
     this.save();
+
+    if (isSupabaseConfigured()) {
+      await deleteClientFromSupabase(id).catch(err => {
+        console.warn('Erro ao excluir cliente no Supabase:', err);
+      });
+    }
   }
 
   // --- EMPRÉSTIMOS ---
@@ -251,10 +286,31 @@ class StateManager {
     return newLoan;
   }
 
-  deleteLoan(id) {
+  async deleteLoan(id) {
     this.data.loans = this.data.loans.filter(l => l.id !== id);
     this.data.installments = this.data.installments.filter(i => i.loanId !== id);
     this.save();
+
+    if (isSupabaseConfigured()) {
+      await deleteLoanFromSupabase(id).catch(err => {
+        console.warn('Erro ao excluir empréstimo no Supabase:', err);
+      });
+    }
+  }
+
+  async wipeAllData() {
+    this.data.clients = [];
+    this.data.loans = [];
+    this.data.installments = [];
+    localStorage.setItem('vandomotos_wiped', 'true');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    this.notify();
+
+    if (isSupabaseConfigured()) {
+      await wipeAllFromSupabase().catch(err => {
+        console.warn('Erro ao zerar dados no Supabase:', err);
+      });
+    }
   }
 
   // --- PARCELAS E PAGAMENTOS ---
@@ -542,6 +598,7 @@ class StateManager {
 
   // --- SEED DE DEMONSTRAÇÃO REALISTA ---
   loadSeedData() {
+    localStorage.removeItem('vandomotos_wiped');
     const today = new Date();
     const todayStr = formatDateForInput(today);
 

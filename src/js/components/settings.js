@@ -305,22 +305,23 @@ export function renderSettings() {
       reader.readAsText(file);
     });
 
-    container.querySelector('#btn-reset-demo')?.addEventListener('click', () => {
+    container.querySelector('#btn-reset-demo')?.addEventListener('click', async () => {
       if (confirm('Deseja recarregar os dados de exemplo do sistema?')) {
         state.loadSeedData();
         showToast('Dados de exemplo recarregados!');
+        if (state.data.clients.length > 0) {
+          state.syncToSupabase().catch(console.warn);
+        }
         window.refreshCurrentTab();
         window.updateBrandDisplay();
       }
     });
 
-    container.querySelector('#btn-wipe-all')?.addEventListener('click', () => {
-      if (confirm('ATENÇÃO: Isso vai apagar TODOS os clientes, empréstimos e parcelas. O sistema ficará limpo como novo. Confirmar?')) {
-        state.data.clients = [];
-        state.data.loans = [];
-        state.data.installments = [];
-        state.save();
-        showToast('Sistema zerado com sucesso!', 'success');
+    container.querySelector('#btn-wipe-all')?.addEventListener('click', async () => {
+      if (confirm('ATENÇÃO: Isso vai apagar TODOS os clientes, empréstimos e parcelas do sistema e do banco na nuvem. O sistema ficará 100% limpo para você começar do zero. Confirmar?')) {
+        showToast('Apagando todos os dados do sistema e da nuvem...');
+        await state.wipeAllData();
+        showToast('Sistema e banco em nuvem zerados com sucesso!', 'success');
         window.refreshCurrentTab();
       }
     });

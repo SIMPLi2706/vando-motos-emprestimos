@@ -486,10 +486,10 @@ export function renderLoans(options = {}) {
     });
 
     container.querySelectorAll('.btn-excluir-loan').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (confirm('Deseja realmente excluir este empréstimo e todas as suas parcelas?')) {
-          state.deleteLoan(btn.dataset.loanId);
-          showToast('Empréstimo excluído.');
+          await state.deleteLoan(btn.dataset.loanId);
+          showToast('Empréstimo excluído com sucesso.', 'success');
           window.refreshCurrentTab();
         }
       });

@@ -173,12 +173,20 @@ export function renderClients(options = {}) {
     });
 
     tbody.querySelectorAll('.btn-del-client').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const client = state.getClientById(btn.dataset.id);
-        if (confirm(`Tem certeza que deseja excluir o cliente ${client?.name}?`)) {
+        if (!client) return;
+
+        const clientLoans = state.getLoans().filter(l => l.clientId === client.id);
+        let confirmMsg = `Tem certeza que deseja excluir o cliente ${client.name}?`;
+        if (clientLoans.length > 0) {
+          confirmMsg = `O cliente ${client.name} possui ${clientLoans.length} empréstimo(s) registrado(s).\n\nDeseja excluir o cliente e TODOS os seus contratos e parcelas vinculados?`;
+        }
+
+        if (confirm(confirmMsg)) {
           try {
-            state.deleteClient(btn.dataset.id);
-            showToast('Cliente excluído com sucesso.');
+            await state.deleteClient(btn.dataset.id, true);
+            showToast('Cliente e contratos excluídos com sucesso.', 'success');
             window.refreshCurrentTab();
           } catch (err) {
             showToast(err.message, 'error');

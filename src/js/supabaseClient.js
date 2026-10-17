@@ -295,3 +295,53 @@ export function setupRealtimeSync(onUpdateCallback) {
 
   return realtimeChannel;
 }
+
+/**
+ * Exclui um cliente e seus dados relacionados do Supabase
+ */
+export async function deleteClientFromSupabase(clientId) {
+  const client = getSupabase();
+  if (!client || !clientId) return;
+
+  try {
+    await client.from('installments').delete().eq('client_id', clientId);
+    await client.from('loans').delete().eq('client_id', clientId);
+    const { error } = await client.from('clients').delete().eq('id', clientId);
+    if (error) console.error('Erro ao excluir cliente no Supabase:', error);
+  } catch (err) {
+    console.error('Falha na exclusão de cliente no Supabase:', err);
+  }
+}
+
+/**
+ * Exclui um empréstimo e suas parcelas do Supabase
+ */
+export async function deleteLoanFromSupabase(loanId) {
+  const client = getSupabase();
+  if (!client || !loanId) return;
+
+  try {
+    await client.from('installments').delete().eq('loan_id', loanId);
+    const { error } = await client.from('loans').delete().eq('id', loanId);
+    if (error) console.error('Erro ao excluir empréstimo no Supabase:', error);
+  } catch (err) {
+    console.error('Falha na exclusão de empréstimo no Supabase:', err);
+  }
+}
+
+/**
+ * Zera todas as tabelas no Supabase (limpa clientes, empréstimos e parcelas)
+ */
+export async function wipeAllFromSupabase() {
+  const client = getSupabase();
+  if (!client) return;
+
+  try {
+    await client.from('installments').delete().neq('id', '___none___');
+    await client.from('loans').delete().neq('id', '___none___');
+    await client.from('clients').delete().neq('id', '___none___');
+  } catch (err) {
+    console.error('Erro ao zerar dados no Supabase:', err);
+    throw err;
+  }
+}
