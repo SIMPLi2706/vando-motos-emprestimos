@@ -52,6 +52,19 @@ class StateManager {
     this.isSyncing = true;
     try {
       const remote = await pullAllFromSupabase();
+
+      // Se a nuvem estiver vazia, mas tivermos dados locais, envia os dados locais iniciais automaticamente!
+      const isRemoteEmpty = (!remote.clients || remote.clients.length === 0) &&
+                            (!remote.loans || remote.loans.length === 0);
+      const hasLocalData = (this.data.clients && this.data.clients.length > 0) ||
+                           (this.data.loans && this.data.loans.length > 0);
+
+      if (isRemoteEmpty && hasLocalData) {
+        console.log('Nuvem Supabase está limpa. Enviando dados locais iniciais para a nuvem...');
+        await pushAllToSupabase(this.data);
+        return;
+      }
+
       let changed = false;
 
       if (remote.clients && remote.clients.length > 0) {
@@ -75,6 +88,8 @@ class StateManager {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
         this.notify();
       }
+    } catch (err) {
+      console.warn('Erro ao sincronizar com Supabase:', err);
     } finally {
       this.isSyncing = false;
     }

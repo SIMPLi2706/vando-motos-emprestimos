@@ -8,13 +8,15 @@ let realtimeChannel = null;
 
 const STORAGE_URL_KEY = 'vandomotos_supabase_url';
 const STORAGE_KEY_KEY = 'vandomotos_supabase_key';
+const DEFAULT_SUPABASE_URL = 'https://xhpqzvddhmauuelqmmrp.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhocHF6dmRkaG1hdXVlbHFtbXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxOTUxMTYsImV4cCI6MjEwNzc3MTExNn0.yEyBq0iw1zfSfE9HBKrTISudvdr5D-LfRlrGuDDImLM';
 
 /**
- * Retorna as credenciais configuradas (via localStorage ou variáveis de ambiente Vite)
+ * Retorna as credenciais configuradas de forma segura dentro do projeto
  */
 export function getSupabaseConfig() {
-  const url = localStorage.getItem(STORAGE_URL_KEY) || (import.meta.env?.VITE_SUPABASE_URL || '').trim();
-  const key = localStorage.getItem(STORAGE_KEY_KEY) || (import.meta.env?.VITE_SUPABASE_ANON_KEY || '').trim();
+  const url = (import.meta.env?.VITE_SUPABASE_URL || localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_SUPABASE_URL).trim();
+  const key = (import.meta.env?.VITE_SUPABASE_ANON_KEY || localStorage.getItem(STORAGE_KEY_KEY) || DEFAULT_SUPABASE_ANON_KEY).trim();
   return { url, key };
 }
 

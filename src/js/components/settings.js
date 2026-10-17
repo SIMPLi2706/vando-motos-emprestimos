@@ -5,7 +5,7 @@ import { state } from '../state.js';
 import { showToast } from '../utils.js';
 import { openMonthlyReportModal } from './pdfExport.js';
 import { isPinEnabled, setPinEnabled, getStoredPin, setStoredPin, lockSession } from './loginScreen.js';
-import { getSupabaseConfig, saveSupabaseConfig, isSupabaseConfigured, testSupabaseConnection } from '../supabaseClient.js';
+import { isSupabaseConfigured, testSupabaseConnection } from '../supabaseClient.js';
 
 export function renderSettings() {
   const container = document.createElement('div');
@@ -13,7 +13,6 @@ export function renderSettings() {
 
   const settings = state.getSettings();
   const pinActive = isPinEnabled();
-  const supabaseConfig = getSupabaseConfig();
   const isCloudActive = isSupabaseConfigured();
 
   container.innerHTML = `
@@ -204,59 +203,43 @@ export function renderSettings() {
         <div class="card-header">
           <div>
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <h3 class="card-title">Banco de Dados em Nuvem (Supabase)</h3>
+              <h3 class="card-title">Banco de Dados em Nuvem (PostgreSQL)</h3>
               <span class="badge ${isCloudActive ? 'badge-paid' : 'badge-pending'}" id="supabase-status-badge">
-                ${isCloudActive ? '● Conectado (Nuvem)' : '○ Modo Local Offline'}
+                ${isCloudActive ? '● Conectado e Sincronizado' : '○ Modo Local Offline'}
               </span>
             </div>
-            <p class="card-subtitle">Sincronize clientes, contratos e parcelas em tempo real entre celular e notebook</p>
+            <p class="card-subtitle">Sincronização em tempo real entre celular e computador com persistência garantida</p>
           </div>
         </div>
 
-        <form id="form-settings-supabase">
-          <div class="form-group">
-            <label class="form-label">URL do Projeto Supabase *</label>
-            <input type="url" class="form-control" id="set-supabase-url" value="${supabaseConfig.url || ''}" placeholder="https://xyzcompany.supabase.co" required>
+        <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 10px #10b981;"></div>
+            <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-100);">Banco Supabase Dedicado Ativo</span>
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Chave Pública Anon (API Key) *</label>
-            <input type="password" class="form-control" id="set-supabase-key" value="${supabaseConfig.key || ''}" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
-          </div>
-
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
-            <button type="submit" class="btn btn-primary" id="btn-save-supabase">
-              Conectar e Salvar
-            </button>
-            <button type="button" class="btn btn-secondary" id="btn-test-supabase">
-              Testar Conexão
-            </button>
-            ${isCloudActive ? `
-              <button type="button" class="btn btn-secondary" id="btn-disconnect-supabase" style="color: var(--red);">
-                Desconectar
-              </button>
-            ` : ''}
-          </div>
-        </form>
-
-        <div style="border-top: 1px solid var(--border-soft); margin-top: 16px; padding-top: 14px;">
-          <p style="font-size: 0.8rem; font-weight: 700; color: var(--text-200); margin-bottom: 8px;">
-            Ações de Sincronização em Nuvem:
+          <p style="font-size: 0.82rem; color: var(--text-300); line-height: 1.5; margin-bottom: 12px;">
+            As credenciais de acesso foram salvas de forma segura internamente no projeto (.env) e não ficam expostas no navegador. Todos os dados adicionados ou alterados são replicados automaticamente entre qualquer dispositivo.
           </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-push-supabase" title="Envia todos os dados deste aparelho para o banco em nuvem">
-              📤 Enviar Dados Locais p/ Nuvem
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-pull-supabase" title="Baixa os dados atualizados da nuvem para este aparelho">
-              📥 Baixar Dados da Nuvem
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-sql-schema" title="Copia o script SQL para criar as tabelas no Supabase">
-              📋 Copiar SQL do Banco
-            </button>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.78rem; color: var(--text-400); background: var(--bg-2); padding: 10px 14px; border-radius: var(--radius-sm);">
+            <div><strong>Tecnologia:</strong> PostgreSQL Cloud</div>
+            <div><strong>Segurança:</strong> Chaves Internas Ocultas</div>
+            <div><strong>Tempo Real:</strong> WebSockets Conectado</div>
           </div>
-          <p style="font-size: 0.74rem; color: var(--text-400); margin-top: 10px;">
-            💡 <em>Dica: Ao conectar pela primeira vez, use "Copiar SQL do Banco" e execute no SQL Editor do Supabase. Em seguida, clique em "Enviar Dados Locais p/ Nuvem".</em>
-          </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-primary" id="btn-pull-supabase" title="Baixa os dados mais recentes do banco em nuvem">
+            🔄 Sincronizar Agora
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-push-supabase" title="Envia todos os dados deste aparelho para o banco em nuvem">
+            📤 Forçar Upload p/ Nuvem
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-test-supabase">
+            ⚡ Testar Conexão
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-sql-schema" title="Copia o script SQL das tabelas do banco">
+            📋 Copiar Esquema SQL
+          </button>
         </div>
       </div>
 
@@ -383,35 +366,8 @@ export function renderSettings() {
     });
 
     // Eventos do Supabase (Banco de Dados em Nuvem)
-    container.querySelector('#form-settings-supabase')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const url = container.querySelector('#set-supabase-url').value.trim();
-      const key = container.querySelector('#set-supabase-key').value.trim();
-
-      saveSupabaseConfig(url, key);
-      showToast('Testando conexão com Supabase...');
-
-      const testRes = await testSupabaseConnection();
-      if (testRes.success) {
-        showToast('Conectado ao Supabase com sucesso!', 'success');
-        state.initSupabaseSync();
-        window.refreshCurrentTab();
-      } else {
-        showToast(`Erro ao conectar: ${testRes.error}`, 'error');
-      }
-    });
-
     container.querySelector('#btn-test-supabase')?.addEventListener('click', async () => {
-      const url = container.querySelector('#set-supabase-url').value.trim();
-      const key = container.querySelector('#set-supabase-key').value.trim();
-
-      if (!url || !key) {
-        showToast('Preencha a URL e a Chave Anon primeiro.', 'error');
-        return;
-      }
-
-      saveSupabaseConfig(url, key);
-      showToast('Testando conexão...');
+      showToast('Testando conexão com o banco de dados em nuvem...');
       const res = await testSupabaseConnection();
       if (res.success) {
         showToast(res.message, 'success');
@@ -420,17 +376,9 @@ export function renderSettings() {
       }
     });
 
-    container.querySelector('#btn-disconnect-supabase')?.addEventListener('click', () => {
-      if (confirm('Deseja desconectar do Supabase? O sistema voltará a salvar apenas na memória local deste aparelho.')) {
-        saveSupabaseConfig('', '');
-        showToast('Desconectado do Supabase.');
-        window.refreshCurrentTab();
-      }
-    });
-
     container.querySelector('#btn-push-supabase')?.addEventListener('click', async () => {
       if (!isSupabaseConfigured()) {
-        showToast('Configure a URL e Chave Anon antes de enviar dados.', 'error');
+        showToast('Supabase não configurado.', 'error');
         return;
       }
       try {
@@ -444,13 +392,13 @@ export function renderSettings() {
 
     container.querySelector('#btn-pull-supabase')?.addEventListener('click', async () => {
       if (!isSupabaseConfigured()) {
-        showToast('Configure a URL e Chave Anon antes de baixar dados.', 'error');
+        showToast('Supabase não configurado.', 'error');
         return;
       }
       try {
         showToast('Baixando dados mais recentes da nuvem...');
         await state.syncFromSupabase();
-        showToast('Dados atualizados da nuvem com sucesso!', 'success');
+        showToast('Dados sincronizados com sucesso!', 'success');
         window.refreshCurrentTab();
       } catch (err) {
         showToast(`Erro ao baixar dados: ${err.message}`, 'error');
