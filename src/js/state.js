@@ -1,7 +1,7 @@
 // src/js/state.js
 // Gerenciamento de Estado, Persistência Local (LocalStorage) e Nuvem (Supabase / PostgreSQL)
 
-import { generateId, formatDateForInput, addDays, addMonths } from './utils.js';
+import { generateId, formatDateForInput, addDays, addMonths, formatDate, formatBRL } from './utils.js';
 import { calculateAmortizationSchedule } from './finance.js';
 import { isSupabaseConfigured, pullAllFromSupabase, pushAllToSupabase, setupRealtimeSync, deleteClientFromSupabase, deleteLoanFromSupabase, wipeAllFromSupabase } from './supabaseClient.js';
 
@@ -397,6 +397,266 @@ class StateManager {
     }
 
     this.save();
+  }
+
+  /**
+   * Rolagem de Dívida / Renovação Rápida
+   * O devedor quita apenas os juros do período (e encargos de atraso, se houver).
+   * O valor principal permanece em aberto e a data de vencimento da parcela é prorrogada.
+   */
+  rollOverInstallment(installmentId, {
+    amountPaid,
+    paymentMethod = 'PIX',
+    paymentDate = formatDateForInput(),
+    newDueDate,
+    notes = ''
+  }) {
+    const inst = this.getInstallmentById(installmentId);
+    if (!inst) throw new Error('Parcela não encontrada.');
+
+    const loan = this.getLoanById(inst.loanId);
+    if (!loan) throw new Error('Empréstimo não encontrado.');
+
+    const amount = Number(amountPaid);
+    if (amount <= 0) throw new Error('O valor dos juros pagos deve ser maior que zero.');
+
+    // Se nova data não foi informada, avança 1 ciclo (1 mês ou período correspondente)
+    const nextDate = newDueDate || addMonths(inst.dueDate, 1);
+
+    const rolloverReceipt = {
+      id: generateId('rec_roll'),
+      date: paymentDate,
+      amount: amount,
+      method: paymentMethod,
+      type: 'interest_rollover',
+      notes: notes || `Rolagem de dívida. Juros do ciclo quitados. Vencimento prorrogado para ${formatDate(nextDate)}.`
+    };
+
+    inst.paymentHistory = inst.paymentHistory || [];
+    inst.paymentHistory.push(rolloverReceipt);
+
+    // Contabiliza os juros recebidos nessa rolagem
+    inst.rolloverInterestPaid = (Number(inst.rolloverInterestPaid) || 0) + amount;
+    inst.rolloverCount = (Number(inst.rolloverCount) || 0) + 1;
+    inst.previousDueDate = inst.dueDate;
+    inst.dueDate = nextDate;
+    inst.status = 'pending'; // Parcela renovada e ativa para o novo vencimento
+
+    if (loan.status === 'overdue') {
+      loan.status = 'active';
+    }
+
+    this.save();
+    return { installment: inst, receipt: rolloverReceipt };
+  }
+
+  /**
+   * Indicadores de Rentabilidade e Lucro Real sobre Juros
+   */
+  getInterestProfitStats() {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const in30Days = addDays(now, 30);
+    const in30DaysStr = formatDateForInput(in30Days);
+    const todayStr = formatDateForInput(now);
+
+    let capitalNaRua = 0;
+    let jurosRecebidosMes = 0;
+    let principalRecebidoMes = 0;
+    let jurosHistoricoTotal = 0;
+    let principalHistoricoTotal = 0;
+    let jurosProjetados30Dias = 0;
+
+    const allInstallments = this.data.installments || [];
+
+    allInstallments.forEach(inst => {
+      const isPaid = inst.status === 'paid';
+      const pendingPrincipal = Number(inst.amortizationAmount || (Number(inst.installmentAmount) - Number(inst.interestAmount || 0)));
+
+      if (!isPaid) {
+        capitalNaRua += pendingPrincipal;
+
+        // Projeção dos próximos 30 dias
+        if (inst.dueDate >= todayStr && inst.dueDate <= in30DaysStr) {
+          jurosProjetados30Dias += Number(inst.interestAmount || 0);
+        }
+      }
+
+      // Histórico de pagamentos
+      if (inst.paymentHistory && inst.paymentHistory.length > 0) {
+        inst.paymentHistory.forEach(rec => {
+          const recAmount = Number(rec.amount || 0);
+          const recDate = new Date(rec.date);
+          const isThisMonth = recDate.getMonth() === currentMonth && recDate.getFullYear() === currentYear;
+
+          if (rec.type === 'interest_rollover') {
+            // 100% juros líquido
+            jurosHistoricoTotal += recAmount;
+            if (isThisMonth) {
+              jurosRecebidosMes += recAmount;
+            }
+          } else {
+            // Pagamento regular de parcela: desdobra proporcionalmente entre juros e principal
+            const instTotal = Number(inst.installmentAmount || 1);
+            const instInterest = Number(inst.interestAmount || 0);
+            const interestRatio = instTotal > 0 ? (instInterest / instTotal) : 0;
+            const portionInterest = recAmount * interestRatio;
+            const portionPrincipal = recAmount - portionInterest;
+
+            jurosHistoricoTotal += portionInterest;
+            principalHistoricoTotal += portionPrincipal;
+
+            if (isThisMonth) {
+              jurosRecebidosMes += portionInterest;
+              principalRecebidoMes += portionPrincipal;
+            }
+          }
+        });
+      }
+    });
+
+    // Rentabilidade real mensal (% sobre o capital na rua)
+    const baseCapital = capitalNaRua > 0 ? capitalNaRua : (principalRecebidoMes > 0 ? principalRecebidoMes : 1);
+    const rentabilidadeRealMensal = capitalNaRua > 0 ? ((jurosRecebidosMes / baseCapital) * 100) : 0;
+
+    return {
+      capitalNaRua,
+      jurosRecebidosMes,
+      principalRecebidoMes,
+      totalRecebidoMes: jurosRecebidosMes + principalRecebidoMes,
+      rentabilidadeRealMensal,
+      jurosProjetados30Dias,
+      jurosHistoricoTotal,
+      principalHistoricoTotal
+    };
+  }
+
+  /**
+   * Extrato Financeiro Consolidado da Conta Corrente do Cliente
+   * Gera o Livro Razão completo de débitos e créditos com cálculo dinâmico de saldo
+   */
+  getClientFinancialStatement(clientId) {
+    const client = this.getClientById(clientId);
+    if (!client) throw new Error('Cliente não encontrado.');
+
+    const clientLoans = (this.data.loans || []).filter(l => l.clientId === clientId);
+    const clientInsts = (this.data.installments || []).filter(i => i.clientId === clientId);
+
+    let totalPrincipalEmprestado = 0;
+    let totalAmortizado = 0;
+    let totalJurosPagos = 0;
+    let totalEncargosPagos = 0;
+    let totalGeralPago = 0;
+
+    clientLoans.forEach(l => {
+      totalPrincipalEmprestado += Number(l.principal || 0);
+    });
+
+    const ledgerEntries = [];
+
+    // 1. Lançamentos de Liberação de Empréstimos (Débito inicial do cliente)
+    clientLoans.forEach(loan => {
+      ledgerEntries.push({
+        id: `loan_${loan.id}`,
+        date: loan.startDate || loan.createdAt?.split('T')[0] || formatDateForInput(),
+        title: `Contrato de Crédito #${loan.id.slice(-6)}`,
+        type: 'loan_grant',
+        description: `Liberação de principal: ${loan.installmentsCount}x de taxa ${loan.interestRate}%`,
+        principalAmount: Number(loan.principal || 0),
+        interestAmount: Number(loan.totalInterest || 0),
+        amount: Number(loan.principal || 0),
+        impact: +1
+      });
+    });
+
+    // 2. Lançamentos de Pagamentos, Rolagens e Quitações
+    clientInsts.forEach(inst => {
+      if (inst.paymentHistory && inst.paymentHistory.length > 0) {
+        inst.paymentHistory.forEach(rec => {
+          const recAmount = Number(rec.amount || 0);
+          totalGeralPago += recAmount;
+
+          if (rec.type === 'interest_rollover') {
+            totalJurosPagos += recAmount;
+            ledgerEntries.push({
+              id: rec.id,
+              date: rec.date?.split('T')[0] || formatDateForInput(),
+              title: `Rolagem de Dívida • Parcela #${inst.number}`,
+              type: 'rollover',
+              description: `Pagamento exclusivo de juros do ciclo (${rec.method || 'PIX'}). Principal prorrogado.`,
+              amount: recAmount,
+              impact: 0
+            });
+          } else {
+            // Pagamento regular
+            const instTotal = Number(inst.installmentAmount || 1);
+            const instInterest = Number(inst.interestAmount || 0);
+            const interestRatio = instTotal > 0 ? (instInterest / instTotal) : 0;
+            const portionInterest = recAmount * interestRatio;
+            const portionAmort = recAmount - portionInterest;
+
+            totalJurosPagos += portionInterest;
+            totalAmortizado += portionAmort;
+            if (rec.lateChargesPaid) totalEncargosPagos += Number(rec.lateChargesPaid);
+
+            ledgerEntries.push({
+              id: rec.id,
+              date: rec.date?.split('T')[0] || formatDateForInput(),
+              title: `Pagamento • Parcela #${inst.number}`,
+              type: 'payment',
+              description: `${rec.method || 'PIX'} • Amortização: ${formatBRL(portionAmort)} | Juros: ${formatBRL(portionInterest)}${rec.discount ? ` | Desc: ${formatBRL(rec.discount)}` : ''}`,
+              amount: recAmount,
+              impact: -1
+            });
+          }
+        });
+      }
+    });
+
+    // Ordena o livro razão cronologicamente
+    ledgerEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Saldo devedor atual (apenas parcelas não pagas)
+    let saldoDevedorCapital = 0;
+    let saldoDevedorTotalComJuros = 0;
+    let parcelasAtrasadasQtd = 0;
+    let parcelasPendentesQtd = 0;
+    const todayStr = formatDateForInput();
+
+    clientInsts.forEach(inst => {
+      if (inst.status !== 'paid' && inst.status !== 'renegotiated') {
+        const remaining = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
+        saldoDevedorTotalComJuros += remaining;
+        saldoDevedorCapital += Number(inst.amortizationAmount || remaining);
+        if (inst.dueDate < todayStr) {
+          parcelasAtrasadasQtd++;
+        } else {
+          parcelasPendentesQtd++;
+        }
+      }
+    });
+
+    // Próximo vencimento
+    const upcomingInsts = clientInsts
+      .filter(i => i.status !== 'paid' && i.status !== 'renegotiated' && i.dueDate >= todayStr)
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    const nextDueDate = upcomingInsts[0]?.dueDate || null;
+
+    return {
+      client,
+      totalPrincipalEmprestado,
+      totalAmortizado,
+      totalJurosPagos,
+      totalEncargosPagos,
+      totalGeralPago,
+      saldoDevedorCapital,
+      saldoDevedorTotalComJuros,
+      parcelasAtrasadasQtd,
+      parcelasPendentesQtd,
+      nextDueDate,
+      ledgerEntries
+    };
   }
 
   /**

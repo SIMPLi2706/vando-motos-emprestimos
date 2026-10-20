@@ -73,7 +73,10 @@ export function createClientModal() {
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="client-modal-pdf" style="display: none; margin-right: auto;">📄 Dossiê PDF</button>
+          <div style="display: flex; gap: 8px; margin-right: auto;">
+            <button type="button" class="btn btn-secondary" id="client-modal-statement" style="display: none; color: var(--yellow); border-color: rgba(245, 197, 24, 0.4);">📊 Extrato da Conta</button>
+            <button type="button" class="btn btn-secondary" id="client-modal-pdf" style="display: none;">📄 Dossiê PDF</button>
+          </div>
           <button type="button" class="btn btn-secondary" id="client-modal-cancel">Cancelar</button>
           <button type="submit" class="btn btn-primary">💾 Salvar Cliente</button>
         </div>
@@ -161,6 +164,7 @@ export function createClientModal() {
 
   window.openClientModal = function(clientId = null, prefillData = null) {
     const pdfBtn = modal.querySelector('#client-modal-pdf');
+    const statementBtn = modal.querySelector('#client-modal-statement');
     if (clientId) {
       const client = state.getClientById(clientId);
       if (!client) return;
@@ -176,12 +180,21 @@ export function createClientModal() {
         pdfBtn.style.display = 'inline-flex';
         pdfBtn.onclick = () => generateClientReportPDF(client.id);
       }
+      if (statementBtn) {
+        statementBtn.style.display = 'inline-flex';
+        statementBtn.onclick = () => {
+          if (window.openClientStatementModal) {
+            window.openClientStatementModal(client.id);
+          }
+        };
+      }
     } else {
       modal.querySelector('#client-modal-title').textContent = '👤 Novo Cliente';
       modal.querySelector('#cli-id').value = '';
       form.reset();
       modal.querySelector('#cli-limit').value = '5000';
       if (pdfBtn) pdfBtn.style.display = 'none';
+      if (statementBtn) statementBtn.style.display = 'none';
 
       if (prefillData) {
         if (prefillData.name) modal.querySelector('#cli-name').value = prefillData.name;

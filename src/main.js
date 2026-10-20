@@ -16,6 +16,7 @@ import { createReceiptModal } from './js/components/receiptModal.js';
 import { createPixModal } from './js/pix.js';
 import { createCashRegisterModal } from './js/components/cashRegisterModal.js';
 import { createSearchOverlay, openSearch, closeSearch } from './js/components/searchBar.js';
+import { createClientStatementModal } from './js/components/clientStatementModal.js';
 import { formatDateForInput } from './js/utils.js';
 import { generateMonthlyReportPDF, generateClientReportPDF, openMonthlyReportModal } from './js/components/pdfExport.js';
 
@@ -54,6 +55,7 @@ createReceiptModal();
 createPixModal();
 createCashRegisterModal();
 createSearchOverlay();
+createClientStatementModal();
 
 let navTransitionTimeout = null;
 let navEnterTimeout = null;

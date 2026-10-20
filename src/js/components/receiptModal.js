@@ -4,6 +4,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateExtenso, numeroParaExtenso, showToast } from '../utils.js';
 import { BRASAO_BRASIL_B64 } from '../brasaoBase64.js';
+import { openSignaturePad } from './signaturePad.js';
 
 export function createReceiptModal() {
   const modal = document.createElement('div');
@@ -31,6 +32,7 @@ export function createReceiptModal() {
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="doc-modal-close-btn">Fechar</button>
+        <button type="button" class="btn btn-secondary" id="doc-modal-sign-btn">✍️ Assinar na Tela</button>
         <button type="button" class="btn btn-secondary" id="doc-modal-copy-btn">📋 Copiar Dados</button>
         <button type="button" class="btn btn-primary" id="doc-modal-print-btn">🖨️ Imprimir / Salvar PDF</button>
       </div>
@@ -43,9 +45,12 @@ export function createReceiptModal() {
   const closeBtn2 = modal.querySelector('#doc-modal-close-btn');
   const printBtn = modal.querySelector('#doc-modal-print-btn');
   const copyBtn = modal.querySelector('#doc-modal-copy-btn');
+  const signBtn = modal.querySelector('#doc-modal-sign-btn');
   const body = modal.querySelector('#doc-modal-body');
   const controls = modal.querySelector('#doc-modal-controls');
   const selectView = modal.querySelector('#select-promissory-view');
+
+  let currentDebtorName = 'Devedor';
 
   function closeModal() {
     modal.classList.remove('active');
@@ -59,6 +64,30 @@ export function createReceiptModal() {
 
   printBtn.addEventListener('click', () => {
     window.print();
+  });
+
+  signBtn.addEventListener('click', async () => {
+    const signature = await openSignaturePad({
+      title: 'Assinatura Digital do Cliente',
+      signerName: currentDebtorName
+    });
+
+    if (signature) {
+      const sigAreas = body.querySelectorAll('.paw-signature-area, .recibo-assinatura-box');
+      if (sigAreas.length > 0) {
+        sigAreas.forEach(area => {
+          area.innerHTML = `
+            <div style="text-align: center; margin-bottom: 2px;">
+              <img src="${signature.dataUrl}" style="max-height: 48px; max-width: 200px; display: inline-block;" alt="Assinatura Digital">
+            </div>
+            <div class="paw-line" style="border-top: 1.5px solid #000; width: 220px; margin: 0 auto 3px;"></div>
+            <div class="paw-name" style="font-weight: 800; font-size: 8pt; color: #000;">${currentDebtorName}</div>
+            <div style="font-size: 6pt; color: #475569; font-family: monospace; margin-top: 2px;">Assinado digitalmente na tela em ${signature.dateFormatted} • Autenticação: ${Math.random().toString(36).substring(2, 9).toUpperCase()}</div>
+          `;
+        });
+        showToast('Assinatura digital gravada com sucesso!', 'success');
+      }
+    }
   });
 
   copyBtn.addEventListener('click', () => {
@@ -76,6 +105,8 @@ export function createReceiptModal() {
     const client = state.getClientById(inst.clientId) || { name: 'Cliente' };
     const loan = state.getLoanById(inst.loanId) || {};
     const settings = state.getSettings();
+
+    currentDebtorName = client.name;
 
     controls.style.display = 'none';
     modal.querySelector('#doc-modal-title').textContent = '📄 Recibo de Pagamento';
@@ -290,6 +321,8 @@ export function createReceiptModal() {
     const loanInsts = state.getInstallments({ loanId });
     const settings = state.getSettings();
     const totalCount = loanInsts.length;
+
+    currentDebtorName = client.name;
 
     modal.querySelector('#doc-modal-title').textContent = '📄 Nota Promissória (Modelo Oficial)';
     controls.style.display = 'block';

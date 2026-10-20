@@ -204,8 +204,8 @@ export function renderLoans(options = {}) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
 
-          <div class="table-responsive table-scroll-x" style="max-height: 380px; overflow-x: auto !important; overflow-y: auto;">
-            <table class="table" id="sim-tabela-parcelas">
+          <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+            <table class="table table-mobile-card-view table-sim-parcelas" id="sim-tabela-parcelas">
               <thead>
                 <tr>
                   <th>Nº</th>
@@ -363,12 +363,24 @@ export function renderLoans(options = {}) {
     const tbody = container.querySelector('#sim-tabela-parcelas tbody');
     tbody.innerHTML = res.schedule.map(item => `
       <tr>
-        <td data-label="Nº" style="font-weight: 700;">#${item.number}</td>
-        <td data-label="Vencimento">${formatDate(item.dueDate)}</td>
-        <td data-label="Parcela" style="font-weight: 700; color: var(--green);">${formatBRL(item.installmentAmount)}</td>
-        <td data-label="Juros" style="color: var(--yellow);">${formatBRL(item.interestAmount)}</td>
-        <td data-label="Amortização">${formatBRL(item.amortizationAmount)}</td>
-        <td data-label="Saldo" style="color: var(--text-400);">${formatBRL(item.remainingBalance)}</td>
+        <td data-label="Nº">
+          <div class="td-cell-val" style="align-items: flex-start; font-weight: 800; color: var(--yellow);">#${item.number}</div>
+        </td>
+        <td data-label="Vencimento">
+          <div class="td-cell-val">${formatDate(item.dueDate)}</div>
+        </td>
+        <td data-label="Parcela">
+          <div class="td-cell-val" style="font-weight: 800; color: var(--green);">${formatBRL(item.installmentAmount)}</div>
+        </td>
+        <td data-label="Juros">
+          <div class="td-cell-val" style="color: var(--yellow);">${formatBRL(item.interestAmount)}</div>
+        </td>
+        <td data-label="Amortização">
+          <div class="td-cell-val">${formatBRL(item.amortizationAmount)}</div>
+        </td>
+        <td data-label="Saldo Devedor">
+          <div class="td-cell-val" style="color: var(--text-400);">${formatBRL(item.remainingBalance)}</div>
+        </td>
       </tr>
     `).join('');
   }

@@ -142,6 +142,9 @@ export function renderClients(options = {}) {
           </td>
           <td class="td-actions" data-label="Ações">
             <div class="client-actions-wrap">
+              <button class="btn btn-secondary btn-sm btn-statement-client" data-id="${c.id}" title="Ver Extrato da Conta Corrente e Histórico de Juros" style="color: var(--yellow); border-color: rgba(245, 197, 24, 0.35);">
+                📊 Extrato
+              </button>
               <button class="btn btn-secondary btn-sm btn-edit-client" data-id="${c.id}" title="Editar Dados">
                 Editar
               </button>
@@ -159,6 +162,14 @@ export function renderClients(options = {}) {
         </tr>
       `;
     }).join('');
+
+    tbody.querySelectorAll('.btn-statement-client').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.openClientStatementModal) {
+          window.openClientStatementModal(btn.dataset.id);
+        }
+      });
+    });
 
     tbody.querySelectorAll('.btn-pdf-client').forEach(btn => {
       btn.addEventListener('click', () => {

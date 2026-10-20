@@ -1,8 +1,8 @@
 // src/js/components/paymentModal.js
-// Modal Completo de Baixa de Pagamento (Total, Parcial, Multa/Mora e Desconto)
+// Modal Completo de Baixa de Pagamento: Quitação, Rolagem de Dívida (Apenas Juros) e Desconto de Antecipação
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, formatDateForInput, showToast } from '../utils.js';
+import { formatBRL, formatDate, formatDateForInput, showToast, addMonths } from '../utils.js';
 import { calculateLateCharges } from '../finance.js';
 import confetti from 'canvas-confetti';
 
@@ -14,8 +14,23 @@ export function createPaymentModal() {
   modal.innerHTML = `
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="pay-modal-title">💰 Baixa de Pagamento</h3>
+        <h3 class="modal-title" id="pay-modal-title">💰 Baixa e Gestão de Pagamento</h3>
         <button class="modal-close-btn" id="pay-modal-close">✕</button>
+      </div>
+
+      <!-- Barra de Seleção de Operação Financeira -->
+      <div style="padding: 12px 20px 0 20px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm active flex-1" id="pay-mode-standard" style="border-radius: 4px; font-weight: 700; font-size: 0.8rem; padding: 8px 12px;">
+            💵 Quitação / Parcial
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm flex-1" id="pay-mode-rollover" style="border-radius: 4px; font-weight: 700; font-size: 0.8rem; padding: 8px 12px; border-color: rgba(245, 197, 24, 0.4); color: var(--yellow);">
+            🔄 Pagar Apenas Juros (Rolagem)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="pay-btn-discount-early" title="Calcular abatimento por adiantamento" style="border-radius: 4px; font-weight: 700; font-size: 0.8rem; padding: 8px 12px; white-space: nowrap; border-color: rgba(16, 185, 129, 0.4); color: var(--green);">
+            ⚡ Antecipar
+          </button>
+        </div>
       </div>
 
       <form id="form-baixa-parcela">
@@ -30,9 +45,15 @@ export function createPaymentModal() {
                 <div style="font-size: 0.8rem; color: var(--text-muted);" id="pay-inst-details">Parcela nº - • Vencimento: -</div>
               </div>
               <div style="text-align: right;">
-                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Valor Original</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Valor da Parcela</div>
                 <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="pay-original-amount">R$ 0,00</div>
               </div>
+            </div>
+
+            <!-- Box Informativo de Composição (Principal vs Juros) -->
+            <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.76rem; color: var(--text-muted);">
+              <span>Amortização (Principal): <strong id="pay-comp-amort" style="color: #fff;">R$ 0,00</strong></span>
+              <span>Juros do Contrato: <strong id="pay-comp-interest" style="color: var(--yellow);">R$ 0,00</strong></span>
             </div>
 
             <!-- Box Dinâmico de Atraso -->
@@ -40,6 +61,20 @@ export function createPaymentModal() {
               <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 4px; font-size: 0.82rem; color: var(--rose-400); font-weight: 600;">
                 <span id="pay-overdue-days">Atrasado há 0 dias</span>
                 <span id="pay-overdue-charges">+ R$ 0,00 (Multa + Mora)</span>
+              </div>
+            </div>
+
+            <!-- Box Dinâmico de Rolagem de Dívida -->
+            <div id="pay-rollover-box" style="display: none; margin-top: 12px; padding: 12px; background: rgba(245, 197, 24, 0.08); border: 1px solid rgba(245, 197, 24, 0.3); border-radius: 4px;">
+              <div style="font-size: 0.82rem; font-weight: 800; color: var(--yellow); margin-bottom: 4px;">
+                🔄 MODO ROLAGEM DE DÍVIDA (RENOVAÇÃO)
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;">
+                O cliente paga apenas os juros do ciclo. O capital principal (<strong id="pay-rollover-principal-txt" style="color: #fff;">R$ 0,00</strong>) permanece em aberto e é prorrogado para a nova data.
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem; color: var(--yellow);">Nova Data de Vencimento do Principal *</label>
+                <input type="date" class="form-control" id="pay-rollover-new-date" style="border-color: rgba(245, 197, 24, 0.5);">
               </div>
             </div>
           </div>
@@ -81,7 +116,7 @@ export function createPaymentModal() {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Valor Efetivamente Pago (R$) *</label>
+            <label class="form-label" id="pay-amount-label">Valor Efetivamente Pago (R$) *</label>
             <input type="number" inputmode="decimal" class="form-control" id="pay-amount-paid" style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-400);" required step="0.01">
             <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;" id="pay-suggested-hint">
               Sugestão para quitação total: R$ 0,00
@@ -90,7 +125,7 @@ export function createPaymentModal() {
 
           <div class="form-group">
             <label class="form-label">Observação do Pagamento</label>
-            <input type="text" class="form-control" id="pay-notes" placeholder="Ex: Pago via PIX pelo celular da esposa">
+            <input type="text" class="form-control" id="pay-notes" placeholder="Ex: Pago via PIX ou juros de prorrogação">
           </div>
         </div>
 
@@ -109,6 +144,13 @@ export function createPaymentModal() {
   const form = modal.querySelector('#form-baixa-parcela');
   const closeBtn = modal.querySelector('#pay-modal-close');
   const cancelBtn = modal.querySelector('#pay-modal-cancel');
+  const modeStandardBtn = modal.querySelector('#pay-mode-standard');
+  const modeRolloverBtn = modal.querySelector('#pay-mode-rollover');
+  const discountEarlyBtn = modal.querySelector('#pay-btn-discount-early');
+  const rolloverBox = modal.querySelector('#pay-rollover-box');
+  const submitBtn = modal.querySelector('#pay-modal-submit');
+
+  let currentMode = 'standard'; // 'standard' | 'rollover'
 
   function closeModal() {
     modal.classList.remove('active');
@@ -120,8 +162,79 @@ export function createPaymentModal() {
     if (e.target === modal) closeModal();
   });
 
+  function setMode(mode) {
+    currentMode = mode;
+    if (mode === 'rollover') {
+      modeRolloverBtn.classList.add('active');
+      modeRolloverBtn.style.background = 'rgba(245, 197, 24, 0.2)';
+      modeStandardBtn.classList.remove('active');
+      modeStandardBtn.style.background = '';
+      rolloverBox.style.display = 'block';
+      submitBtn.textContent = '🔄 Confirmar Rolagem (Receber Juros)';
+      submitBtn.classList.remove('btn-primary');
+      submitBtn.classList.add('btn-warning');
+
+      const interest = Number(modal.dataset.interestAmount || 0);
+      const charges = Number(modal.querySelector('#pay-late-charges').value || 0);
+      const totalInterestDue = Math.max(0, interest + charges);
+
+      modal.querySelector('#pay-amount-paid').value = totalInterestDue.toFixed(2);
+      modal.querySelector('#pay-suggested-hint').textContent = `Juros devidos do ciclo: ${formatBRL(interest)}${charges > 0 ? ` + Encargos: ${formatBRL(charges)}` : ''}`;
+      modal.querySelector('#pay-amount-label').textContent = 'Valor dos Juros Recebidos (R$) *';
+    } else {
+      modeStandardBtn.classList.add('active');
+      modeStandardBtn.style.background = '';
+      modeRolloverBtn.classList.remove('active');
+      modeRolloverBtn.style.background = '';
+      rolloverBox.style.display = 'none';
+      submitBtn.textContent = '✓ Confirmar Baixa';
+      submitBtn.classList.remove('btn-warning');
+      submitBtn.classList.add('btn-primary');
+      modal.querySelector('#pay-amount-label').textContent = 'Valor Efetivamente Pago (R$) *';
+      recalcSuggested();
+    }
+  }
+
+  modeStandardBtn.addEventListener('click', () => setMode('standard'));
+  modeRolloverBtn.addEventListener('click', () => setMode('rollover'));
+
+  // Desconto por antecipação
+  discountEarlyBtn.addEventListener('click', () => {
+    const dueDateStr = modal.dataset.dueDate;
+    if (!dueDateStr) return;
+
+    const todayStr = formatDateForInput();
+    if (dueDateStr <= todayStr) {
+      showToast('Esta parcela já está no vencimento ou vencida. Desconto por antecipação disponível para parcelas futuras.', 'warning');
+      return;
+    }
+
+    const today = new Date(todayStr + 'T00:00:00');
+    const due = new Date(dueDateStr + 'T00:00:00');
+    const diffTime = due.getTime() - today.getTime();
+    const daysEarly = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+
+    const interestAmount = Number(modal.dataset.interestAmount || 0);
+    // Abate pro-rata sobre a taxa de juros da parcela pelos dias adiantados
+    const calculatedDiscount = Math.min(interestAmount, Math.round(((interestAmount / 30) * daysEarly * 0.75) * 100) / 100);
+
+    modal.querySelector('#pay-discount').value = calculatedDiscount.toFixed(2);
+    recalcSuggested();
+    showToast(`⚡ Desconto por antecipação de ${formatBRL(calculatedDiscount)} aplicado (${daysEarly} dias adiantados)!`);
+  });
+
   // Re-cálculo da sugestão quando altera encargos ou desconto
   function recalcSuggested() {
+    if (currentMode === 'rollover') {
+      const interest = Number(modal.dataset.interestAmount || 0);
+      const charges = Number(modal.querySelector('#pay-late-charges').value || 0);
+      const discount = Number(modal.querySelector('#pay-discount').value || 0);
+      const suggested = Math.max(0, interest + charges - discount);
+      modal.querySelector('#pay-amount-paid').value = suggested.toFixed(2);
+      modal.querySelector('#pay-suggested-hint').textContent = `Juros a receber: ${formatBRL(suggested)}`;
+      return;
+    }
+
     const orig = Number(modal.dataset.baseRemaining || 0);
     const charges = Number(modal.querySelector('#pay-late-charges').value || 0);
     const discount = Number(modal.querySelector('#pay-discount').value || 0);
@@ -157,35 +270,67 @@ export function createPaymentModal() {
     }
 
     try {
-      const res = state.payInstallment(instId, {
-        amountPaid,
-        paymentDate,
-        paymentMethod,
-        discount,
-        lateChargesPaid,
-        notes
-      });
+      if (currentMode === 'rollover') {
+        const newDueDate = modal.querySelector('#pay-rollover-new-date').value;
+        if (!newDueDate) {
+          showToast('Informe a nova data de vencimento da dívida.', 'error');
+          return;
+        }
 
-      closeModal();
-      showToast('Baixa confirmada com sucesso!');
+        const res = state.rollOverInstallment(instId, {
+          amountPaid,
+          paymentDate,
+          paymentMethod,
+          newDueDate,
+          notes: notes || `Rolagem de dívida. Juros de ${formatBRL(amountPaid)} quitados.`
+        });
 
-      // Efeito de confete ao liquidar
-      if (res.installment.status === 'paid') {
+        closeModal();
+        showToast('Rolagem confirmada! Juros recebidos e novo vencimento agendado.');
+
         confetti({
-          particleCount: 80,
-          spread: 60,
+          particleCount: 60,
+          spread: 50,
           origin: { y: 0.7 }
         });
-      }
 
-      window.refreshCurrentTab();
+        window.refreshCurrentTab();
 
-      // Pergunta se quer ver o recibo
-      setTimeout(() => {
-        if (confirm('Deseja visualizar e imprimir o recibo deste pagamento?')) {
-          window.openReceiptModal(instId);
+        setTimeout(() => {
+          if (confirm('Deseja visualizar e imprimir o recibo de quitação dos juros?')) {
+            window.openReceiptModal(instId);
+          }
+        }, 400);
+
+      } else {
+        const res = state.payInstallment(instId, {
+          amountPaid,
+          paymentDate,
+          paymentMethod,
+          discount,
+          lateChargesPaid,
+          notes
+        });
+
+        closeModal();
+        showToast('Baixa confirmada com sucesso!');
+
+        if (res.installment.status === 'paid') {
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.7 }
+          });
         }
-      }, 400);
+
+        window.refreshCurrentTab();
+
+        setTimeout(() => {
+          if (confirm('Deseja visualizar e imprimir o recibo deste pagamento?')) {
+            window.openReceiptModal(instId);
+          }
+        }, 400);
+      }
 
     } catch (err) {
       showToast(err.message, 'error');
@@ -204,10 +349,21 @@ export function createPaymentModal() {
     modal.querySelector('#pay-inst-id').value = inst.id;
     modal.querySelector('#pay-client-name').textContent = client.name;
     modal.querySelector('#pay-inst-details').textContent = `Parcela nº ${inst.number} • Vencimento: ${formatDate(inst.dueDate)}`;
-    
+
     const baseRemaining = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
+    const interestVal = Number(inst.interestAmount || 0);
+    const amortVal = Number(inst.amortizationAmount || (baseRemaining - interestVal));
+
     modal.dataset.baseRemaining = baseRemaining;
+    modal.dataset.interestAmount = interestVal;
+    modal.dataset.amortAmount = amortVal;
+    modal.dataset.dueDate = inst.dueDate;
+
     modal.querySelector('#pay-original-amount').textContent = formatBRL(inst.installmentAmount);
+    modal.querySelector('#pay-comp-amort').textContent = formatBRL(amortVal);
+    modal.querySelector('#pay-comp-interest').textContent = formatBRL(interestVal);
+    modal.querySelector('#pay-rollover-principal-txt').textContent = formatBRL(amortVal);
+    modal.querySelector('#pay-rollover-new-date').value = addMonths(inst.dueDate, 1);
 
     // Checa atraso
     const charges = calculateLateCharges(
@@ -232,7 +388,7 @@ export function createPaymentModal() {
     modal.querySelector('#pay-date').value = formatDateForInput();
     modal.querySelector('#pay-notes').value = '';
 
-    recalcSuggested();
+    setMode('standard');
     modal.classList.add('active');
   };
 }

@@ -13,6 +13,7 @@ export function renderDashboard() {
   const loans = state.getLoans();
   const installments = state.getInstallments();
   const settings = state.getSettings();
+  const interestStats = state.getInterestProfitStats();
 
   const todayStr = formatDateForInput(new Date());
 
@@ -198,6 +199,60 @@ export function renderDashboard() {
         <div class="kpi-value ${atrasadasQtd > 0 ? 'text-danger' : ''}">${formatBRL(atrasadasTotal)}</div>
         <div class="kpi-footer ${atrasadasQtd > 0 ? 'text-danger' : ''}">
           <span>${atrasadasQtd} parcela${atrasadasQtd !== 1 ? 's' : ''} em atraso</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel Executivo de Rentabilidade e Gestão de Juros -->
+    <div class="card" style="margin-bottom: 24px; border: 1px solid rgba(245, 197, 24, 0.25); background: linear-gradient(180deg, rgba(245, 197, 24, 0.04) 0%, rgba(18, 18, 20, 0.95) 100%);">
+      <div class="card-header" style="border-bottom: 1px solid var(--border-soft); padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h3 class="card-title" style="display: flex; align-items: center; gap: 8px; font-size: 1rem; color: #fff;">
+              <span>📈</span> Gestão de Juros e Rentabilidade do Capital
+            </h3>
+            <p class="card-subtitle" style="margin-top: 2px;">Demonstrativo de lucros em juros, rolagem e retorno sobre capital na rua</p>
+          </div>
+          <span class="badge badge-paid" style="font-size: 0.72rem; letter-spacing: 0.05em; background: rgba(16, 185, 129, 0.15); color: var(--emerald-400); border-color: rgba(16, 185, 129, 0.3);">
+            Retorno Real: +${interestStats.rentabilidadeRealMensal.toFixed(2)}% a.m.
+          </span>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 16px 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+          
+          <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; padding: 14px;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Juros Realizados no Mês</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--green); margin-top: 4px;">
+              ${formatBRL(interestStats.jurosRecebidosMes)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Lucro líquido de juros quitados</div>
+          </div>
+
+          <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; padding: 14px;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Rentabilidade Mensal</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--yellow); margin-top: 4px;">
+              ${interestStats.rentabilidadeRealMensal.toFixed(2)}% <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">a.m.</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Lucro s/ capital alocado</div>
+          </div>
+
+          <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; padding: 14px;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Projeção de Juros (30d)</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #fff; margin-top: 4px;">
+              ${formatBRL(interestStats.jurosProjetados30Dias)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Juros vincendos no próximo mês</div>
+          </div>
+
+          <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; padding: 14px;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Principal Amortizado (Mês)</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--emerald-400); margin-top: 4px;">
+              ${formatBRL(interestStats.principalRecebidoMes)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Capital recuperado de volta</div>
+          </div>
+
         </div>
       </div>
     </div>

@@ -48,13 +48,13 @@
   --amber:       #f59e0b;
   --amber-light: #fbbf24;
 
-  /* Border Radii */
-  --r-xs:   6px;
-  --r-sm:  10px;
-  --r-md:  14px;
-  --r-lg:  18px;
-  --r-xl:  24px;
-  --r-full: 9999px;
+  /* Border Radii - Design Executivo & Institucional (Menos Redondo) */
+  --r-xs:   2px;
+  --r-sm:   4px;
+  --r-md:   4px;
+  --r-lg:   6px;
+  --r-xl:   8px;
+  --r-full: 4px;
 
   /* Shadows */
   --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.4);
@@ -894,7 +894,7 @@ body.modal-open #app {
 
 .tab-btn {
   padding: 8px 16px;
-  border-radius: var(--r-full);
+  border-radius: var(--r-sm);
   background: var(--bg-3);
   border: 1px solid var(--border-soft);
   color: var(--text-400);
@@ -902,12 +902,20 @@ body.modal-open #app {
   font-weight: 700;
   white-space: nowrap;
   transition: all 0.16s ease;
+  cursor: pointer;
+}
+
+.tab-btn:hover {
+  background: var(--bg-4);
+  color: var(--text-200);
+  border-color: var(--border-mid);
 }
 
 .tab-btn.active {
   background: var(--yellow);
   color: #07080a;
   border-color: var(--yellow);
+  box-shadow: 0 2px 8px var(--yellow-glow);
 }
 
 /* Search Bar Wrap */
@@ -1009,10 +1017,12 @@ body.modal-open #app {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: var(--r-full);
-  font-size: 0.72rem;
-  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -1964,7 +1974,74 @@ body.modal-open #app {
     text-align: right;
     word-break: break-word;
     overflow-wrap: break-word;
-    max-width: calc(100% - 85px);
+    min-width: 0;
+  }
+
+  /* Distribuição de Parcelas do Simulador no Mobile */
+  .table-sim-parcelas tr {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+    padding: 10px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    margin-bottom: 8px;
+  }
+
+  .table-sim-parcelas td {
+    padding: 3px 0;
+    border-bottom: none;
+    font-size: 0.82rem;
+  }
+
+  .table-sim-parcelas td::before {
+    min-width: auto;
+    font-size: 0.68rem;
+    padding-top: 0;
+  }
+
+  .table-sim-parcelas td[data-label="Nº"] {
+    grid-column: 1 / 2;
+  }
+
+  .table-sim-parcelas td[data-label="Vencimento"] {
+    grid-column: 2 / 3;
+    justify-content: flex-end;
+  }
+
+  .table-sim-parcelas td[data-label="Parcela"] {
+    grid-column: 1 / -1;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    padding: 6px 10px;
+    border-radius: var(--r-xs);
+    margin: 2px 0 4px;
+  }
+
+  .table-sim-parcelas td[data-label="Parcela"] .td-cell-val {
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .table-sim-parcelas td[data-label="Juros"] {
+    grid-column: 1 / 2;
+  }
+
+  .table-sim-parcelas td[data-label="Amortização"] {
+    grid-column: 2 / 3;
+    justify-content: flex-end;
+  }
+
+  .table-sim-parcelas td[data-label="Saldo Devedor"] {
+    grid-column: 1 / -1;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    padding-top: 6px;
+    margin-top: 2px;
+  }
+
+  .scroll-hint-mobile {
+    display: none !important;
   }
 
   .table-mobile-card-view td.td-actions,
@@ -2201,7 +2278,7 @@ body.modal-open #app {
   gap: 12px;
   background: linear-gradient(135deg, rgba(245, 197, 24, 0.10) 0%, rgba(26, 30, 42, 0.7) 100%);
   border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--r-sm);
   padding: 12px 14px;
   margin-bottom: 18px;
   cursor: pointer;
@@ -2225,7 +2302,7 @@ body.modal-open #app {
 .scanner-hero-icon-wrap {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: rgba(245, 197, 24, 0.16);
   border: 1px solid rgba(245, 197, 24, 0.28);
   display: flex;
@@ -2261,7 +2338,7 @@ body.modal-open #app {
   color: #07080a;
   background: var(--yellow);
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--r-xs);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   box-shadow: 0 0 8px var(--yellow-glow);
@@ -2309,7 +2386,7 @@ body.modal-open #app {
 .scanner-modal-card {
   background: var(--bg-1);
   border: 1px solid var(--border-soft);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   width: 100%;
   max-width: 520px;
   max-height: 92vh;
@@ -2425,7 +2502,7 @@ body.modal-open #app {
   width: 100%;
   height: 290px;
   background: #000;
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -2454,7 +2531,7 @@ body.modal-open #app {
   width: 86%;
   height: 72%;
   border: 1.5px dashed rgba(245, 197, 24, 0.45);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -2469,10 +2546,10 @@ body.modal-open #app {
   border-style: solid;
 }
 
-.corner-tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
-.corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
-.corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
-.corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
+.corner-tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-top-left-radius: 4px; }
+.corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-top-right-radius: 4px; }
+.corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-bottom-left-radius: 4px; }
+.corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-bottom-right-radius: 4px; }
 
 .scanner-laser-line {
   position: absolute;
@@ -2496,7 +2573,7 @@ body.modal-open #app {
   color: #fff;
   background: rgba(0, 0, 0, 0.65);
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-xs);
   letter-spacing: 0.02em;
 }
 
@@ -2523,7 +2600,7 @@ body.modal-open #app {
   text-align: center;
   background: var(--bg-2);
   border: 2px dashed rgba(245, 197, 24, 0.3);
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   padding: 36px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2565,7 +2642,7 @@ body.modal-open #app {
 .scanner-preview-thumb {
   width: 140px;
   height: 90px;
-  border-radius: 8px;
+  border-radius: var(--r-xs);
   overflow: hidden;
   border: 1px solid var(--border-soft);
   margin-bottom: 16px;
@@ -2606,7 +2683,7 @@ body.modal-open #app {
   max-width: 280px;
   height: 6px;
   background: var(--bg-3);
-  border-radius: 999px;
+  border-radius: var(--r-xs);
   overflow: hidden;
   margin-bottom: 6px;
 }
@@ -2678,6 +2755,156 @@ body.modal-open #app {
   .scanner-action-row {
     flex-direction: column-reverse;
   }
+}
+
+/* ============================================================
+   ASSINATURA DIGITAL NA TELA (TOUCH & MOUSE)
+   ============================================================ */
+.sig-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 8, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 1080;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sig-modal-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+
+.sig-modal-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(245, 197, 24, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: modalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sig-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.sig-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+
+.sig-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.sig-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-400);
+  margin: 2px 0 0;
+}
+
+.sig-close-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--border-soft);
+  color: var(--text-400);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+}
+
+.sig-close-btn:hover {
+  background: var(--bg-3);
+  color: #fff;
+}
+
+.sig-body {
+  padding: 16px 18px;
+}
+
+.sig-canvas-wrap {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid var(--border-mid);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#sig-canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.sig-guide-line {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  right: 20px;
+  border-bottom: 1.5px dashed #cbd5e1;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sig-guide-line span {
+  position: relative;
+  top: 18px;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sig-signer-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--text-300);
+}
+
+.sig-signer-info strong {
+  color: var(--yellow);
+}
+
+.sig-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-1);
+  border-bottom-left-radius: var(--r-lg);
+  border-bottom-right-radius: var(--r-lg);
 }
 
 
