@@ -4,6 +4,7 @@
 import { state } from '../state.js';
 import { maskCPF, maskPhone, showToast } from '../utils.js';
 import { generateClientReportPDF } from './pdfExport.js';
+import { openDocumentScanner } from './documentScanner.js';
 
 export function createClientModal() {
   const modal = document.createElement('div');
@@ -20,6 +21,21 @@ export function createClientModal() {
       <form id="form-cliente">
         <div class="modal-body">
           <input type="hidden" id="cli-id">
+
+          <!-- Scanner Hero CTA -->
+          <div class="scanner-hero-cta" id="btn-open-doc-scanner" role="button" tabindex="0">
+            <div class="scanner-hero-icon-wrap">
+              <span class="scanner-hero-icon">📷</span>
+            </div>
+            <div class="scanner-hero-text">
+              <div class="scanner-hero-title">
+                Escanear CNH / RG com a Câmera
+                <span class="scanner-tag-badge">IA Local • Custo Zero</span>
+              </div>
+              <div class="scanner-hero-sub">Tire foto ou anexe o documento para preencher nome e CPF na hora</div>
+            </div>
+            <span class="scanner-hero-arrow">➔</span>
+          </div>
 
           <div class="form-group">
             <label class="form-label">Nome Completo *</label>
@@ -81,6 +97,28 @@ export function createClientModal() {
     e.target.value = maskPhone(e.target.value);
   });
 
+  const btnScanDoc = modal.querySelector('#btn-open-doc-scanner');
+  btnScanDoc?.addEventListener('click', () => {
+    openDocumentScanner((extracted) => {
+      if (extracted.name) {
+        modal.querySelector('#cli-name').value = extracted.name;
+      }
+      if (extracted.cpf) {
+        modal.querySelector('#cli-cpf').value = maskCPF(extracted.cpf);
+      }
+      const extraNotes = [];
+      if (extracted.birthDate) extraNotes.push(`Nascimento: ${extracted.birthDate}`);
+      if (extracted.rg) extraNotes.push(`RG/Doc: ${extracted.rg}`);
+
+      if (extraNotes.length > 0) {
+        const notesInput = modal.querySelector('#cli-notes');
+        const currentNotes = notesInput.value.trim();
+        const prefix = currentNotes ? currentNotes + '\n' : '';
+        notesInput.value = `${prefix}[Leitura CNH/RG: ${extraNotes.join(' | ')}]`;
+      }
+    });
+  });
+
   function closeModal() {
     modal.classList.remove('active');
   }
@@ -121,7 +159,7 @@ export function createClientModal() {
     window.refreshCurrentTab();
   });
 
-  window.openClientModal = function(clientId = null) {
+  window.openClientModal = function(clientId = null, prefillData = null) {
     const pdfBtn = modal.querySelector('#client-modal-pdf');
     if (clientId) {
       const client = state.getClientById(clientId);
@@ -144,6 +182,17 @@ export function createClientModal() {
       form.reset();
       modal.querySelector('#cli-limit').value = '5000';
       if (pdfBtn) pdfBtn.style.display = 'none';
+
+      if (prefillData) {
+        if (prefillData.name) modal.querySelector('#cli-name').value = prefillData.name;
+        if (prefillData.cpf) modal.querySelector('#cli-cpf').value = maskCPF(prefillData.cpf);
+        const extraNotes = [];
+        if (prefillData.birthDate) extraNotes.push(`Nascimento: ${prefillData.birthDate}`);
+        if (prefillData.rg) extraNotes.push(`RG/Doc: ${prefillData.rg}`);
+        if (extraNotes.length > 0) {
+          modal.querySelector('#cli-notes').value = `[Leitura CNH/RG: ${extraNotes.join(' | ')}]`;
+        }
+      }
     }
     modal.classList.add('active');
   };

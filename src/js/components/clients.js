@@ -4,6 +4,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
 import { generateClientReportPDF } from './pdfExport.js';
+import { openDocumentScanner } from './documentScanner.js';
 
 export function renderClients(options = {}) {
   const container = document.createElement('div');
@@ -20,13 +21,18 @@ export function renderClients(options = {}) {
           <h3 class="card-title">Carteira de Clientes (${clients.length})</h3>
           <p class="card-subtitle">Cadastro, limites de crédito e histórico financeiro</p>
         </div>
-        <button class="btn btn-primary" id="btn-novo-cliente">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Novo Cliente
-        </button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" id="btn-scan-doc-client-list" title="Escanear documento com a câmera (preenchimento automático)">
+            📷 Escanear CNH / RG
+          </button>
+          <button class="btn btn-primary" id="btn-novo-cliente">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Novo Cliente
+          </button>
+        </div>
       </div>
 
       <!-- Barra de Busca -->
@@ -199,6 +205,12 @@ export function renderClients(options = {}) {
   setTimeout(() => {
     container.querySelector('#btn-novo-cliente')?.addEventListener('click', () => {
       window.openClientModal();
+    });
+
+    container.querySelector('#btn-scan-doc-client-list')?.addEventListener('click', () => {
+      openDocumentScanner((extracted) => {
+        window.openClientModal(null, extracted);
+      });
     });
 
     container.querySelector('#search-input-clients')?.addEventListener('input', (e) => {
