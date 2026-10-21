@@ -110,14 +110,16 @@ export function createClientModal() {
         modal.querySelector('#cli-cpf').value = maskCPF(extracted.cpf);
       }
       const extraNotes = [];
-      if (extracted.birthDate) extraNotes.push(`Nascimento: ${extracted.birthDate}`);
-      if (extracted.rg) extraNotes.push(`RG/Doc: ${extracted.rg}`);
+      if (extracted.docType) extraNotes.push(`Doc: ${extracted.docType}`);
+      if (extracted.rg) extraNotes.push(`Nº ${extracted.rg}`);
+      if (extracted.birthDate) extraNotes.push(`Nasc: ${extracted.birthDate}`);
+      if (extracted.motherName) extraNotes.push(`Mãe: ${extracted.motherName}`);
 
       if (extraNotes.length > 0) {
         const notesInput = modal.querySelector('#cli-notes');
         const currentNotes = notesInput.value.trim();
         const prefix = currentNotes ? currentNotes + '\n' : '';
-        notesInput.value = `${prefix}[Leitura CNH/RG: ${extraNotes.join(' | ')}]`;
+        notesInput.value = `${prefix}[IA Gemini: ${extraNotes.join(' | ')}]`;
       }
     });
   });
@@ -200,10 +202,12 @@ export function createClientModal() {
         if (prefillData.name) modal.querySelector('#cli-name').value = prefillData.name;
         if (prefillData.cpf) modal.querySelector('#cli-cpf').value = maskCPF(prefillData.cpf);
         const extraNotes = [];
-        if (prefillData.birthDate) extraNotes.push(`Nascimento: ${prefillData.birthDate}`);
-        if (prefillData.rg) extraNotes.push(`RG/Doc: ${prefillData.rg}`);
+        if (prefillData.docType) extraNotes.push(`Doc: ${prefillData.docType}`);
+        if (prefillData.rg) extraNotes.push(`Nº ${prefillData.rg}`);
+        if (prefillData.birthDate) extraNotes.push(`Nasc: ${prefillData.birthDate}`);
+        if (prefillData.motherName) extraNotes.push(`Mãe: ${prefillData.motherName}`);
         if (extraNotes.length > 0) {
-          modal.querySelector('#cli-notes').value = `[Leitura CNH/RG: ${extraNotes.join(' | ')}]`;
+          modal.querySelector('#cli-notes').value = `[IA Gemini: ${extraNotes.join(' | ')}]`;
         }
       }
     }

@@ -14,6 +14,8 @@ export function renderSettings() {
   const settings = state.getSettings();
   const pinActive = isPinEnabled();
   const isCloudActive = isSupabaseConfigured();
+  const geminiKey = state.getGeminiApiKey();
+  const hasGeminiKey = Boolean(geminiKey);
 
   container.innerHTML = `
     <div class="settings-grid">
@@ -241,6 +243,48 @@ export function renderSettings() {
             📋 Copiar Esquema SQL
           </button>
         </div>
+      </div>
+
+      <!-- Card: Inteligência Artificial (Google Gemini Vision) -->
+      <div class="card" id="card-gemini-ai">
+        <div class="card-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="card-title">🤖 Inteligência Artificial (Google Gemini Vision)</h3>
+              <span class="badge ${hasGeminiKey ? 'badge-paid' : 'badge-pending'}" id="gemini-status-badge">
+                ${hasGeminiKey ? '● IA Pronta e Ativa' : '○ Chave Pendente'}
+              </span>
+            </div>
+            <p class="card-subtitle">Leitura inteligente de CNH e RG por foto com precisão máxima (Custo Zero)</p>
+          </div>
+        </div>
+
+        <form id="form-settings-gemini">
+          <div class="form-group">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <span>Chave de API do Google Gemini (AI Studio)</span>
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-size: 0.75rem; color: var(--cyan); text-decoration: underline;">
+                Obter Chave Gratuita no Google ↗
+              </a>
+            </label>
+            <div style="position: relative;">
+              <input type="password" class="form-control" id="set-gemini-key" placeholder="AIzaSy..." value="${geminiKey || ''}" autocomplete="off" style="font-family: monospace; padding-right: 40px;">
+              <button type="button" class="btn btn-sm" id="btn-toggle-gemini-key" title="Ver/Ocultar Chave" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 0.95rem; cursor: pointer; color: var(--text-300);">👁️</button>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-400); margin-top: 6px; line-height: 1.4;">
+              A chave do Google AI Studio é 100% gratuita (até 15 leituras/minuto), não exige cartão de crédito e permite ao sistema ler qualquer CNH (antiga/nova) ou RG com precisão humana em ~1 segundo.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary">
+              💾 Salvar Chave da IA
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-test-gemini-ai">
+              🧪 Testar Conexão com a IA
+            </button>
+          </div>
+        </form>
       </div>
 
     </div>
@@ -483,6 +527,75 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.settings;`;
         showToast('Código SQL copiado para a Área de Transferência! Cole no SQL Editor do Supabase.', 'success');
       } catch (err) {
         showToast('Consulte o arquivo supabase_schema.sql na raiz do projeto.', 'info');
+      }
+    });
+
+    // --- Configuração da IA Google Gemini ---
+    const geminiInput = container.querySelector('#set-gemini-key');
+    const toggleGeminiBtn = container.querySelector('#btn-toggle-gemini-key');
+    const badgeGemini = container.querySelector('#gemini-status-badge');
+
+    toggleGeminiBtn?.addEventListener('click', () => {
+      if (geminiInput.type === 'password') {
+        geminiInput.type = 'text';
+        toggleGeminiBtn.textContent = '🔒';
+      } else {
+        geminiInput.type = 'password';
+        toggleGeminiBtn.textContent = '👁️';
+      }
+    });
+
+    container.querySelector('#form-settings-gemini')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const keyVal = geminiInput.value.trim();
+      state.setGeminiApiKey(keyVal);
+      if (keyVal) {
+        badgeGemini.textContent = '● IA Pronta e Ativa';
+        badgeGemini.className = 'badge badge-paid';
+        showToast('Chave da IA salva com sucesso!', 'success');
+      } else {
+        badgeGemini.textContent = '○ Chave Pendente';
+        badgeGemini.className = 'badge badge-pending';
+        showToast('Chave da IA removida.', 'info');
+      }
+    });
+
+    container.querySelector('#btn-test-gemini-ai')?.addEventListener('click', async () => {
+      const keyVal = geminiInput.value.trim() || state.getGeminiApiKey();
+      if (!keyVal) {
+        showToast('Insira uma chave do Google Gemini antes de testar.', 'warning');
+        return;
+      }
+
+      showToast('Testando conexão com a IA do Google Gemini...', 'info');
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyVal}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: 'Responda apenas com a palavra OK' }] }]
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error?.message || `Erro HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (reply) {
+          badgeGemini.textContent = '● IA Pronta e Ativa';
+          badgeGemini.className = 'badge badge-paid';
+          showToast('✅ Conexão com Google Gemini Flash validada com sucesso! A IA está pronta para ler documentos.', 'success');
+        } else {
+          showToast('Aviso: A IA respondeu mas sem conteúdo.', 'warning');
+        }
+      } catch (err) {
+        badgeGemini.textContent = '❌ Erro na Chave';
+        badgeGemini.className = 'badge badge-overdue';
+        showToast(`Falha no teste da IA: ${err.message}`, 'error');
       }
     });
   }, 0);

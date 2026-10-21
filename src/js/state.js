@@ -17,7 +17,8 @@ const DEFAULT_SETTINGS = {
   pixHolder: 'Vando motos locadora LTDA',
   defaultPenaltyRate: 2.0, // 2% multa
   defaultDailyRate: 0.1,   // 0.1% mora ao dia
-  whatsappTemplate: 'Olá, {cliente}! Lembramos que sua parcela nº {parcela_num} no valor de {valor_parcela} venceu/vence em {data_vencimento}.\n\nPara facilitar o pagamento via PIX da Vando Motos Locadora:\nChave PIX (CNPJ): {chave_pix}\nFavorecido: {titular_pix}\n\nApós o pagamento, envie o comprovante por aqui. Obrigado!'
+  whatsappTemplate: 'Olá, {cliente}! Lembramos que sua parcela nº {parcela_num} no valor de {valor_parcela} venceu/vence em {data_vencimento}.\n\nPara facilitar o pagamento via PIX da Vando Motos Locadora:\nChave PIX (CNPJ): {chave_pix}\nFavorecido: {titular_pix}\n\nApós o pagamento, envie o comprovante por aqui. Obrigado!',
+  geminiApiKey: ''
 };
 
 class StateManager {
@@ -838,6 +839,14 @@ class StateManager {
   saveSettings(newSettings) {
     this.data.settings = { ...this.data.settings, ...newSettings };
     this.save();
+  }
+
+  getGeminiApiKey() {
+    return this.data.settings?.geminiApiKey || (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) || '';
+  }
+
+  setGeminiApiKey(key) {
+    this.saveSettings({ geminiApiKey: (key || '').trim() });
   }
 
   // --- EXPORTAR / IMPORTAR BACKUP ---
