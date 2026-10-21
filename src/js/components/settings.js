@@ -190,9 +190,6 @@ export function renderSettings() {
               <button type="button" class="btn btn-secondary" id="btn-force-update-cache" style="color: var(--cyan); border-color: rgba(6,182,212,0.3); justify-content: flex-start;">
                 🔄 Sincronizar Versão Mais Recente (Limpar Cache)
               </button>
-              <button class="btn btn-secondary" id="btn-reset-demo" style="color: var(--amber); border-color: rgba(245,158,11,0.22); justify-content: flex-start;">
-                Recarregar Dados de Exemplo
-              </button>
               <button class="btn btn-danger" id="btn-wipe-all" style="justify-content: flex-start;">
                 Zerar Todos os Dados (Começar do Zero)
               </button>
@@ -306,18 +303,6 @@ export function renderSettings() {
         }
       };
       reader.readAsText(file);
-    });
-
-    container.querySelector('#btn-reset-demo')?.addEventListener('click', async () => {
-      if (confirm('Deseja recarregar os dados de exemplo do sistema?')) {
-        state.loadSeedData();
-        showToast('Dados de exemplo recarregados!');
-        if (state.data.clients.length > 0) {
-          state.syncToSupabase().catch(console.warn);
-        }
-        window.refreshCurrentTab();
-        window.updateBrandDisplay();
-      }
     });
 
     container.querySelector('#btn-force-update-cache')?.addEventListener('click', async () => {

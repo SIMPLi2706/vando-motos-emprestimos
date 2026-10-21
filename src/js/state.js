@@ -121,16 +121,19 @@ class StateManager {
           this.data.settings.creditorCity = 'PORTO VELHO RONDONIA';
         }
 
-        // Se estiver marcado como zerado, assegura que as listas comecem vazias
+        // Garante que arrays existam e respeita exclusões do usuário
+        this.data.clients = this.data.clients || [];
+        this.data.loans = this.data.loans || [];
+        this.data.installments = this.data.installments || [];
+
         if (isWiped) {
           this.data.clients = [];
           this.data.loans = [];
           this.data.installments = [];
         }
         this.save();
-      } else if (!isWiped) {
-        this.loadSeedData();
       } else {
+        // NUNCA carrega dados fictícios automaticamente. O sistema inicia sempre limpo.
         this.data = {
           clients: [],
           loans: [],
@@ -856,261 +859,10 @@ class StateManager {
     }
   }
 
-  // --- SEED DE DEMONSTRAÇÃO REALISTA ---
+  // --- SEED DESATIVADO PERMANENTEMENTE ---
   loadSeedData() {
-    localStorage.removeItem('vandomotos_wiped');
-    const today = new Date();
-    const todayStr = formatDateForInput(today);
-
-    const cBrunoId = generateId('cli');
-    const c1Id = generateId('cli');
-    const c2Id = generateId('cli');
-    const c3Id = generateId('cli');
-
-    this.data.clients = [
-      {
-        id: cBrunoId,
-        name: 'BRUNO VASQUEZ CASTRO',
-        cpf: '025.653.052-14',
-        phone: '(69) 99234-5678',
-        address: 'RUA DAS CRIANÇAS N:4516 B:FLRESTA',
-        creditLimit: 20000,
-        notes: 'Contrato de 24 parcelas de R$ 600,00 - Negociação Porto Velho',
-        createdAt: '2026-09-18T10:00:00.000Z'
-      },
-      {
-        id: c1Id,
-        name: 'Carlos Silva Santos',
-        cpf: '123.456.789-00',
-        phone: '(11) 98765-4321',
-        address: 'Rua das Flores, 140 - São Paulo, SP',
-        creditLimit: 15000,
-        notes: 'Comerciante local, pontual no pagamento.',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: c2Id,
-        name: 'Mariana Souza Oliveira',
-        cpf: '234.567.890-11',
-        phone: '(21) 99876-5432',
-        address: 'Av. Atlântica, 420 - Rio de Janeiro, RJ',
-        creditLimit: 8000,
-        notes: 'Autônoma, vendas online.',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: c3Id,
-        name: 'Roberto Ferreira Dias',
-        cpf: '345.678.901-22',
-        phone: '(31) 97654-3210',
-        address: 'Rua Bahia, 55 - Belo Horizonte, MG',
-        creditLimit: 20000,
-        notes: 'Oficina mecânica, cliente antigo.',
-        createdAt: new Date().toISOString()
-      }
-    ];
-
-    this.data.loans = [];
-    this.data.installments = [];
-    this.data.settings = { ...DEFAULT_SETTINGS };
-
-    // EMPRÉSTIMO PRINCIPAL: BRUNO VASQUEZ CASTRO - 24 parcelas de R$ 600,00
-    const loanBrunoId = generateId('loan');
-    this.data.loans.push({
-      id: loanBrunoId,
-      clientId: cBrunoId,
-      principal: 14400,
-      interestRate: 0,
-      interestType: 'simple',
-      periodicity: 'monthly',
-      installmentsCount: 24,
-      startDate: '2026-09-18',
-      penaltyRate: 2,
-      dailyInterestRate: 0.1,
-      totalPayable: 14400.00,
-      totalInterest: 0.00,
-      status: 'active',
-      notes: 'Negociação formal de 24 parcelas promissórias de R$ 600,00',
-      createdAt: '2026-09-18T10:00:00.000Z'
-    });
-
-    // Gera as 24 parcelas exatas das imagens
-    const brunoDates = [
-      '2026-12-18', '2027-01-18', '2027-02-18', '2027-03-18', '2027-04-18', '2027-05-18',
-      '2027-06-18', '2027-07-18', '2027-08-18', '2027-09-18', '2027-10-18', '2027-11-18',
-      '2027-12-18', '2028-01-18', '2028-02-18', '2028-03-18', '2028-04-18', '2028-05-18',
-      '2028-06-18', '2028-07-18', '2028-08-18', '2028-09-18', '2028-10-18', '2028-11-18'
-    ];
-
-    brunoDates.forEach((dueDateStr, idx) => {
-      this.data.installments.push({
-        id: generateId('inst'),
-        loanId: loanBrunoId,
-        clientId: cBrunoId,
-        number: idx + 1,
-        dueDate: dueDateStr,
-        installmentAmount: 600.00,
-        amortizationAmount: 600.00,
-        interestAmount: 0.00,
-        paidAmount: 0,
-        paidDate: null,
-        status: 'pending',
-        paymentHistory: []
-      });
-    });
-
-    // Empréstimo 2 (Secundário para variedade no dashboard)
-    const loan1Id = generateId('loan');
-    const l1Start = addMonths(today, -2).toISOString().split('T')[0];
-    this.data.loans.push({
-      id: loan1Id,
-      clientId: c1Id,
-      principal: 5000,
-      interestRate: 10,
-      interestType: 'price',
-      periodicity: 'monthly',
-      installmentsCount: 5,
-      startDate: l1Start,
-      penaltyRate: 2,
-      dailyInterestRate: 0.1,
-      totalPayable: 6594.94,
-      totalInterest: 1594.94,
-      status: 'active',
-      notes: 'Investimento para estoque da loja',
-      createdAt: new Date().toISOString()
-    });
-
-    const l1Dates = [
-      addMonths(today, -2).toISOString().split('T')[0],
-      addMonths(today, -1).toISOString().split('T')[0],
-      todayStr,
-      addMonths(today, 1).toISOString().split('T')[0],
-      addMonths(today, 2).toISOString().split('T')[0]
-    ];
-
-    l1Dates.forEach((d, idx) => {
-      const isPaid = idx < 2;
-      this.data.installments.push({
-        id: generateId('inst'),
-        loanId: loan1Id,
-        clientId: c1Id,
-        number: idx + 1,
-        dueDate: d,
-        installmentAmount: 1318.99,
-        amortizationAmount: 850.00,
-        interestAmount: 468.99,
-        paidAmount: isPaid ? 1318.99 : 0,
-        paidDate: isPaid ? d : null,
-        status: isPaid ? 'paid' : 'pending',
-        paymentHistory: isPaid ? [{
-          id: generateId('rec'),
-          date: d,
-          amount: 1318.99,
-          method: 'PIX',
-          notes: 'Pagamento pontual via PIX'
-        }] : []
-      });
-    });
-
-    // Empréstimo 2: Mariana Souza - R$ 3.000 em 3x Juros Simples
-    // 1 paga, 1 atrasada há 4 dias
-    const loan2Id = generateId('loan');
-    this.data.loans.push({
-      id: loan2Id,
-      clientId: c2Id,
-      principal: 3000,
-      interestRate: 12,
-      interestType: 'simple',
-      periodicity: 'monthly',
-      installmentsCount: 3,
-      startDate: addMonths(today, -1).toISOString().split('T')[0],
-      penaltyRate: 2,
-      dailyInterestRate: 0.1,
-      totalPayable: 4080.00,
-      totalInterest: 1080.00,
-      status: 'active',
-      notes: 'Capital de giro emergencial',
-      createdAt: new Date().toISOString()
-    });
-
-    const l2Dates = [
-      addMonths(today, -1).toISOString().split('T')[0],
-      addDays(today, -4).toISOString().split('T')[0], // Atrasada há 4 dias!
-      addMonths(today, 1).toISOString().split('T')[0]
-    ];
-
-    l2Dates.forEach((d, idx) => {
-      const isPaid = idx === 0;
-      this.data.installments.push({
-        id: generateId('inst'),
-        loanId: loan2Id,
-        clientId: c2Id,
-        number: idx + 1,
-        dueDate: d,
-        installmentAmount: 1360.00,
-        amortizationAmount: 1000.00,
-        interestAmount: 360.00,
-        paidAmount: isPaid ? 1360.00 : 0,
-        paidDate: isPaid ? d : null,
-        status: isPaid ? 'paid' : 'pending',
-        paymentHistory: isPaid ? [{
-          id: generateId('rec'),
-          date: d,
-          amount: 1360.00,
-          method: 'Transferência',
-          notes: 'Baixa efetuada'
-        }] : []
-      });
-    });
-
-    // Empréstimo 3: Roberto Ferreira - R$ 12.000 em 6x Tabela SAC
-    // 1 atrasada há 12 dias!
-    const loan3Id = generateId('loan');
-    this.data.loans.push({
-      id: loan3Id,
-      clientId: c3Id,
-      principal: 12000,
-      interestRate: 8,
-      interestType: 'sac',
-      periodicity: 'monthly',
-      installmentsCount: 6,
-      startDate: addDays(today, -42).toISOString().split('T')[0],
-      penaltyRate: 2,
-      dailyInterestRate: 0.1,
-      totalPayable: 15360.00,
-      totalInterest: 3360.00,
-      status: 'active',
-      notes: 'Compra de elevador automotivo',
-      createdAt: new Date().toISOString()
-    });
-
-    const l3Dates = [
-      addDays(today, -12).toISOString().split('T')[0], // Atrasada há 12 dias
-      addDays(today, 18).toISOString().split('T')[0],
-      addDays(today, 48).toISOString().split('T')[0],
-      addDays(today, 78).toISOString().split('T')[0],
-      addDays(today, 108).toISOString().split('T')[0],
-      addDays(today, 138).toISOString().split('T')[0]
-    ];
-
-    l3Dates.forEach((d, idx) => {
-      this.data.installments.push({
-        id: generateId('inst'),
-        loanId: loan3Id,
-        clientId: c3Id,
-        number: idx + 1,
-        dueDate: d,
-        installmentAmount: 2960.00 - (idx * 160),
-        amortizationAmount: 2000.00,
-        interestAmount: 960.00 - (idx * 160),
-        paidAmount: 0,
-        paidDate: null,
-        status: 'pending',
-        paymentHistory: []
-      });
-    });
-
-    this.save();
+    // REGRA DO USUÁRIO: Proibido criar dados fictícios automaticamente.
+    console.warn('[REGRA DO SISTEMA]: Geração de dados fictícios foi desativada permanentemente.');
   }
 }
 
