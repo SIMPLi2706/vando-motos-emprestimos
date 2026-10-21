@@ -1,15 +1,17 @@
 // src/js/components/documentScanner.js
-// Leitor Inteligente de Documentos (CNH / RG) com OCR no Navegador (Custo Zero) - Vando Motos
+// Leitor Inteligente de Documentos (CNH / RG) com OCR no Navegador de Alta Precisão (Custo Zero)
 
 import { maskCPF, showToast } from '../utils.js';
 
 let scannerModal = null;
 let currentStream = null;
 let activeFacingMode = 'environment';
+let isTorchActive = false;
 let tesseractWorker = null;
+let isInitializingWorker = false;
 
 /**
- * Validação de dígitos verificadores de CPF
+ * Validação rigorosa dos dígitos verificadores do CPF
  */
 export function validateCPF(cpf) {
   if (!cpf) return false;
@@ -37,6 +39,25 @@ export function validateCPF(cpf) {
 }
 
 /**
+ * Normaliza erros ópticos comuns do OCR em dígitos numéricos
+ * Ex: Letra 'O' ou 'o' lida no lugar do zero '0', 'l' ou 'I' no lugar de '1'
+ */
+function cleanCpfOcr(raw) {
+  if (!raw) return '';
+  return raw
+    .replace(/[OoQq]/g, '0')
+    .replace(/[Il|/]/g, '1')
+    .replace(/[Ss]/g, '5')
+    .replace(/[Bb]/g, '8')
+    .replace(/[Zz]/g, '2')
+    .replace(/\D/g, '');
+}
+
+function formatCPF(digits) {
+  return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+/**
  * Analisa e extrai dados de CNH / RG a partir do texto bruto do OCR
  */
 export function parseBrazilianDocument(rawText) {
@@ -49,39 +70,65 @@ export function parseBrazilianDocument(rawText) {
 
   // 1. Extração de CPF
   let foundCpf = '';
-  const cpfMatches = rawText.match(/\b\d{3}\.?\d{3}\.?\d{3}[-\s]?\d{2}\b/g) || [];
-  for (const m of cpfMatches) {
-    const clean = m.replace(/\D/g, '');
+
+  // Estratégia A: Label CPF seguido de dígitos com possíveis caracteres OCR
+  const labelledMatches = rawText.matchAll(/CPF[:\s\.\-]*([0-9OolISBZG\.\-\s]{11,18})/gi);
+  for (const m of labelledMatches) {
+    const clean = cleanCpfOcr(m[1]);
     if (clean.length === 11 && validateCPF(clean)) {
-      foundCpf = clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      foundCpf = formatCPF(clean);
       break;
     }
   }
 
-  // Fallback: Procura por sequência de 11 dígitos próxima à palavra CPF
+  // Estratégia B: Procura padrão de 11 dígitos em tokens separados
   if (!foundCpf) {
-    const cpfLabelMatch = /CPF[^\d]*(\d[\d\.\-\s]{9,14}\d)/i.exec(rawText);
-    if (cpfLabelMatch) {
-      const clean = cpfLabelMatch[1].replace(/\D/g, '');
+    const tokens = rawText.split(/[\s,;|/]+/);
+    for (const t of tokens) {
+      const clean = cleanCpfOcr(t);
       if (clean.length === 11 && validateCPF(clean)) {
-        foundCpf = clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        foundCpf = formatCPF(clean);
+        break;
+      }
+    }
+  }
+
+  // Estratégia C: Regex padrão brasileiro 000.000.000-00
+  if (!foundCpf) {
+    const cpfPatt = /\b\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[-\s]?\d{2}\b/g;
+    const matches = rawText.match(cpfPatt) || [];
+    for (const m of matches) {
+      const clean = cleanCpfOcr(m);
+      if (clean.length === 11 && validateCPF(clean)) {
+        foundCpf = formatCPF(clean);
+        break;
+      }
+    }
+  }
+
+  // Estratégia D (Fallback de tolerância): Se encontrou rótulo de CPF com 11 dígitos
+  if (!foundCpf) {
+    const fb = /CPF[:\s\.\-]*([0-9OolISBZG\.\-\s]{11,18})/i.exec(rawText);
+    if (fb) {
+      const clean = cleanCpfOcr(fb[1]);
+      if (clean.length === 11) {
+        foundCpf = formatCPF(clean);
       }
     }
   }
 
   // 2. Extração de Data de Nascimento
   let birthDate = '';
-  const birthLabelMatch = /NASC(?:IMENTO)?[^\d]*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{4})/i.exec(rawText);
+  const birthLabelMatch = /(?:NASC(?:IMENTO)?|DATA\s*DE\s*NASCIMENTO|DT\.?\s*NASC)[^\d]*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{4})/i.exec(rawText);
   if (birthLabelMatch) {
     birthDate = birthLabelMatch[1].replace(/[\.\-]/g, '/');
   } else {
-    // Procura por datas coerentes com nascimento (entre 1930 e ano atual - 16)
     const dateMatches = rawText.match(/\b\d{2}[\/\.\-]\d{2}[\/\.\-]\d{4}\b/g) || [];
     const currentYear = new Date().getFullYear();
     for (const d of dateMatches) {
       const parts = d.split(/[\/\.\-]/);
       const year = parseInt(parts[2], 10);
-      if (year >= 1930 && year <= currentYear - 16) {
+      if (year >= 1925 && year <= currentYear - 14) {
         birthDate = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${year}`;
         break;
       }
@@ -90,7 +137,7 @@ export function parseBrazilianDocument(rawText) {
 
   // 3. Extração de RG / Documento de Identidade
   let rgNumber = '';
-  const rgMatch = /(?:IDENTIDADE|DOC\.?\s*IDENTIDADE|REGISTRO GERAL|RG)[^\d]*(\d[\d\.\-\s]{5,14}[\dX])/i.exec(rawText);
+  const rgMatch = /(?:IDENTIDADE|DOC\.?\s*IDENTIDADE|REGISTRO\s*GERAL|RG)[^\d]*(\d[\d\.\-\s]{5,14}[\dX])/i.exec(rawText);
   if (rgMatch) {
     rgNumber = rgMatch[1].trim().replace(/\s+/g, '');
   }
@@ -99,49 +146,72 @@ export function parseBrazilianDocument(rawText) {
   let foundName = '';
   const ignoreTokens = [
     'REPUBLICA', 'FEDERATIVA', 'BRASIL', 'MINISTERIO', 'INFRAESTRUTURA',
-    'CONTRAN', 'DENATRAN', 'SENATRAN', 'CARTEIRA', 'NACIONAL', 'HABILITACAO',
+    'TRANSPORTES', 'CONTRAN', 'DENATRAN', 'SENATRAN', 'CARTEIRA', 'NACIONAL', 'HABILITACAO',
     'DETRAN', 'VALIDA', 'TERRITORIO', 'DOCUMENTO', 'IDENTIDADE', 'CONDUTOR',
     'REGISTRO', 'FILIACAO', 'PERMISSAO', 'ASSINATURA', 'PORTADOR',
     'SECRETARIA', 'SEGURANCA', 'PUBLICA', 'POLICIA', 'CIVIL', 'INSTITUTO',
     'IDENTIFICACAO', 'LOCAL', 'DATA', 'EMISSAO', 'VALIDADE', 'PRIMEIRA',
-    'ESTADO', 'PREFEITURA', 'DEPARTAMENTO', 'TRANSITO', 'CATEGORIA', 'HABILITADO'
+    'ESTADO', 'PREFEITURA', 'DEPARTAMENTO', 'TRANSITO', 'CATEGORIA', 'HABILITADO',
+    'OBSERVACOES', 'ACC', 'VALOR', 'PAGAMENTO', 'NOME', 'SOBRENOME', 'CPF',
+    'NASCIMENTO', 'ORGAO', 'EMISSOR', 'NATURALIDADE', 'DOC'
   ];
 
-  // Estratégia A: Linha subsequente ao rótulo "NOME"
-  for (let i = 0; i < lines.length; i++) {
-    const lineUpper = lines[i].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (/^(?:1\s*)?NOME(?:\s*DO\s*CONDUTOR)?(?:\s*\/.*)?$/i.test(lineUpper) || lineUpper === 'NOME' || lineUpper.startsWith('NOME:')) {
-      if (lineUpper.includes(':') && lineUpper.split(':')[1].trim().length > 3) {
-        foundName = lines[i].split(':')[1].trim();
-      } else if (i + 1 < lines.length) {
-        const candidate = lines[i + 1].trim();
-        const candidateClean = candidate.replace(/[^A-Za-zÁÉÍÓÚÂÊÎÔÛÃÕÇáéíóúâêîôûãõç\s]/g, '').trim();
-        const words = candidateClean.split(/\s+/).filter(w => w.length > 1);
-        if (words.length >= 2 && words.length <= 6) {
-          foundName = candidateClean;
-        }
-      }
-      if (foundName) break;
+  function cleanCandidate(str) {
+    if (!str) return '';
+    // Remove prefixos como '1 NOME', '1. NOME', 'NOME:', etc.
+    let s = str.replace(/^(?:[0-9\.\-\s]+)?NOME(?:\s*DO\s*CONDUTOR|\s*DO\s*PORTADOR|\s*COMPLETO)?(?:\s*\/.*?)?[:\s\-]*/i, '').trim();
+    // Remove prefixos de número de campo comuns na CNH como "1 ", "1. "
+    s = s.replace(/^[0-9]+[\.\-\s]+/, '');
+    s = s.replace(/[^A-Za-zÁÉÍÓÚÂÊÎÔÛÃÕÇáéíóúâêîôûãõç\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = s.split(' ').filter(w => w.length > 1);
+    if (words.length >= 2 && words.length <= 6) {
+      const hasBad = words.some(w => {
+        const u = w.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return ignoreTokens.includes(u);
+      });
+      if (!hasBad) return s;
     }
+    return '';
   }
 
-  // Estratégia B (Fallback): Procura pela primeira linha de 2 a 5 palavras sem números e sem palavras do cabeçalho
-  if (!foundName) {
-    for (const line of lines) {
-      const cleanLine = line.replace(/[^A-Za-zÁÉÍÓÚÂÊÎÔÛÃÕÇáéíóúâêîôûãõç\s]/g, '').trim();
-      const words = cleanLine.split(/\s+/).filter(w => w.length > 1);
-      if (words.length >= 2 && words.length <= 6 && !/\d/.test(line)) {
-        const upper = cleanLine.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const hasIgnore = ignoreTokens.some(token => upper.includes(token));
-        if (!hasIgnore) {
-          foundName = cleanLine;
+  // Estratégia A: Próximo à linha contendo NOME
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/NOME/i.test(l)) {
+      const sameLine = cleanCandidate(l);
+      if (sameLine) {
+        foundName = sameLine;
+        break;
+      }
+      if (i + 1 < lines.length) {
+        const nextLine = cleanCandidate(lines[i + 1]);
+        if (nextLine) {
+          foundName = nextLine;
+          break;
+        }
+      }
+      if (i + 2 < lines.length) {
+        const nextNextLine = cleanCandidate(lines[i + 2]);
+        if (nextNextLine) {
+          foundName = nextNextLine;
           break;
         }
       }
     }
   }
 
-  // Formatação em Title Case (Ex: "CARLOS SILVA" -> "Carlos Silva")
+  // Estratégia B: Se não encontrou linha de NOME, examina todas as linhas válidas
+  if (!foundName) {
+    for (const l of lines) {
+      const candidate = cleanCandidate(l);
+      if (candidate) {
+        foundName = candidate;
+        break;
+      }
+    }
+  }
+
+  // Formatação em Title Case elegante
   if (foundName) {
     foundName = foundName
       .toLowerCase()
@@ -163,43 +233,117 @@ export function parseBrazilianDocument(rawText) {
 }
 
 /**
- * Pré-processa uma imagem para aumentar contraste e facilitar a leitura OCR
+ * Corta exatamente a região do documento enquadrada na moldura amarela
+ * eliminando mesas, fundos e mãos, e ajustando para alta resolução
  */
-function preprocessImage(sourceImage) {
+function captureFromVideo(videoEl, guideBoxEl) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const vw = videoEl.videoWidth;
+  const vh = videoEl.videoHeight;
+  if (!vw || !vh) return null;
+
+  if (!guideBoxEl) {
+    canvas.width = vw;
+    canvas.height = vh;
+    ctx.drawImage(videoEl, 0, 0, vw, vh);
+    return canvas;
+  }
+
+  const vRect = videoEl.getBoundingClientRect();
+  const gRect = guideBoxEl.getBoundingClientRect();
+
+  const vAspect = vw / vh;
+  const eAspect = vRect.width / vRect.height;
+
+  let renderW, renderH, offsetX, offsetY;
+  if (eAspect > vAspect) {
+    renderW = vRect.width;
+    renderH = vRect.width / vAspect;
+    offsetX = 0;
+    offsetY = (renderH - vRect.height) / 2;
+  } else {
+    renderH = vRect.height;
+    renderW = vRect.height * vAspect;
+    offsetY = 0;
+    offsetX = (renderW - vRect.width) / 2;
+  }
+
+  const scale = renderW / vw;
+
+  const relX = (gRect.left - vRect.left + offsetX) / scale;
+  const relY = (gRect.top - vRect.top + offsetY) / scale;
+  const relW = gRect.width / scale;
+  const relH = gRect.height / scale;
+
+  // Margem de segurança de 10% para não cortar bordas
+  const padX = relW * 0.10;
+  const padY = relH * 0.10;
+
+  const cropX = Math.max(0, Math.floor(relX - padX));
+  const cropY = Math.max(0, Math.floor(relY - padY));
+  const cropW = Math.min(vw - cropX, Math.ceil(relW + padX * 2));
+  const cropH = Math.min(vh - cropY, Math.ceil(relH + padY * 2));
+
+  if (cropW < 200 || cropH < 200) {
+    canvas.width = vw;
+    canvas.height = vh;
+    ctx.drawImage(videoEl, 0, 0, vw, vh);
+    return canvas;
+  }
+
+  // Redimensiona o recorte para resolução ideal de leitura (~1600-2000px)
+  const targetW = Math.min(2200, Math.max(1500, cropW));
+  const targetH = Math.round((cropH / cropW) * targetW);
+
+  canvas.width = targetW;
+  canvas.height = targetH;
+  ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+
+  return canvas;
+}
+
+/**
+ * Pré-processamento profissional de imagem para OCR
+ * Converte para tons de cinza e aplica realce de contraste linear SEM inversão
+ */
+function preprocessImage(sourceImage, mode = 'enhanced') {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
   const width = sourceImage.naturalWidth || sourceImage.videoWidth || sourceImage.width;
   const height = sourceImage.naturalHeight || sourceImage.videoHeight || sourceImage.height;
 
-  // Escala para resolução ideal de leitura (~1600px de largura)
-  const targetWidth = Math.min(1800, Math.max(1200, width));
+  // Ajusta escala mantendo alta densidade de pixels para fontes pequenas
+  const targetWidth = Math.min(2200, Math.max(1400, width));
   const scale = targetWidth / width;
   canvas.width = targetWidth;
   canvas.height = Math.round(height * scale);
 
   ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
 
+  if (mode === 'raw') {
+    return canvas;
+  }
+
   try {
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
 
-    // Escala de cinza e aumento de contraste
+    // Realce de contraste linear seguro (sem inversão)
+    const factor = 1.35;
     for (let i = 0; i < data.length; i += 4) {
       const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      const contrast = 1.25;
-      const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
-      let adjusted = factor * (gray - 128) + 128;
-      adjusted = Math.min(255, Math.max(0, adjusted));
-
-      data[i] = adjusted;
-      data[i + 1] = adjusted;
-      data[i + 2] = adjusted;
+      const enhanced = Math.min(255, Math.max(0, Math.round((gray - 128) * factor + 128)));
+      data[i] = enhanced;
+      data[i + 1] = enhanced;
+      data[i + 2] = enhanced;
     }
 
     ctx.putImageData(imgData, 0, 0);
   } catch (e) {
-    console.warn('CORS ou segurança impediu filtro de pixel, usando imagem original:', e);
+    console.warn('Processamento de contraste ignorado por segurança:', e);
   }
 
   return canvas;
@@ -219,14 +363,14 @@ function getOrCreateScannerModal() {
     <div class="scanner-modal-card">
       <div class="scanner-modal-header">
         <div class="scanner-header-info">
-          <div class="scanner-header-badge">⚡ IA Local Custo Zero</div>
-          <h3 class="scanner-modal-title">📷 Leitor de CNH & RG</h3>
-          <p class="scanner-modal-subtitle">Aponte a câmera para o documento ou selecione uma foto</p>
+          <div class="scanner-header-badge">⚡ IA Local • Custo Zero</div>
+          <h3 class="scanner-modal-title">📷 Leitor Inteligente de CNH & RG</h3>
+          <p class="scanner-modal-subtitle">Aponte a câmera com foco e boa iluminação para ler nome e CPF</p>
         </div>
         <button type="button" class="scanner-close-btn" id="scanner-btn-close" title="Fechar">✕</button>
       </div>
 
-      <!-- Abas de Modo: Câmera ao Vivo / Enviar Arquivo -->
+      <!-- Abas de Modo -->
       <div class="scanner-tabs">
         <button type="button" class="scanner-tab active" id="tab-camera-mode">
           📹 Câmera ao Vivo
@@ -243,23 +387,30 @@ function getOrCreateScannerModal() {
           <div class="scanner-video-container">
             <video id="scanner-video" autoplay playsinline muted></video>
             <div class="scanner-overlay-guide">
-              <div class="scanner-target-box">
+              <div class="scanner-target-box" id="scanner-target-frame">
                 <div class="scanner-corner corner-tl"></div>
                 <div class="scanner-corner corner-tr"></div>
                 <div class="scanner-corner corner-bl"></div>
                 <div class="scanner-corner corner-br"></div>
                 <div class="scanner-laser-line"></div>
-                <div class="scanner-guide-text">Enquadre o documento aqui</div>
+                <div class="scanner-guide-text">Enquadre o documento nesta moldura</div>
               </div>
             </div>
           </div>
 
-          <div class="scanner-camera-actions">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-switch-camera" title="Inverter Câmera">
+          <!-- Ações da Câmera -->
+          <div class="scanner-camera-actions" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-torch-toggle" style="display: none; border-radius: 4px;">
+              💡 Lanterna
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-switch-camera" title="Inverter Câmera" style="border-radius: 4px;">
               🔄 Inverter Câmera
             </button>
-            <button type="button" class="btn btn-primary btn-capture" id="btn-snap-photo">
-              📸 Tirar Foto e Ler
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-native-camera" title="Abrir Câmera em Alta Definição com foco automático do celular" style="border-radius: 4px; color: var(--yellow); border-color: rgba(245, 197, 24, 0.4);">
+              📷 Câmera HD Nativa
+            </button>
+            <button type="button" class="btn btn-primary btn-capture" id="btn-snap-photo" style="flex: 1 1 100%; border-radius: 4px; padding: 12px; font-weight: 800; font-size: 0.95rem;">
+              📸 Tirar Foto e Ler Documento
             </button>
           </div>
         </div>
@@ -269,8 +420,8 @@ function getOrCreateScannerModal() {
           <label class="scanner-dropzone" for="scanner-file-input">
             <div class="dropzone-icon">🪪</div>
             <div class="dropzone-title">Toque aqui para Tirar Foto ou Escolher da Galeria</div>
-            <p class="dropzone-desc">Funciona com foto da CNH física, CNH Digital ou print do WhatsApp (JPG, PNG)</p>
-            <span class="btn btn-primary btn-sm" style="margin-top: 10px; pointer-events: none;">
+            <p class="dropzone-desc">Funciona com foto nítida de CNH física, CNH Digital ou print do WhatsApp (JPG, PNG)</p>
+            <span class="btn btn-primary btn-sm" style="margin-top: 10px; pointer-events: none; border-radius: 4px;">
               Selecionar Imagem do Documento
             </span>
             <input type="file" id="scanner-file-input" accept="image/*" capture="environment" style="display: none;">
@@ -285,7 +436,7 @@ function getOrCreateScannerModal() {
             </div>
             <div class="scanner-spinner-ring"></div>
             <h4 class="processing-title" id="processing-status-title">Lendo dados do documento...</h4>
-            <p class="processing-desc" id="processing-status-desc">O algoritmo OCR está reconhecendo o texto da imagem</p>
+            <p class="processing-desc" id="processing-status-desc">O algoritmo OCR está analisando os caracteres da imagem</p>
             
             <div class="scanner-progress-track">
               <div class="scanner-progress-bar" id="scanner-progress-fill" style="width: 25%;"></div>
@@ -298,16 +449,16 @@ function getOrCreateScannerModal() {
         <div class="scanner-view-section" id="view-results" style="display: none;">
           <div class="scanner-results-card">
             <div class="results-badge-ok">
-              <span>✅</span> Dados Reconhecidos com Sucesso
+              <span>✅</span> Leitura Concluída
             </div>
             <p class="results-helper-text">
-              Revise as informações extraídas abaixo antes de confirmar o preenchimento:
+              Confira os dados lidos e edite qualquer campo se necessário:
             </p>
 
             <div class="scanner-form-grid">
               <div class="form-group">
                 <label class="form-label">Nome Completo Reconhecido</label>
-                <input type="text" class="form-control" id="scan-out-name" placeholder="Nome não identificado">
+                <input type="text" class="form-control" id="scan-out-name" placeholder="Ex: João da Silva">
               </div>
 
               <div class="form-group">
@@ -331,11 +482,17 @@ function getOrCreateScannerModal() {
               </div>
             </div>
 
-            <div class="scanner-action-row">
-              <button type="button" class="btn btn-secondary" id="btn-scan-retry">
+            <!-- Diagnóstico / Texto Lido pelo OCR -->
+            <details style="margin-top: 14px; background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: 4px; padding: 8px 12px; font-size: 0.75rem;">
+              <summary style="cursor: pointer; font-weight: 700; color: var(--yellow);">🔍 Ver texto bruto lido pelo OCR (Diagnóstico)</summary>
+              <pre style="white-space: pre-wrap; word-break: break-all; margin-top: 8px; color: var(--text-muted); max-height: 120px; overflow-y: auto;" id="scan-raw-text">-</pre>
+            </details>
+
+            <div class="scanner-action-row" style="margin-top: 16px;">
+              <button type="button" class="btn btn-secondary" id="btn-scan-retry" style="border-radius: 4px;">
                 🔄 Tirar Outra Foto
               </button>
-              <button type="button" class="btn btn-primary" id="btn-scan-apply">
+              <button type="button" class="btn btn-primary" id="btn-scan-apply" style="border-radius: 4px;">
                 ✅ Preencher Cadastro Automaticamente
               </button>
             </div>
@@ -352,7 +509,7 @@ function getOrCreateScannerModal() {
 }
 
 /**
- * Inicializa a câmera no elemento de vídeo
+ * Inicializa a câmera no elemento de vídeo com foco contínuo e resolução full
  */
 async function startCamera(videoEl) {
   stopCamera();
@@ -360,8 +517,8 @@ async function startCamera(videoEl) {
     const constraints = {
       video: {
         facingMode: activeFacingMode,
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 }
       },
       audio: false
     };
@@ -369,6 +526,34 @@ async function startCamera(videoEl) {
     currentStream = await navigator.mediaDevices.getUserMedia(constraints);
     videoEl.srcObject = currentStream;
     await videoEl.play();
+
+    // Aplica foco contínuo em navegadores que suportam
+    const track = currentStream.getVideoTracks()[0];
+    if (track) {
+      try {
+        const caps = track.getCapabilities ? track.getCapabilities() : {};
+        const adv = {};
+        if (caps.focusMode && caps.focusMode.includes('continuous')) {
+          adv.focusMode = 'continuous';
+        }
+        if (caps.exposureMode && caps.exposureMode.includes('continuous')) {
+          adv.exposureMode = 'continuous';
+        }
+        if (Object.keys(adv).length > 0) {
+          await track.applyConstraints({ advanced: [adv] });
+        }
+
+        // Exibe botão de lanterna se suportado
+        const torchBtn = scannerModal?.querySelector('#btn-torch-toggle');
+        if (torchBtn && caps.torch) {
+          torchBtn.style.display = 'inline-flex';
+          isTorchActive = false;
+        }
+      } catch (e) {
+        console.warn('Recursos avançados de câmera não puderam ser ativados:', e);
+      }
+    }
+
     return true;
   } catch (err) {
     console.warn('Falha ao abrir câmera direta via getUserMedia:', err);
@@ -377,49 +562,94 @@ async function startCamera(videoEl) {
 }
 
 /**
- * Interrompe o stream da câmera para economizar bateria e liberar hardware
+ * Interrompe o stream da câmera
  */
 function stopCamera() {
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
   }
+  isTorchActive = false;
 }
 
 /**
- * Executa o OCR utilizando Tesseract.js com carregamento assíncrono sob demanda
+ * Liga/desliga lanterna se o dispositivo possuir
+ */
+async function toggleTorch() {
+  if (!currentStream) return;
+  const track = currentStream.getVideoTracks()[0];
+  if (!track) return;
+
+  try {
+    isTorchActive = !isTorchActive;
+    await track.applyConstraints({ advanced: [{ torch: isTorchActive }] });
+    const torchBtn = scannerModal?.querySelector('#btn-torch-toggle');
+    if (torchBtn) {
+      torchBtn.textContent = isTorchActive ? '🔦 Desligar Luz' : '💡 Lanterna';
+      torchBtn.classList.toggle('active', isTorchActive);
+    }
+  } catch (e) {
+    console.warn('Falha ao alternar lanterna:', e);
+  }
+}
+
+/**
+ * Inicializa ou reaproveita o Worker do Tesseract
+ */
+async function getOrInitWorker(onProgress) {
+  if (tesseractWorker) return tesseractWorker;
+  if (isInitializingWorker) {
+    while (isInitializingWorker) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (tesseractWorker) return tesseractWorker;
+  }
+
+  isInitializingWorker = true;
+  try {
+    onProgress(15, 'Carregando motor OCR...');
+    const { createWorker } = await import('tesseract.js');
+
+    tesseractWorker = await createWorker('por', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          const pct = Math.round(m.progress * 65) + 30;
+          onProgress(Math.min(95, pct), 'Lendo texto do documento...');
+        } else if (m.status === 'loading language traineddata') {
+          onProgress(22, 'Baixando biblioteca em português...');
+        }
+      }
+    });
+
+    await tesseractWorker.setParameters({
+      preserve_interword_spaces: '1'
+    });
+
+    return tesseractWorker;
+  } finally {
+    isInitializingWorker = false;
+  }
+}
+
+/**
+ * Executa o OCR utilizando reconhecimento em dois passos para garantir leitura de CPF e Nome
  */
 async function processImageWithOCR(imageElementOrCanvas, onProgress) {
-  // Carrega Tesseract.js de forma dinâmica (chunk separado para manter app ultrarrápido)
-  const { createWorker } = await import('tesseract.js');
+  const worker = await getOrInitWorker(onProgress);
 
-  onProgress(15, 'Carregando motor OCR...');
-
-  // Inicializa worker otimizado para português
-  const worker = await createWorker('por', 1, {
-    logger: m => {
-      if (m.status === 'recognizing text') {
-        const pct = Math.round(m.progress * 80) + 15;
-        onProgress(Math.min(95, pct), 'Lendo texto do documento...');
-      }
-    }
-  });
-
-  onProgress(30, 'Processando documento...');
+  onProgress(35, 'Analisando imagem...');
   const { data } = await worker.recognize(imageElementOrCanvas);
-  await worker.terminate();
-
   onProgress(100, 'Extraindo campos...');
-  return data.text;
+  return data.text || '';
 }
 
 /**
- * Abre o scanner e executa o fluxo completo
- * @param {Function} onConfirmCallback - Chamado com { name, cpf, birthDate, rg, rawText }
+ * Abre o scanner e gerencia todo o ciclo de leitura e preenchimento
  */
 export function openDocumentScanner(onConfirmCallback) {
   const modal = getOrCreateScannerModal();
   const videoEl = modal.querySelector('#scanner-video');
+  const targetFrameEl = modal.querySelector('#scanner-target-frame');
   const viewCamera = modal.querySelector('#view-camera');
   const viewUpload = modal.querySelector('#view-upload');
   const viewProcessing = modal.querySelector('#view-processing');
@@ -432,6 +662,8 @@ export function openDocumentScanner(onConfirmCallback) {
   const btnClose = modal.querySelector('#scanner-btn-close');
   const btnSnap = modal.querySelector('#btn-snap-photo');
   const btnSwitchCam = modal.querySelector('#btn-switch-camera');
+  const btnNativeCam = modal.querySelector('#btn-native-camera');
+  const btnTorch = modal.querySelector('#btn-torch-toggle');
   const btnRetry = modal.querySelector('#btn-scan-retry');
   const btnApply = modal.querySelector('#btn-scan-apply');
 
@@ -439,7 +671,7 @@ export function openDocumentScanner(onConfirmCallback) {
   const progressFill = modal.querySelector('#scanner-progress-fill');
   const progressText = modal.querySelector('#scanner-progress-text');
   const statusTitle = modal.querySelector('#processing-status-title');
-  const statusDesc = modal.querySelector('#processing-status-desc');
+  const rawTextPre = modal.querySelector('#scan-raw-text');
 
   const outName = modal.querySelector('#scan-out-name');
   const outCpf = modal.querySelector('#scan-out-cpf');
@@ -453,7 +685,6 @@ export function openDocumentScanner(onConfirmCallback) {
     viewProcessing.style.display = section === 'processing' ? 'flex' : 'none';
     viewResults.style.display = section === 'results' ? 'block' : 'none';
 
-    // Tabs
     tabCamera.classList.toggle('active', section === 'camera');
     tabUpload.classList.toggle('active', section === 'upload');
     modal.querySelector('.scanner-tabs').style.display = (section === 'camera' || section === 'upload') ? 'flex' : 'none';
@@ -470,57 +701,77 @@ export function openDocumentScanner(onConfirmCallback) {
     modal.classList.remove('active');
   }
 
-  // Alterna para Câmera
   tabCamera.onclick = async () => {
     showSection('camera');
     const started = await startCamera(videoEl);
     if (!started) {
-      showToast('Câmera indisponível no navegador. Use a opção de foto/arquivo.', 'warning');
+      showToast('Câmera ao vivo indisponível no navegador. Abrindo câmera nativa...', 'warning');
       showSection('upload');
     }
   };
 
-  // Alterna para Upload
   tabUpload.onclick = () => {
     stopCamera();
     showSection('upload');
   };
 
-  // Inverter câmera (frontal/traseira)
   btnSwitchCam.onclick = async () => {
     activeFacingMode = activeFacingMode === 'environment' ? 'user' : 'environment';
     await startCamera(videoEl);
   };
 
-  // Processa a imagem escolhida ou capturada
+  btnNativeCam.onclick = () => {
+    stopCamera();
+    fileInput.click();
+  };
+
+  btnTorch.onclick = toggleTorch;
+
+  // Processamento inteligente da imagem com multi-passagem
   async function handleImageProcessing(imgSource) {
     showSection('processing');
     updateProgress(10, 'Otimizando imagem...');
 
-    // Cria preview visual
+    // Preview
     if (imgSource instanceof HTMLCanvasElement) {
-      previewImg.src = imgSource.toDataURL('image/jpeg', 0.85);
+      previewImg.src = imgSource.toDataURL('image/jpeg', 0.90);
     } else if (imgSource instanceof HTMLImageElement) {
       previewImg.src = imgSource.src;
     }
 
     try {
-      // Pré-processa para maximizar precisão do OCR
-      const processedCanvas = preprocessImage(imgSource);
-      const rawText = await processImageWithOCR(processedCanvas, (pct, msg) => {
+      // Passagem 1: Imagem com realce de contraste
+      const enhancedCanvas = preprocessImage(imgSource, 'enhanced');
+      let rawText = await processImageWithOCR(enhancedCanvas, (pct, msg) => {
         updateProgress(pct, msg);
       });
 
-      console.log('Texto reconhecido pelo OCR:', rawText);
-      const parsed = parseBrazilianDocument(rawText);
+      console.log('Texto reconhecido pelo OCR (Passo 1):', rawText);
+      let parsed = parseBrazilianDocument(rawText);
+
+      // Passagem 2 (Recuperação): Se não detectou CPF ou Nome, executa no original com cores
+      if (!parsed.cpf || !parsed.name) {
+        updateProgress(75, 'Refinando leitura com segunda passagem...');
+        const rawCanvas = preprocessImage(imgSource, 'raw');
+        const rawText2 = await processImageWithOCR(rawCanvas, () => {});
+        console.log('Texto reconhecido pelo OCR (Passo 2):', rawText2);
+        const parsed2 = parseBrazilianDocument(rawText2);
+
+        if (!parsed.name && parsed2.name) parsed.name = parsed2.name;
+        if (!parsed.cpf && parsed2.cpf) parsed.cpf = parsed2.cpf;
+        if (!parsed.birthDate && parsed2.birthDate) parsed.birthDate = parsed2.birthDate;
+        if (!parsed.rg && parsed2.rg) parsed.rg = parsed2.rg;
+        rawText += '\n\n--- Leitura Adicional ---\n' + rawText2;
+      }
 
       // Preenche os campos de revisão
       outName.value = parsed.name || '';
       outCpf.value = parsed.cpf || '';
       outBirth.value = parsed.birthDate || '';
       outRg.value = parsed.rg || '';
+      rawTextPre.textContent = rawText.trim() || 'Nenhum texto detectado na imagem.';
 
-      // Atualiza badge de CPF
+      // Badge de validação do CPF
       if (parsed.cpf) {
         const isValid = validateCPF(parsed.cpf);
         cpfBadge.textContent = isValid ? '✅ CPF Válido' : '⚠️ Conferir CPF';
@@ -533,36 +784,36 @@ export function openDocumentScanner(onConfirmCallback) {
       showSection('results');
 
       if (!parsed.name && !parsed.cpf) {
-        showToast('Documento com baixa nitidez. Você pode digitar os dados ou tentar outra foto.', 'warning');
+        showToast('Documento lido, mas nome e CPF não foram detectados com certeza. Você pode digitar ou tirar foto com a Câmera HD.', 'warning');
       } else {
-        showToast('Dados extraídos com sucesso!', 'success');
+        showToast('Dados do documento extraídos com sucesso!', 'success');
       }
 
     } catch (err) {
       console.error('Erro no processamento OCR:', err);
-      showToast('Não foi possível ler a imagem. Tente uma foto mais nítida e bem iluminada.', 'error');
+      showToast('Falha ao processar o texto do documento. Tente novamente com a Câmera HD.', 'error');
       showSection('upload');
     }
   }
 
-  // Capturar frame do vídeo ao vivo
+  // Capturar frame da câmera com recorte inteligente na moldura
   btnSnap.onclick = () => {
     if (!videoEl.videoWidth) {
       showToast('Aguarde a câmera iniciar.', 'warning');
       return;
     }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = videoEl.videoWidth;
-    canvas.height = videoEl.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    const croppedCanvas = captureFromVideo(videoEl, targetFrameEl);
+    if (!croppedCanvas) {
+      showToast('Erro ao capturar frame de vídeo.', 'error');
+      return;
+    }
 
     stopCamera();
-    handleImageProcessing(canvas);
+    handleImageProcessing(croppedCanvas);
   };
 
-  // Upload de arquivo
+  // Upload de arquivo ou foto da câmera nativa
   fileInput.onchange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -576,21 +827,20 @@ export function openDocumentScanner(onConfirmCallback) {
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
-    fileInput.value = ''; // reseta input
+    fileInput.value = '';
   };
 
-  // Tentar novamente
   btnRetry.onclick = () => {
     tabCamera.click();
   };
 
-  // Aplicar resultados ao formulário do cliente
   btnApply.onclick = () => {
     const finalData = {
       name: outName.value.trim(),
       cpf: outCpf.value.trim(),
       birthDate: outBirth.value.trim(),
-      rg: outRg.value.trim()
+      rg: outRg.value.trim(),
+      rawText: rawTextPre.textContent
     };
 
     if (onConfirmCallback) {
@@ -598,7 +848,7 @@ export function openDocumentScanner(onConfirmCallback) {
     }
 
     closeModal();
-    showToast('Dados preenchidos no cadastro!', 'success');
+    showToast('Dados preenchidos no cadastro do cliente!', 'success');
   };
 
   btnClose.onclick = closeModal;
@@ -606,7 +856,6 @@ export function openDocumentScanner(onConfirmCallback) {
     if (e.target === modal) closeModal();
   };
 
-  // Inicia modal
   modal.classList.add('active');
   tabCamera.click();
 }

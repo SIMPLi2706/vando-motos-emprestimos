@@ -2500,7 +2500,7 @@ body.modal-open #app {
 .scanner-video-container {
   position: relative;
   width: 100%;
-  height: 290px;
+  height: clamp(320px, 48vh, 440px);
   background: #000;
   border-radius: var(--r-sm);
   overflow: hidden;
@@ -2522,34 +2522,35 @@ body.modal-open #app {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
   pointer-events: none;
+  overflow: hidden;
 }
 
 .scanner-target-box {
   position: relative;
-  width: 86%;
-  height: 72%;
-  border: 1.5px dashed rgba(245, 197, 24, 0.45);
+  width: min(92%, 400px);
+  aspect-ratio: 1.58 / 1;
+  border: 2px dashed rgba(245, 197, 24, 0.75);
   border-radius: var(--r-sm);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
 }
 
 .scanner-corner {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-color: var(--yellow);
   border-style: solid;
 }
 
-.corner-tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-top-left-radius: 4px; }
-.corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-top-right-radius: 4px; }
-.corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-bottom-left-radius: 4px; }
-.corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-bottom-right-radius: 4px; }
+.corner-tl { top: -2px; left: -2px; border-width: 3.5px 0 0 3.5px; border-top-left-radius: 4px; }
+.corner-tr { top: -2px; right: -2px; border-width: 3.5px 3.5px 0 0; border-top-right-radius: 4px; }
+.corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3.5px 3.5px; border-bottom-left-radius: 4px; }
+.corner-br { bottom: -2px; right: -2px; border-width: 0 3.5px 3.5px 0; border-bottom-right-radius: 4px; }
 
 .scanner-laser-line {
   position: absolute;
