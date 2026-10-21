@@ -568,34 +568,45 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.settings;`;
       }
 
       showToast('Testando conexão com a IA do Google Gemini...', 'info');
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keyVal}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Responda apenas com a palavra OK' }] }]
-          })
-        });
+      const testModels = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+      let connectedModel = null;
+      let lastErr = null;
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error?.message || `Erro HTTP ${res.status}`);
-        }
+      for (const m of testModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${keyVal}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'Responda apenas com a palavra OK' }] }]
+            })
+          });
 
-        const data = await res.json();
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        if (reply) {
-          badgeGemini.textContent = '● IA Pronta e Ativa';
-          badgeGemini.className = 'badge badge-paid';
-          showToast('✅ Conexão com Google Gemini Flash validada com sucesso! A IA está pronta para ler documentos.', 'success');
-        } else {
-          showToast('Aviso: A IA respondeu mas sem conteúdo.', 'warning');
+          if (res.ok) {
+            const data = await res.json();
+            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (reply) {
+              connectedModel = m;
+              break;
+            }
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            lastErr = new Error(errData.error?.message || `Erro HTTP ${res.status}`);
+          }
+        } catch (e) {
+          lastErr = e;
         }
-      } catch (err) {
+      }
+
+      if (connectedModel) {
+        badgeGemini.textContent = '● IA Pronta e Ativa';
+        badgeGemini.className = 'badge badge-paid';
+        showToast(`✅ Conexão validada com sucesso via ${connectedModel}! A IA está pronta para ler documentos.`, 'success');
+      } else {
         badgeGemini.textContent = '❌ Erro na Chave';
         badgeGemini.className = 'badge badge-overdue';
-        showToast(`Falha no teste da IA: ${err.message}`, 'error');
+        showToast(`Falha no teste da IA: ${lastErr?.message || 'Modelo indisponível'}`, 'error');
       }
     });
   }, 0);

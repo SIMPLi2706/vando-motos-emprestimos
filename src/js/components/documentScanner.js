@@ -168,7 +168,7 @@ Regras obrigatórias:
 4. Se algum campo não for identificado ou não estiver presente na imagem, retorne string vazia "".
 5. Não invente nenhum dado. Retorne apenas o que for visível no documento.`;
 
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  const models = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
   let lastError = null;
 
   for (const model of models) {

@@ -1,8 +1,8 @@
 // public/sw.js
 // Service Worker para Gestão de Crédito & Finanças - PWA Offline & Auto-Update
-// Versão do Cache: v7 (Com IA Google Gemini Vision para CNH/RG)
+// Versão do Cache: v8 (Com modelos atualizados Google Gemini 3.5 Flash)
 
-const CACHE_NAME = 'vandomotos-gemini-v7';
+const CACHE_NAME = 'vandomotos-gemini-v8';
 
 const PRECACHE_ASSETS = [
   '/',
