@@ -1669,29 +1669,152 @@ body.modal-open #app {
   display: block;
 }
 
-.chart-canvas-wrapper--donut {
+/* Donut Chart Responsive Layout */
+.donut-card-layout {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  width: 100%;
+  padding: 8px 4px 4px;
+}
+
+.donut-canvas-box {
+  width: 190px;
+  height: 190px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.donut-canvas-box canvas {
+  width: 190px !important;
+  height: 190px !important;
+  display: block;
 }
 
 .donut-chart-legend {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.donut-stats-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 0.8rem;
+  width: 100%;
 }
 
 .donut-legend-item {
+  background: var(--bg-1);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.donut-legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.donut-legend-title-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.donut-legend-color {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--r-full);
+.donut-legend-bullet {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-xs);
+  flex-shrink: 0;
+}
+
+.donut-legend-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-100);
+}
+
+.donut-legend-pct {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--r-xs);
+  background: rgba(255, 255, 255, 0.05);
+  letter-spacing: 0.02em;
+}
+
+.donut-legend-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-400);
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+  width: 100%;
+}
+
+.donut-legend-count {
+  font-weight: 600;
+  color: var(--text-300);
+}
+
+.donut-legend-amount {
+  font-weight: 700;
+}
+
+.chart-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.8rem;
+}
+
+.chart-summary-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chart-summary-label {
+  color: var(--text-400);
+}
+
+@media (max-width: 640px) {
+  .donut-card-layout {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 16px !important;
+  }
+
+  .donut-canvas-box {
+    margin: 0 auto !important;
+    width: 180px !important;
+    height: 180px !important;
+  }
+
+  .donut-canvas-box canvas {
+    width: 180px !important;
+    height: 180px !important;
+  }
 }
 
 .canvas-tooltip {

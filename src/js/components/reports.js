@@ -199,8 +199,10 @@ export function renderReports() {
           </div>
           <span class="chart-badge">${totalAtivas} parcelas</span>
         </div>
-        <div class="chart-canvas-wrapper chart-canvas-wrapper--donut" id="donut-chart-container">
-          <canvas id="canvas-status-parcelas" class="responsive-canvas"></canvas>
+        <div class="donut-card-layout" id="donut-chart-container">
+          <div class="donut-canvas-box">
+            <canvas id="canvas-status-parcelas" class="responsive-canvas"></canvas>
+          </div>
           <div class="donut-chart-legend" id="donut-legend-container">
             <!-- Legenda com cores e valores -->
           </div>
@@ -513,7 +515,11 @@ function renderBarChartReceita(canvas, tooltipEl, summaryEl) {
  * ============================================================
  */
 function renderDonutChartStatus(canvas, legendEl) {
-  const { ctx, width, height } = setupCanvasDPI(canvas, 240);
+  const box = canvas.parentElement;
+  const boxW = (box ? box.clientWidth : 0) || 190;
+  const boxH = (box ? box.clientHeight : 0) || 190;
+  const size = Math.min(boxW, boxH, 200) || 180;
+  const { ctx, width, height } = setupCanvasDPI(canvas, size);
 
   const installments = state.getInstallments();
   const todayStr = formatDateForInput(new Date());
@@ -575,16 +581,19 @@ function renderDonutChartStatus(canvas, legendEl) {
     legendEl.innerHTML = `
       <div class="donut-stats-list">
         ${slices.map(s => {
-          const pct = totalCount > 0 ? ((s.count / totalCount) * 100).toFixed(1) : 0;
+          const pct = totalCount > 0 ? ((s.count / totalCount) * 100).toFixed(1) : '0.0';
           return `
             <div class="donut-legend-item">
               <div class="donut-legend-header">
-                <span class="donut-legend-bullet" style="background: ${s.color};"></span>
-                <span class="donut-legend-name">${s.label}</span>
-                <span class="donut-legend-pct" style="color: ${s.color};">${pct}%</span>
+                <div class="donut-legend-title-wrap">
+                  <span class="donut-legend-bullet" style="background: ${s.color};"></span>
+                  <span class="donut-legend-name">${s.label}</span>
+                </div>
+                <span class="donut-legend-pct" style="color: ${s.color}; border: 1px solid ${s.color}33;">${pct}%</span>
               </div>
               <div class="donut-legend-detail">
-                <strong>${s.count}</strong> parcelas • ${formatBRL(s.amount)}
+                <span class="donut-legend-count"><strong>${s.count}</strong> parcela${s.count !== 1 ? 's' : ''}</span>
+                <span class="donut-legend-amount" style="color: ${s.color};">${formatBRL(s.amount)}</span>
               </div>
             </div>
           `;
@@ -597,7 +606,7 @@ function renderDonutChartStatus(canvas, legendEl) {
 
   const cx = width / 2;
   const cy = height / 2;
-  const outerRadius = Math.min(cx, cy) - 24;
+  const outerRadius = Math.min(cx, cy) - 14;
   const innerRadius = outerRadius * 0.62;
 
   if (totalCount === 0) {
