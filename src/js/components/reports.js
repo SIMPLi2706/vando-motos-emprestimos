@@ -299,10 +299,10 @@ function initCharts(container) {
 /**
  * Configura DPI do canvas para nitidez em telas Retina / High-DPI
  */
-function setupCanvasDPI(canvas, targetHeight = 240) {
+function setupCanvasDPI(canvas, targetHeight = 240, targetWidth = null) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  const width = rect.width || canvas.parentElement.clientWidth || 300;
+  const width = targetWidth || rect.width || (canvas.parentElement ? canvas.parentElement.clientWidth : 0) || 300;
   const height = targetHeight;
 
   canvas.width = Math.floor(width * dpr);
@@ -515,11 +515,8 @@ function renderBarChartReceita(canvas, tooltipEl, summaryEl) {
  * ============================================================
  */
 function renderDonutChartStatus(canvas, legendEl) {
-  const box = canvas.parentElement;
-  const boxW = (box ? box.clientWidth : 0) || 190;
-  const boxH = (box ? box.clientHeight : 0) || 190;
-  const size = Math.min(boxW, boxH, 200) || 180;
-  const { ctx, width, height } = setupCanvasDPI(canvas, size);
+  const size = 180;
+  const { ctx, width, height } = setupCanvasDPI(canvas, size, size);
 
   const installments = state.getInstallments();
   const todayStr = formatDateForInput(new Date());

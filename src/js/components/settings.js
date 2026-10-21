@@ -187,6 +187,9 @@ export function renderSettings() {
           <div style="border-top: 1px solid var(--border-soft); padding-top: 14px; margin-top: 6px;">
             <p style="font-size: 0.75rem; color: var(--text-400); margin-bottom: 10px;">Ações Críticas do Sistema:</p>
             <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button type="button" class="btn btn-secondary" id="btn-force-update-cache" style="color: var(--cyan); border-color: rgba(6,182,212,0.3); justify-content: flex-start;">
+                🔄 Sincronizar Versão Mais Recente (Limpar Cache)
+              </button>
               <button class="btn btn-secondary" id="btn-reset-demo" style="color: var(--amber); border-color: rgba(245,158,11,0.22); justify-content: flex-start;">
                 Recarregar Dados de Exemplo
               </button>
@@ -314,6 +317,17 @@ export function renderSettings() {
         }
         window.refreshCurrentTab();
         window.updateBrandDisplay();
+      }
+    });
+
+    container.querySelector('#btn-force-update-cache')?.addEventListener('click', async () => {
+      if (confirm('Deseja recarregar o sistema e baixar a versão mais recente diretamente do servidor?')) {
+        showToast('Atualizando sistema e limpando cache local...', 'info');
+        if (window.forceCleanAppUpdate) {
+          await window.forceCleanAppUpdate();
+        } else {
+          window.location.reload(true);
+        }
       }
     });
 

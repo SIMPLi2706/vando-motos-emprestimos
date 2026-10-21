@@ -401,12 +401,73 @@ state.subscribe(() => {
   updateOverdueBadge();
 });
 
-// Registra Service Worker (PWA para Celular e Computador)
+// Versão da Aplicação e Gestão de Cache PWA
+const CURRENT_APP_VERSION = '2.3.0';
+try {
+  const lastVersion = localStorage.getItem('vando_app_version');
+  if (lastVersion !== CURRENT_APP_VERSION) {
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((k) => {
+          if (!k.includes('vando-fintech-v6')) {
+            caches.delete(k);
+          }
+        });
+      });
+    }
+    localStorage.setItem('vando_app_version', CURRENT_APP_VERSION);
+  }
+} catch (e) {
+  console.warn('Verificação de versão:', e);
+}
+
+// Utilitário global para forçar limpeza completa do cache e recarga limpa
+window.forceCleanAppUpdate = async () => {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+    }
+  } catch (e) {
+    console.error('Erro ao limpar cache:', e);
+  }
+  window.location.href = window.location.origin + window.location.pathname + '?fresh=' + Date.now();
+};
+
+// Registra Service Worker (PWA para Celular e Computador) com Auto-Update
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      // Força verificação imediata de nova versão no servidor
+      reg.update().catch(() => {});
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Notifica o novo SW para assumir o controle imediatamente
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        }
+      });
+    }).catch(err => {
       console.log('SW registration error:', err);
     });
+  });
+
+  // Quando o novo Service Worker assumir o controle, recarrega a página automaticamente
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }
 
