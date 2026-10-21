@@ -54,16 +54,26 @@ class StateManager {
     try {
       const remote = await pullAllFromSupabase();
 
-      const isRemoteEmpty = (!remote.clients || remote.clients.length === 0) &&
-                            (!remote.loans || remote.loans.length === 0);
-      const isWiped = localStorage.getItem('vandomotos_wiped') === 'true';
-
       const demoNames = ['BRUNO VASQUEZ CASTRO', 'Carlos Silva Santos', 'Mariana Souza Oliveira', 'Roberto Ferreira Dias'];
-      const hasOnlyDemoData = this.data.clients && this.data.clients.length > 0 &&
-                              this.data.clients.every(c => demoNames.includes(c.name));
 
-      // Se a nuvem estiver vazia e os dados locais forem apenas os dados de exemplo automáticos ou se o sistema foi zerado:
-      if (isRemoteEmpty && (isWiped || hasOnlyDemoData)) {
+      // Filtra e descarta qualquer registro fictício que venha da nuvem
+      if (remote.clients && remote.clients.length > 0) {
+        remote.clients = remote.clients.filter(c => !demoNames.includes(c.name));
+        remote.loans = (remote.loans || []).filter(l => remote.clients.some(c => c.id === l.clientId));
+        remote.installments = (remote.installments || []).filter(i => remote.clients.some(c => c.id === i.clientId));
+      }
+
+      const isRemoteEmpty = (!remote.clients || remote.clients.length === 0);
+
+      // Filtra e descarta qualquer registro fictício local
+      if (this.data.clients && this.data.clients.length > 0) {
+        this.data.clients = this.data.clients.filter(c => !demoNames.includes(c.name));
+        this.data.loans = (this.data.loans || []).filter(l => this.data.clients.some(c => c.id === l.clientId));
+        this.data.installments = (this.data.installments || []).filter(i => this.data.clients.some(c => c.id === i.clientId));
+      }
+
+      // Se a nuvem estiver vazia e os dados locais estiverem vazios:
+      if (isRemoteEmpty && (!this.data.clients || this.data.clients.length === 0)) {
         this.data.clients = [];
         this.data.loans = [];
         this.data.installments = [];
@@ -73,9 +83,8 @@ class StateManager {
       }
 
       // Se a nuvem estiver vazia, mas tivermos dados locais REAIS criados pelo usuário, envia para a nuvem
-      const hasRealLocalData = this.data.clients && this.data.clients.length > 0 && !hasOnlyDemoData;
-      if (isRemoteEmpty && hasRealLocalData) {
-        console.log('Nuvem Supabase está limpa. Enviando dados locais para a nuvem...');
+      if (isRemoteEmpty && this.data.clients.length > 0) {
+        console.log('Enviando dados reais do usuário para a nuvem...');
         await pushAllToSupabase(this.data);
         return;
       }
@@ -122,10 +131,17 @@ class StateManager {
           this.data.settings.creditorCity = 'PORTO VELHO RONDONIA';
         }
 
-        // Garante que arrays existam e respeita exclusões do usuário
+        // Garante que arrays existam e elimina permanentemente resquícios de dados demo
         this.data.clients = this.data.clients || [];
         this.data.loans = this.data.loans || [];
         this.data.installments = this.data.installments || [];
+
+        const demoNames = ['BRUNO VASQUEZ CASTRO', 'Carlos Silva Santos', 'Mariana Souza Oliveira', 'Roberto Ferreira Dias'];
+        if (this.data.clients.some(c => demoNames.includes(c.name))) {
+          this.data.clients = this.data.clients.filter(c => !demoNames.includes(c.name));
+          this.data.loans = this.data.loans.filter(l => this.data.clients.some(c => c.id === l.clientId));
+          this.data.installments = this.data.installments.filter(i => this.data.clients.some(c => c.id === i.clientId));
+        }
 
         if (isWiped) {
           this.data.clients = [];
