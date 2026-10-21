@@ -766,13 +766,22 @@ body.modal-open #app {
 }
 
 /* ============================================================
-   9. BUTTONS & CONTROLS
+   9. BUTTONS & CONTROLS (Fintech Executive System)
    ============================================================ */
+.icon-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 1;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
   padding: 10px 16px;
   border-radius: var(--r-md);
   font-size: 0.86rem;
@@ -783,6 +792,13 @@ body.modal-open #app {
   min-height: 42px;
   white-space: nowrap;
   box-sizing: border-box;
+  letter-spacing: -0.01em;
+}
+
+.btn .icon-svg,
+.btn svg {
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .btn-primary {
@@ -1300,6 +1316,16 @@ body.modal-open #app {
   font-size: 1.05rem;
   font-weight: 800;
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.02em;
+}
+
+.modal-title .icon-svg,
+.modal-title svg {
+  color: var(--yellow);
+  flex-shrink: 0;
 }
 
 .modal-close-btn {
@@ -1308,11 +1334,18 @@ body.modal-open #app {
   color: var(--text-400);
   width: 32px;
   height: 32px;
-  border-radius: var(--r-full);
-  display: flex;
+  border-radius: var(--r-sm);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  transition: all 0.16s ease;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover {
+  background: var(--bg-4);
+  color: #fff;
+  border-color: var(--border-mid);
 }
 
 .modal-body {
@@ -2557,6 +2590,15 @@ body.modal-open #app {
   font-weight: 800;
   color: var(--text-100);
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scanner-modal-title .icon-svg,
+.scanner-modal-title svg {
+  color: var(--yellow);
+  flex-shrink: 0;
 }
 
 .scanner-modal-subtitle {
@@ -2571,12 +2613,11 @@ body.modal-open #app {
   color: var(--text-400);
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.95rem;
   transition: all 0.15s ease;
 }
 

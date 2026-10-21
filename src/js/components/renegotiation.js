@@ -4,6 +4,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, addMonths, showToast } from '../utils.js';
 import { calculateLateCharges, calculateAmortizationSchedule } from '../finance.js';
+import { icon } from '../icons.js';
 
 export function renderRenegotiation(initialClientId = null) {
   const container = document.createElement('div');
@@ -19,8 +20,8 @@ export function renderRenegotiation(initialClientId = null) {
       <div class="card" style="grid-column: 1 / -1;">
         <div class="card-header">
           <div>
-            <h3 class="card-title">🔄 Renegociação & Acordo de Dívidas</h3>
-            <p class="card-subtitle">Vando motos locadora LTDA • Renegocie parcelas em atraso e emita novos carnês/promissórias</p>
+            <h3 class="card-title">${icon('refresh', 18)} Renegociação & Acordo de Dívidas</h3>
+            <p class="card-subtitle">Vando Motos Locadora LTDA • Renegocie parcelas e emita novos carnês</p>
           </div>
         </div>
 
@@ -89,7 +90,7 @@ export function renderRenegotiation(initialClientId = null) {
         </div>
 
         <div id="reneg-no-debt-msg" style="display: none; text-align: center; padding: 32px; color: var(--emerald-400);">
-          🎉 Este cliente não possui débitos pendentes no momento!
+          Este cliente não possui débitos pendentes no momento.
         </div>
       </div>
 
@@ -97,7 +98,7 @@ export function renderRenegotiation(initialClientId = null) {
       <div class="card" id="reneg-terms-card" style="display: none;">
         <div class="card-header">
           <div>
-            <h3 class="card-title">📝 Novas Condições do Acordo</h3>
+            <h3 class="card-title">${icon('fileText', 18)} Novas Condições do Acordo</h3>
             <p class="card-subtitle">Defina o abatimento e o novo plano de parcelamento</p>
           </div>
         </div>
@@ -151,7 +152,7 @@ export function renderRenegotiation(initialClientId = null) {
           </div>
 
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 14px; font-size: 1rem; padding: 12px;">
-            🤝 Confirmar Renegociação & Emitir Contrato
+            ${icon('check', 16)} Confirmar Renegociação & Emitir Contrato
           </button>
         </form>
       </div>
@@ -160,7 +161,7 @@ export function renderRenegotiation(initialClientId = null) {
       <div class="card" id="reneg-sim-card" style="display: none;">
         <div class="card-header">
           <div>
-            <h3 class="card-title">📊 Simulação do Novo Carnê</h3>
+            <h3 class="card-title">${icon('chart', 18)} Simulação do Novo Carnê</h3>
             <p class="card-subtitle">Prévia das novas parcelas a serem geradas</p>
           </div>
         </div>

@@ -1,6 +1,8 @@
 // src/js/components/signaturePad.js
 // Captura de Assinatura Digital na Tela do Celular / Computador (Touch & Mouse) - Vando Motos
 
+import { icon } from '../icons.js';
+
 let signatureModal = null;
 let currentResolve = null;
 
@@ -31,10 +33,10 @@ function getOrCreateSignatureModal() {
       <div class="sig-modal-header">
         <div>
           <div class="sig-badge">Validade Digital • Touch Screen</div>
-          <h3 class="sig-title" id="sig-modal-title">✍️ Assinatura do Cliente</h3>
+          <h3 class="sig-title" id="sig-modal-title">${icon('pen', 18)} Assinatura do Cliente</h3>
           <p class="sig-subtitle">Peça para o cliente assinar com o dedo no espaço abaixo</p>
         </div>
-        <button type="button" class="sig-close-btn" id="sig-btn-close">✕</button>
+        <button type="button" class="sig-close-btn" id="sig-btn-close">${icon('x', 16)}</button>
       </div>
 
       <div class="sig-body">
@@ -52,10 +54,10 @@ function getOrCreateSignatureModal() {
 
       <div class="sig-footer">
         <button type="button" class="btn btn-secondary" id="sig-btn-clear">
-          🗑️ Limpar
+          ${icon('trash', 14)} Limpar
         </button>
         <button type="button" class="btn btn-primary" id="sig-btn-confirm">
-          ✓ Confirmar Assinatura
+          ${icon('check', 14)} Confirmar Assinatura
         </button>
       </div>
     </div>

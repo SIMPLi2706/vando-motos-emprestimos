@@ -5,6 +5,7 @@ import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateExtenso, numeroParaExtenso, showToast } from '../utils.js';
 import { BRASAO_BRASIL_B64 } from '../brasaoBase64.js';
 import { openSignaturePad } from './signaturePad.js';
+import { icon } from '../icons.js';
 
 export function createReceiptModal() {
   const modal = document.createElement('div');
@@ -15,7 +16,7 @@ export function createReceiptModal() {
     <div class="modal-card" style="max-width: 860px; max-height: 94vh;">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
-          <h3 class="modal-title" id="doc-modal-title">📄 Nota Promissória Oficial</h3>
+          <h3 class="modal-title" id="doc-modal-title">${icon('fileText', 18)} Nota Promissória Oficial</h3>
           <!-- Seletor de Modo / Carnê quando for Nota Promissória -->
           <div id="doc-modal-controls" style="display: none; margin-left: auto; margin-right: 12px;">
             <select class="form-control" id="select-promissory-view" style="padding: 4px 10px; font-size: 0.82rem; min-height: 32px; background: var(--bg-card); color: var(--text-main);">
@@ -23,7 +24,7 @@ export function createReceiptModal() {
             </select>
           </div>
         </div>
-        <button class="modal-close-btn" id="doc-modal-close">✕</button>
+        <button class="modal-close-btn" id="doc-modal-close">${icon('x', 16)}</button>
       </div>
 
       <div class="modal-body" id="doc-modal-body" style="background: #e2e8f0; padding: 20px; overflow-y: auto;">
@@ -32,9 +33,9 @@ export function createReceiptModal() {
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="doc-modal-close-btn">Fechar</button>
-        <button type="button" class="btn btn-secondary" id="doc-modal-sign-btn">✍️ Assinar na Tela</button>
-        <button type="button" class="btn btn-secondary" id="doc-modal-copy-btn">📋 Copiar Dados</button>
-        <button type="button" class="btn btn-primary" id="doc-modal-print-btn">🖨️ Imprimir / Salvar PDF</button>
+        <button type="button" class="btn btn-secondary" id="doc-modal-sign-btn">${icon('pen', 14)} Assinar na Tela</button>
+        <button type="button" class="btn btn-secondary" id="doc-modal-copy-btn">${icon('copy', 14)} Copiar Dados</button>
+        <button type="button" class="btn btn-primary" id="doc-modal-print-btn">${icon('print', 14)} Imprimir / Salvar PDF</button>
       </div>
     </div>
   `;
@@ -109,7 +110,7 @@ export function createReceiptModal() {
     currentDebtorName = client.name;
 
     controls.style.display = 'none';
-    modal.querySelector('#doc-modal-title').textContent = '📄 Recibo de Pagamento';
+    modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Recibo de Pagamento`;
 
     const lastPayment = (inst.paymentHistory && inst.paymentHistory.length > 0)
       ? inst.paymentHistory[inst.paymentHistory.length - 1]
@@ -324,7 +325,7 @@ export function createReceiptModal() {
 
     currentDebtorName = client.name;
 
-    modal.querySelector('#doc-modal-title').textContent = '📄 Nota Promissória (Modelo Oficial)';
+    modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Nota Promissória (Modelo Oficial)`;
     controls.style.display = 'block';
 
     // Monta as opções do seletor
@@ -354,7 +355,7 @@ export function createReceiptModal() {
             htmlCarnet += `
               <div class="promissoria-cut-divider ${isEndOfPage ? 'page-break-divider' : ''}">
                 <div class="cut-line-dash">
-                  <span class="cut-icon">✂</span>
+                  <span class="cut-icon">${icon('scissors', 13)}</span>
                 </div>
               </div>
             `;

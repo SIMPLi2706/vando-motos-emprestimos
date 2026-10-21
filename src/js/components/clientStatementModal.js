@@ -3,6 +3,7 @@
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
+import { icon } from '../icons.js';
 
 export function createClientStatementModal() {
   const modal = document.createElement('div');
@@ -14,11 +15,11 @@ export function createClientStatementModal() {
       <div class="modal-header" style="border-bottom: 1px solid var(--border-soft);">
         <div>
           <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-            <span>📊</span> Extrato Financeiro da Conta Corrente
+            ${icon('fileText', 18)} Extrato Financeiro da Conta Corrente
           </h3>
           <p class="modal-subtitle" id="statement-client-subtitle">Demonstrativo consolidado de crédito, amortizações e juros</p>
         </div>
-        <button class="modal-close-btn" id="statement-modal-close">✕</button>
+        <button class="modal-close-btn" id="statement-modal-close">${icon('x', 16)}</button>
       </div>
 
       <div class="modal-body" style="padding: 20px; max-height: calc(88vh - 140px); overflow-y: auto;">
@@ -60,8 +61,8 @@ export function createClientStatementModal() {
 
         <!-- Tabela do Livro Razão / Movimentações -->
         <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-          <h4 style="font-size: 0.9rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
-            📜 Histórico Cronológico de Lançamentos
+          <h4 style="font-size: 0.9rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; display: inline-flex; align-items: center; gap: 8px;">
+            ${icon('history', 15)} Histórico Cronológico de Lançamentos
           </h4>
           <span style="font-size: 0.75rem; color: var(--text-muted);" id="statement-entries-count">0 lançamento(s)</span>
         </div>
@@ -90,10 +91,10 @@ export function createClientStatementModal() {
 
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn btn-secondary" id="statement-btn-print" style="border-radius: 4px; font-weight: 700;">
-            🖨️ Imprimir / PDF
+            ${icon('print', 14)} Imprimir / PDF
           </button>
           <button type="button" class="btn btn-whatsapp" id="statement-btn-whatsapp" style="border-radius: 4px; font-weight: 800;">
-            🟢 Enviar via WhatsApp
+            ${icon('whatsapp', 14)} Enviar WhatsApp
           </button>
         </div>
       </div>
@@ -247,16 +248,16 @@ export function createClientStatementModal() {
       `_${settings.businessName || 'Gestão Financeira'}_`,
       `Data de emissão: ${formatDate(new Date())}`,
       ``,
-      `📌 *RESUMO CONSOLIDADO:*`,
-      `• *Capital Emprestado:* ${formatBRL(st.totalPrincipalEmprestado)}`,
-      `• *Principal Amortizado:* ${formatBRL(st.totalAmortizado)}`,
-      `• *Juros Pagos:* ${formatBRL(st.totalJurosPagos)}`,
-      `• *Total Já Pago:* ${formatBRL(st.totalGeralPago)}`,
+      `*RESUMO FINANCEIRO CONSOLIDADO:*`,
+      `• Capital Emprestado: ${formatBRL(st.totalPrincipalEmprestado)}`,
+      `• Principal Amortizado: ${formatBRL(st.totalAmortizado)}`,
+      `• Juros Pagos: ${formatBRL(st.totalJurosPagos)}`,
+      `• Total Já Pago: ${formatBRL(st.totalGeralPago)}`,
       `-----------------------------`,
-      `⚠️ *SALDO DEVEDOR ATUAL (Capital):* ${formatBRL(st.saldoDevedorCapital)}`,
-      `📅 *Próximo Vencimento:* ${nextDueTxt}`,
+      `*SALDO DEVEDOR ATUAL (Capital):* ${formatBRL(st.saldoDevedorCapital)}`,
+      `*Próximo Vencimento:* ${nextDueTxt}`,
       ``,
-      st.parcelasAtrasadasQtd > 0 ? `🚨 *Atenção:* Constam ${st.parcelasAtrasadasQtd} parcela(s) em atraso. Entre em contato para regularizar.` : `✅ *Situação:* Parcelamento em dia!`,
+      st.parcelasAtrasadasQtd > 0 ? `*Atenção:* Constam ${st.parcelasAtrasadasQtd} parcela(s) em atraso. Favor regularizar.` : `*Situação:* Parcelamento em dia.`,
       ``,
       `Chave PIX: ${settings.pixKey || settings.creditorCpfCnpj || '-'}`,
       `Favorecido: ${settings.pixHolder || settings.businessName || '-'}`

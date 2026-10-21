@@ -5,6 +5,7 @@ import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
 import { generateClientReportPDF } from './pdfExport.js';
 import { openDocumentScanner } from './documentScanner.js';
+import { icon } from '../icons.js';
 
 export function renderClients(options = {}) {
   const container = document.createElement('div');
@@ -23,13 +24,10 @@ export function renderClients(options = {}) {
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button class="btn btn-secondary" id="btn-scan-doc-client-list" title="Escanear documento com a câmera (preenchimento automático)">
-            📷 Escanear CNH / RG
+            ${icon('camera', 15)} Escanear CNH / RG
           </button>
           <button class="btn btn-primary" id="btn-novo-cliente">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            ${icon('plus', 16)}
             Novo Cliente
           </button>
         </div>
@@ -143,7 +141,7 @@ export function renderClients(options = {}) {
           <td class="td-actions" data-label="Ações">
             <div class="client-actions-wrap">
               <button class="btn btn-secondary btn-sm btn-statement-client" data-id="${c.id}" title="Ver Extrato da Conta Corrente e Histórico de Juros" style="color: var(--yellow); border-color: rgba(245, 197, 24, 0.35);">
-                📊 Extrato
+                ${icon('fileText', 14)} Extrato
               </button>
               <button class="btn btn-secondary btn-sm btn-edit-client" data-id="${c.id}" title="Editar Dados">
                 Editar

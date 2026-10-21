@@ -4,6 +4,7 @@
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, getDaysDiff, showToast } from '../utils.js';
+import { icon } from '../icons.js';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -593,7 +594,7 @@ export function generateMonthlyReportPDF(month, year) {
         <!-- TABELA 1: PAGAMENTOS RECEBIDOS NO MÊS -->
         <div class="section-block avoid-break">
           <div class="section-title">
-            <span>📥 Pagamentos Recebidos no Mês</span>
+            <span>Pagamentos Recebidos no Mês</span>
             <span class="section-count">${receivedPayments.length} lançamento(s)</span>
           </div>
           <table class="table-report">
@@ -638,7 +639,7 @@ export function generateMonthlyReportPDF(month, year) {
         <!-- TABELA 2: PARCELAS EM ATRASO -->
         <div class="section-block avoid-break" style="margin-top: 20px;">
           <div class="section-title">
-            <span>⚠️ Parcelas Vencidas / Em Atraso</span>
+            <span>Parcelas Vencidas / Em Atraso</span>
             <span class="section-count">${overdueInstallments.length} inadimplência(s)</span>
           </div>
           <table class="table-report">
@@ -895,7 +896,7 @@ export function generateClientReportPDF(clientId) {
         <!-- SEÇÃO 1: CONTRATOS DO CLIENTE -->
         <div class="section-block avoid-break">
           <div class="section-title">
-            <span>📋 Contratos de Empréstimo</span>
+            <span>Contratos de Empréstimo</span>
             <span class="section-count">${clientLoans.length} registro(s)</span>
           </div>
           <table class="table-report">
@@ -956,7 +957,7 @@ export function generateClientReportPDF(clientId) {
         <!-- SEÇÃO 2: CRONOGRAMA DE TODAS AS PARCELAS -->
         <div class="section-block avoid-break" style="margin-top: 16px;">
           <div class="section-title">
-            <span>💳 Cronograma Geral de Parcelas</span>
+            <span>Cronograma Geral de Parcelas</span>
             <span class="section-count">${clientInstallments.length} parcela(s)</span>
           </div>
           <table class="table-report">
@@ -1022,7 +1023,7 @@ export function generateClientReportPDF(clientId) {
         <!-- SEÇÃO 3: HISTÓRICO DE PAGAMENTOS REALIZADOS -->
         <div class="section-block avoid-break" style="margin-top: 16px;">
           <div class="section-title">
-            <span>📥 Histórico de Pagamentos Efetuados</span>
+            <span>Histórico de Pagamentos Efetuados</span>
             <span class="section-count">${paymentHistory.length} lançamento(s)</span>
           </div>
           <table class="table-report">
@@ -1102,8 +1103,8 @@ export function openMonthlyReportModal() {
     modal.innerHTML = `
       <div class="modal-card" style="max-width: 440px;">
         <div class="modal-header">
-          <h3 class="modal-title">📄 Relatório Mensal em PDF</h3>
-          <button class="modal-close-btn" id="btn-close-month-modal">✕</button>
+          <h3 class="modal-title">${icon('fileText', 18)} Relatório Mensal em PDF</h3>
+          <button class="modal-close-btn" id="btn-close-month-modal">${icon('x', 16)}</button>
         </div>
 
         <div class="modal-body">
@@ -1119,10 +1120,10 @@ export function openMonthlyReportModal() {
           <!-- Atalhos rápidos -->
           <div style="display: flex; gap: 8px; margin-bottom: 8px;">
             <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-cur-month" style="flex: 1;">
-              📅 Mês Atual
+              Mês Atual
             </button>
             <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-prev-month" style="flex: 1;">
-              ⏮️ Mês Anterior
+              Mês Anterior
             </button>
           </div>
         </div>
@@ -1130,7 +1131,7 @@ export function openMonthlyReportModal() {
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btn-cancel-month-modal">Cancelar</button>
           <button type="button" class="btn btn-primary" id="btn-generate-month-pdf">
-            🖨️ Gerar Relatório PDF
+            ${icon('print', 14)} Gerar Relatório PDF
           </button>
         </div>
       </div>

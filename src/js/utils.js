@@ -1,6 +1,8 @@
 // src/js/utils.js
 // Utilitários de formatação, máscaras e comunicação
 
+import { icon } from './icons.js';
+
 export function formatBRL(value) {
   const number = Number(value) || 0;
   return number.toLocaleString('pt-BR', {
@@ -114,8 +116,14 @@ export function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type} animate-fade-in`;
+  const iconHtml = type === 'success' 
+    ? icon('checkCircle', 16) 
+    : type === 'error' 
+    ? icon('alert', 16) 
+    : icon('info', 16);
+
   toast.innerHTML = `
-    <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+    <span class="toast-icon">${iconHtml}</span>
     <span class="toast-msg">${message}</span>
   `;
 

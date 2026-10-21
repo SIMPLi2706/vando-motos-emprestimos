@@ -4,6 +4,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, showToast, addMonths } from '../utils.js';
 import { calculateLateCharges } from '../finance.js';
+import { icon } from '../icons.js';
 import confetti from 'canvas-confetti';
 
 export function createPaymentModal() {
@@ -14,21 +15,21 @@ export function createPaymentModal() {
   modal.innerHTML = `
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="pay-modal-title">💰 Baixa e Gestão de Pagamento</h3>
-        <button class="modal-close-btn" id="pay-modal-close">✕</button>
+        <h3 class="modal-title" id="pay-modal-title">${icon('creditCard', 18)} Baixa e Gestão de Pagamento</h3>
+        <button class="modal-close-btn" id="pay-modal-close">${icon('x', 16)}</button>
       </div>
 
       <!-- Barra de Seleção de Operação Financeira -->
       <div style="padding: 12px 20px 0 20px;">
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button type="button" class="btn btn-secondary btn-sm active flex-1" id="pay-mode-standard" style="border-radius: 4px; font-weight: 700; font-size: 0.8rem; padding: 8px 12px;">
-            💵 Quitação / Parcial
+            ${icon('dollar', 14)} Quitação / Parcial
           </button>
           <button type="button" class="btn btn-secondary btn-sm flex-1" id="pay-mode-rollover" style="border-radius: 4px; font-weight: 700; font-size: 0.8rem; padding: 8px 12px; border-color: rgba(245, 197, 24, 0.4); color: var(--yellow);">
-            🔄 Pagar Apenas Juros (Rolagem)
+            ${icon('refresh', 14)} Pagar Apenas Juros (Rolagem)
           </button>
           <button type="button" class="btn btn-secondary btn-sm" id="pay-btn-discount-early" title="Calcular abatimento por adiantamento" style="border-radius: 4px; font-weight: 700; font-size: 0.8rem; padding: 8px 12px; white-space: nowrap; border-color: rgba(16, 185, 129, 0.4); color: var(--green);">
-            ⚡ Antecipar
+            ${icon('zap', 14)} Antecipar
           </button>
         </div>
       </div>
@@ -67,7 +68,7 @@ export function createPaymentModal() {
             <!-- Box Dinâmico de Rolagem de Dívida -->
             <div id="pay-rollover-box" style="display: none; margin-top: 12px; padding: 12px; background: rgba(245, 197, 24, 0.08); border: 1px solid rgba(245, 197, 24, 0.3); border-radius: 4px;">
               <div style="font-size: 0.82rem; font-weight: 800; color: var(--yellow); margin-bottom: 4px;">
-                🔄 MODO ROLAGEM DE DÍVIDA (RENOVAÇÃO)
+                ${icon('refresh', 14)} MODO ROLAGEM DE DÍVIDA (RENOVAÇÃO)
               </div>
               <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;">
                 O cliente paga apenas os juros do ciclo. O capital principal (<strong id="pay-rollover-principal-txt" style="color: #fff;">R$ 0,00</strong>) permanece em aberto e é prorrogado para a nova data.
@@ -90,7 +91,7 @@ export function createPaymentModal() {
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <label class="form-label" style="margin-bottom: 0;">Forma de Pagamento *</label>
                 <button type="button" class="btn btn-secondary btn-sm" id="pay-btn-open-pix" style="padding: 2px 8px; font-size: 0.72rem; color: var(--emerald-400);">
-                  ⚡ Ver QR Code PIX
+                  ${icon('zap', 12)} Ver QR Code PIX
                 </button>
               </div>
               <select class="form-control" id="pay-method">
@@ -132,7 +133,7 @@ export function createPaymentModal() {
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="pay-modal-cancel">Cancelar</button>
           <button type="submit" class="btn btn-primary" id="pay-modal-submit">
-            ✓ Confirmar Baixa
+            ${icon('check', 15)} Confirmar Baixa
           </button>
         </div>
       </form>
@@ -170,7 +171,7 @@ export function createPaymentModal() {
       modeStandardBtn.classList.remove('active');
       modeStandardBtn.style.background = '';
       rolloverBox.style.display = 'block';
-      submitBtn.textContent = '🔄 Confirmar Rolagem (Receber Juros)';
+      submitBtn.innerHTML = `${icon('refresh', 15)} Confirmar Rolagem (Receber Juros)`;
       submitBtn.classList.remove('btn-primary');
       submitBtn.classList.add('btn-warning');
 
@@ -187,7 +188,7 @@ export function createPaymentModal() {
       modeRolloverBtn.classList.remove('active');
       modeRolloverBtn.style.background = '';
       rolloverBox.style.display = 'none';
-      submitBtn.textContent = '✓ Confirmar Baixa';
+      submitBtn.innerHTML = `${icon('check', 15)} Confirmar Baixa`;
       submitBtn.classList.remove('btn-warning');
       submitBtn.classList.add('btn-primary');
       modal.querySelector('#pay-amount-label').textContent = 'Valor Efetivamente Pago (R$) *';
@@ -220,7 +221,7 @@ export function createPaymentModal() {
 
     modal.querySelector('#pay-discount').value = calculatedDiscount.toFixed(2);
     recalcSuggested();
-    showToast(`⚡ Desconto por antecipação de ${formatBRL(calculatedDiscount)} aplicado (${daysEarly} dias adiantados)!`);
+    showToast(`Desconto por antecipação de ${formatBRL(calculatedDiscount)} aplicado (${daysEarly} dias adiantados)!`);
   });
 
   // Re-cálculo da sugestão quando altera encargos ou desconto
@@ -376,7 +377,7 @@ export function createPaymentModal() {
     const overdueBox = modal.querySelector('#pay-overdue-box');
     if (charges.daysOverdue > 0) {
       overdueBox.style.display = 'block';
-      modal.querySelector('#pay-overdue-days').textContent = `⚠️ Atrasado há ${charges.daysOverdue} dias`;
+      modal.querySelector('#pay-overdue-days').textContent = `Atrasado há ${charges.daysOverdue} dias`;
       modal.querySelector('#pay-overdue-charges').textContent = `+ ${formatBRL(charges.totalLateCharges)} (Multa + Mora)`;
       modal.querySelector('#pay-late-charges').value = charges.totalLateCharges.toFixed(2);
     } else {

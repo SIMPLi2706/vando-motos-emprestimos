@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { state } from './state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, showToast } from './utils.js';
 import { calculateLateCharges } from './finance.js';
+import { icon } from './icons.js';
 
 function crc16(data) {
   let crc = 0xFFFF;
@@ -77,8 +78,8 @@ export function createPixModal() {
   modal.innerHTML = `
     <div class="modal-card" style="max-width: 480px; text-align: center;">
       <div class="modal-header">
-        <h3 class="modal-title">⚡ Cobrança via PIX</h3>
-        <button class="modal-close-btn" id="pix-modal-close">✕</button>
+        <h3 class="modal-title">${icon('zap', 18)} Cobrança via PIX</h3>
+        <button class="modal-close-btn" id="pix-modal-close">${icon('x', 16)}</button>
       </div>
 
       <div class="modal-body" style="padding: 24px;">
@@ -107,10 +108,10 @@ export function createPixModal() {
         <button type="button" class="btn btn-secondary btn-sm" id="pix-modal-close-btn">Fechar</button>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn btn-whatsapp btn-sm" id="pix-modal-wpp-btn">
-            📱 Enviar no WhatsApp
+            ${icon('whatsapp', 14)} Enviar no WhatsApp
           </button>
           <button type="button" class="btn btn-primary btn-sm" id="pix-modal-copy-btn">
-            📋 Copiar PIX
+            ${icon('copy', 14)} Copiar Código PIX
           </button>
         </div>
       </div>

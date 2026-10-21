@@ -6,6 +6,7 @@ import { showToast } from '../utils.js';
 import { openMonthlyReportModal } from './pdfExport.js';
 import { isPinEnabled, setPinEnabled, getStoredPin, setStoredPin, lockSession } from './loginScreen.js';
 import { isSupabaseConfigured, testSupabaseConnection } from '../supabaseClient.js';
+import { icon } from '../icons.js';
 
 export function renderSettings() {
   const container = document.createElement('div');
@@ -174,15 +175,15 @@ export function renderSettings() {
 
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <button type="button" class="btn btn-primary" id="btn-export-monthly-pdf" style="justify-content: flex-start;">
-            Gerar Relatório Mensal (PDF Oficial)
+            ${icon('fileText', 15)} Gerar Relatório Mensal (PDF Oficial)
           </button>
 
           <button class="btn btn-secondary" id="btn-export-backup" style="justify-content: flex-start;">
-            Baixar Cópia de Segurança (JSON)
+            ${icon('download', 15)} Baixar Cópia de Segurança (JSON)
           </button>
 
           <label class="btn btn-secondary" style="cursor: pointer; margin-bottom: 0; justify-content: flex-start;">
-            Restaurar Cópia de Backup
+            ${icon('upload', 15)} Restaurar Cópia de Backup
             <input type="file" id="input-import-backup" accept=".json" style="display: none;">
           </label>
 
@@ -190,10 +191,10 @@ export function renderSettings() {
             <p style="font-size: 0.75rem; color: var(--text-400); margin-bottom: 10px;">Ações Críticas do Sistema:</p>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <button type="button" class="btn btn-secondary" id="btn-force-update-cache" style="color: var(--cyan); border-color: rgba(6,182,212,0.3); justify-content: flex-start;">
-                🔄 Sincronizar Versão Mais Recente (Limpar Cache)
+                ${icon('refresh', 14)} Sincronizar Versão Mais Recente (Limpar Cache)
               </button>
               <button class="btn btn-danger" id="btn-wipe-all" style="justify-content: flex-start;">
-                Zerar Todos os Dados (Começar do Zero)
+                ${icon('trash', 14)} Zerar Todos os Dados
               </button>
             </div>
           </div>
@@ -215,13 +216,13 @@ export function renderSettings() {
 
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" class="btn btn-primary" id="btn-pull-supabase" title="Baixa os dados mais recentes do banco em nuvem">
-            🔄 Sincronizar Agora
+            ${icon('refresh', 14)} Sincronizar Agora
           </button>
           <button type="button" class="btn btn-secondary" id="btn-push-supabase" title="Envia todos os dados deste aparelho para o banco em nuvem">
-            📤 Forçar Upload
+            ${icon('upload', 14)} Forçar Upload
           </button>
           <button type="button" class="btn btn-secondary" id="btn-test-supabase">
-            ⚡ Testar Conexão
+            ${icon('zap', 14)} Testar Conexão
           </button>
         </div>
       </div>
@@ -244,21 +245,21 @@ export function renderSettings() {
             <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
               <span>Chave de API — Google AI Studio</span>
               <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-size: 0.75rem; color: var(--cyan); text-decoration: underline;">
-                Obter Chave Gratuita ↗
+                Obter Chave no Google AI Studio
               </a>
             </label>
             <div style="position: relative;">
               <input type="password" class="form-control" id="set-gemini-key" placeholder="AIzaSy..." value="${geminiKey || ''}" autocomplete="off" style="font-family: monospace; padding-right: 40px;">
-              <button type="button" class="btn btn-sm" id="btn-toggle-gemini-key" title="Ver/Ocultar Chave" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 0.95rem; cursor: pointer; color: var(--text-300);">👁️</button>
+              <button type="button" class="btn btn-sm" id="btn-toggle-gemini-key" title="Ver/Ocultar Chave" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 0.95rem; cursor: pointer; color: var(--text-300);">${icon('eye', 16)}</button>
             </div>
           </div>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button type="submit" class="btn btn-primary">
-              💾 Salvar Chave da IA
+              ${icon('save', 14)} Salvar Chave
             </button>
             <button type="button" class="btn btn-secondary" id="btn-test-gemini-ai">
-              🧪 Testar Conexão com a IA
+              ${icon('flask', 14)} Testar Conexão
             </button>
           </div>
         </form>
@@ -435,10 +436,10 @@ export function renderSettings() {
     toggleGeminiBtn?.addEventListener('click', () => {
       if (geminiInput.type === 'password') {
         geminiInput.type = 'text';
-        toggleGeminiBtn.textContent = '🔒';
+        toggleGeminiBtn.innerHTML = icon('eyeOff', 16);
       } else {
         geminiInput.type = 'password';
-        toggleGeminiBtn.textContent = '👁️';
+        toggleGeminiBtn.innerHTML = icon('eye', 16);
       }
     });
 
@@ -499,9 +500,9 @@ export function renderSettings() {
       if (connectedModel) {
         badgeGemini.textContent = '● IA Pronta e Ativa';
         badgeGemini.className = 'badge badge-paid';
-        showToast(`✅ Conexão validada com sucesso via ${connectedModel}! A IA está pronta para ler documentos.`, 'success');
+        showToast(`Conexão validada com sucesso via ${connectedModel}! A IA está pronta para ler documentos.`, 'success');
       } else {
-        badgeGemini.textContent = '❌ Erro na Chave';
+        badgeGemini.textContent = 'Erro na Chave';
         badgeGemini.className = 'badge badge-overdue';
         showToast(`Falha no teste da IA: ${lastErr?.message || 'Modelo indisponível'}`, 'error');
       }

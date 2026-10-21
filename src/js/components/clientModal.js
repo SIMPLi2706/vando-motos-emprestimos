@@ -5,6 +5,7 @@ import { state } from '../state.js';
 import { maskCPF, maskPhone, showToast } from '../utils.js';
 import { generateClientReportPDF } from './pdfExport.js';
 import { openDocumentScanner } from './documentScanner.js';
+import { icon } from '../icons.js';
 
 export function createClientModal() {
   const modal = document.createElement('div');
@@ -14,8 +15,8 @@ export function createClientModal() {
   modal.innerHTML = `
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title" id="client-modal-title">👤 Cadastro de Cliente</h3>
-        <button class="modal-close-btn" id="client-modal-close">✕</button>
+        <h3 class="modal-title" id="client-modal-title">${icon('user', 18)} Cadastro de Cliente</h3>
+        <button class="modal-close-btn" id="client-modal-close">${icon('x', 16)}</button>
       </div>
 
       <form id="form-cliente">
@@ -25,16 +26,16 @@ export function createClientModal() {
           <!-- Scanner Hero CTA -->
           <div class="scanner-hero-cta" id="btn-open-doc-scanner" role="button" tabindex="0">
             <div class="scanner-hero-icon-wrap">
-              <span class="scanner-hero-icon">📷</span>
+              <span class="scanner-hero-icon">${icon('camera', 18)}</span>
             </div>
             <div class="scanner-hero-text">
               <div class="scanner-hero-title">
                 Escanear CNH / RG com a Câmera
-                <span class="scanner-tag-badge">IA Local • Custo Zero</span>
+                <span class="scanner-tag-badge">IA Gemini Vision</span>
               </div>
               <div class="scanner-hero-sub">Tire foto ou anexe o documento para preencher nome e CPF na hora</div>
             </div>
-            <span class="scanner-hero-arrow">➔</span>
+            <span class="scanner-hero-arrow">${icon('arrowRight', 16)}</span>
           </div>
 
           <div class="form-group">
@@ -74,11 +75,11 @@ export function createClientModal() {
 
         <div class="modal-footer">
           <div style="display: flex; gap: 8px; margin-right: auto;">
-            <button type="button" class="btn btn-secondary" id="client-modal-statement" style="display: none; color: var(--yellow); border-color: rgba(245, 197, 24, 0.4);">📊 Extrato da Conta</button>
-            <button type="button" class="btn btn-secondary" id="client-modal-pdf" style="display: none;">📄 Dossiê PDF</button>
+            <button type="button" class="btn btn-secondary" id="client-modal-statement" style="display: none; color: var(--yellow); border-color: rgba(245, 197, 24, 0.4);">${icon('fileText', 14)} Extrato da Conta</button>
+            <button type="button" class="btn btn-secondary" id="client-modal-pdf" style="display: none;">${icon('fileText', 14)} Dossiê PDF</button>
           </div>
           <button type="button" class="btn btn-secondary" id="client-modal-cancel">Cancelar</button>
-          <button type="submit" class="btn btn-primary">💾 Salvar Cliente</button>
+          <button type="submit" class="btn btn-primary">${icon('save', 15)} Salvar Cliente</button>
         </div>
       </form>
     </div>
@@ -170,7 +171,7 @@ export function createClientModal() {
     if (clientId) {
       const client = state.getClientById(clientId);
       if (!client) return;
-      modal.querySelector('#client-modal-title').textContent = '👤 Editar Cliente';
+      modal.querySelector('#client-modal-title').innerHTML = `${icon('user', 18)} Editar Cliente`;
       modal.querySelector('#cli-id').value = client.id;
       modal.querySelector('#cli-name').value = client.name || '';
       modal.querySelector('#cli-cpf').value = client.cpf || '';
@@ -191,7 +192,7 @@ export function createClientModal() {
         };
       }
     } else {
-      modal.querySelector('#client-modal-title').textContent = '👤 Novo Cliente';
+      modal.querySelector('#client-modal-title').innerHTML = `${icon('user', 18)} Novo Cliente`;
       modal.querySelector('#cli-id').value = '';
       form.reset();
       modal.querySelector('#cli-limit').value = '5000';

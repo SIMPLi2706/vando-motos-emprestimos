@@ -3,6 +3,7 @@
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput } from '../utils.js';
+import { icon } from '../icons.js';
 
 let overlayElement = null;
 let searchInput = null;
@@ -41,7 +42,7 @@ export function createSearchOverlay() {
     <div class="global-search-modal">
       <div class="global-search-header">
         <div class="global-search-input-wrap">
-          <span class="global-search-icon">🔍</span>
+          <span class="global-search-icon">${icon('search', 18)}</span>
           <input 
             type="text" 
             id="global-search-field" 
@@ -50,9 +51,9 @@ export function createSearchOverlay() {
             autocomplete="off"
             spellcheck="false"
           />
-          <button type="button" class="global-search-clear" id="global-search-clear" title="Limpar busca" style="display: none;">✕</button>
+          <button type="button" class="global-search-clear" id="global-search-clear" title="Limpar busca" style="display: none;">${icon('x', 14)}</button>
         </div>
-        <button type="button" class="global-search-close" id="global-search-close" title="Fechar (ESC)">✕</button>
+        <button type="button" class="global-search-close" id="global-search-close" title="Fechar (ESC)">${icon('x', 16)}</button>
       </div>
 
       <div class="global-search-body" id="global-search-results">
@@ -185,7 +186,7 @@ function renderInitialState() {
 
   resultsContainer.innerHTML = `
     <div class="global-search-empty-prompt">
-      <div class="search-empty-icon">⚡</div>
+      <div class="search-empty-icon" style="color: var(--yellow);">${icon('search', 32)}</div>
       <div class="search-empty-title">Busca Global do Sistema</div>
       <div class="search-empty-sub">
         Pesquise instantaneamente por nome ou CPF de clientes, número de contrato de empréstimo ou parcelas.
@@ -193,13 +194,13 @@ function renderInitialState() {
 
       <div class="search-quick-stats-row">
         <div class="search-stat-pill" data-tab="clients">
-          👥 <strong>${totalClients}</strong> Clientes
+          ${icon('users', 14)} <strong>${totalClients}</strong> Clientes
         </div>
         <div class="search-stat-pill" data-tab="loans">
-          📄 <strong>${activeLoans}</strong> Empréstimos Ativos
+          ${icon('fileText', 14)} <strong>${activeLoans}</strong> Empréstimos Ativos
         </div>
         <div class="search-stat-pill ${overdueInsts > 0 ? 'search-stat-pill--alert' : ''}" data-tab="installments">
-          🚨 <strong>${overdueInsts}</strong> Parcelas em Atraso
+          ${icon('alert', 14)} <strong>${overdueInsts}</strong> Parcelas em Atraso
         </div>
       </div>
 
@@ -319,7 +320,7 @@ function performSearch(rawQuery) {
     currentResultsList = [];
     resultsContainer.innerHTML = `
       <div class="global-search-empty-prompt">
-        <div class="search-empty-icon">🔎</div>
+        <div class="search-empty-icon" style="color: var(--text-500);">${icon('search', 32)}</div>
         <div class="search-empty-title">Nenhum resultado encontrado</div>
         <div class="search-empty-sub">
           Não encontramos nenhum registro para "<strong>${escapeHtml(query)}</strong>".
@@ -343,7 +344,7 @@ function performSearch(rawQuery) {
   if (matchedClients.length > 0) {
     html += `
       <div class="search-group-header">
-        <span class="search-group-title">👥 Clientes (${matchedClients.length})</span>
+        <span class="search-group-title">${icon('users', 14)} Clientes (${matchedClients.length})</span>
         <span class="search-group-tag">Cadastro</span>
       </div>
       <div class="search-group-items">
@@ -367,7 +368,7 @@ function performSearch(rawQuery) {
 
       html += `
         <div class="search-result-item" id="${itemId}" data-index="${resultItems.length - 1}">
-          <div class="search-item-icon-box search-icon-client">👤</div>
+          <div class="search-item-icon-box search-icon-client">${icon('user', 16)}</div>
           <div class="search-item-main">
             <div class="search-item-title-row">
               <span class="search-item-title">${highlightMatch(c.name, query)}</span>
@@ -383,7 +384,7 @@ function performSearch(rawQuery) {
               <span>Limite: <strong style="color: var(--yellow);">${formatBRL(c.creditLimit || 0)}</strong></span>
             </div>
           </div>
-          <div class="search-item-action-icon">→</div>
+          <div class="search-item-action-icon">${icon('chevronRight', 14)}</div>
         </div>
       `;
     });
@@ -395,7 +396,7 @@ function performSearch(rawQuery) {
   if (matchedLoans.length > 0) {
     html += `
       <div class="search-group-header">
-        <span class="search-group-title">📄 Empréstimos & Contratos (${matchedLoans.length})</span>
+        <span class="search-group-title">${icon('fileText', 14)} Empréstimos & Contratos (${matchedLoans.length})</span>
         <span class="search-group-tag">Contratos</span>
       </div>
       <div class="search-group-items">
@@ -419,12 +420,12 @@ function performSearch(rawQuery) {
 
       html += `
         <div class="search-result-item" id="${itemId}" data-index="${resultItems.length - 1}">
-          <div class="search-item-icon-box search-icon-loan">📄</div>
+          <div class="search-item-icon-box search-icon-loan">${icon('fileText', 16)}</div>
           <div class="search-item-main">
             <div class="search-item-title-row">
               <span class="search-item-title">${highlightMatch(client.name, query)}</span>
               <span class="badge ${isPaid ? 'badge-paid' : 'badge-pending'}">
-                ${isPaid ? '✓ Quitado' : 'Em Andamento'}
+                ${isPaid ? 'Quitado' : 'Em Andamento'}
               </span>
             </div>
             <div class="search-item-desc">
@@ -436,7 +437,7 @@ function performSearch(rawQuery) {
               ${l.notes ? `<span>• <em>${highlightMatch(l.notes, query)}</em></span>` : ''}
             </div>
           </div>
-          <div class="search-item-action-icon">→</div>
+          <div class="search-item-action-icon">${icon('chevronRight', 14)}</div>
         </div>
       `;
     });
@@ -448,7 +449,7 @@ function performSearch(rawQuery) {
   if (matchedInstallments.length > 0) {
     html += `
       <div class="search-group-header">
-        <span class="search-group-title">💳 Parcelas (${matchedInstallments.length})</span>
+        <span class="search-group-title">${icon('creditCard', 14)} Parcelas (${matchedInstallments.length})</span>
         <span class="search-group-tag">Cobrança</span>
       </div>
       <div class="search-group-items">
@@ -462,10 +463,10 @@ function performSearch(rawQuery) {
       let statusClass = 'badge-pending';
 
       if (inst.status === 'paid') {
-        statusLabel = '✓ Paga';
+        statusLabel = 'Paga';
         statusClass = 'badge-paid';
       } else if (inst.dueDate < todayStr) {
-        statusLabel = '🚨 Atrasada';
+        statusLabel = 'Atrasada';
         statusClass = 'badge-overdue';
       }
 
@@ -485,7 +486,7 @@ function performSearch(rawQuery) {
 
       html += `
         <div class="search-result-item" id="${itemId}" data-index="${resultItems.length - 1}">
-          <div class="search-item-icon-box search-icon-inst">💳</div>
+          <div class="search-item-icon-box search-icon-inst">${icon('creditCard', 16)}</div>
           <div class="search-item-main">
             <div class="search-item-title-row">
               <span class="search-item-title">${highlightMatch(client.name, query)} — Parcela nº ${inst.number}</span>
@@ -500,7 +501,7 @@ function performSearch(rawQuery) {
               <span>Contrato: <code class="search-code-id">${inst.loanId}</code></span>
             </div>
           </div>
-          <div class="search-item-action-icon">→</div>
+          <div class="search-item-action-icon">${icon('chevronRight', 14)}</div>
         </div>
       `;
     });

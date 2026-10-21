@@ -3,6 +3,7 @@
 
 import { maskCPF, showToast } from '../utils.js';
 import { state } from '../state.js';
+import { icon } from '../icons.js';
 
 let scannerModal = null;
 let currentStream = null;
@@ -244,20 +245,20 @@ function getOrCreateScannerModal() {
     <div class="scanner-modal-card">
       <div class="scanner-modal-header">
         <div class="scanner-header-info">
-          <div class="scanner-header-badge">🤖 IA Gemini Vision • Alta Precisão</div>
-          <h3 class="scanner-modal-title">📷 Leitor Inteligente de CNH & RG</h3>
-          <p class="scanner-modal-subtitle">Posicione o documento para leitura automática dos dados via Inteligência Artificial</p>
+          <div class="scanner-header-badge">${icon('sparkles', 13)} Reconhecimento Óptico Gemini Vision</div>
+          <h3 class="scanner-modal-title">${icon('idCard', 18)} Leitor Digital de Documentos</h3>
+          <p class="scanner-modal-subtitle">Posicione a CNH ou RG para identificação e leitura dos dados cadastrais</p>
         </div>
-        <button type="button" class="scanner-close-btn" id="scanner-btn-close" title="Fechar">✕</button>
+        <button type="button" class="scanner-close-btn" id="scanner-btn-close" title="Fechar">${icon('x', 16)}</button>
       </div>
 
       <!-- Abas de Modo -->
       <div class="scanner-tabs">
         <button type="button" class="scanner-tab active" id="tab-camera-mode">
-          📹 Câmera ao Vivo
+          ${icon('camera', 15)} Câmera ao Vivo
         </button>
         <button type="button" class="scanner-tab" id="tab-upload-mode">
-          📁 Foto / Galeria / WhatsApp
+          ${icon('upload', 15)} Foto / Arquivo
         </button>
       </div>
 
@@ -274,7 +275,7 @@ function getOrCreateScannerModal() {
                 <div class="scanner-corner corner-bl"></div>
                 <div class="scanner-corner corner-br"></div>
                 <div class="scanner-laser-line"></div>
-                <div class="scanner-guide-text">Enquadre a CNH ou RG nesta moldura</div>
+                <div class="scanner-guide-text">Enquadre o documento nesta moldura</div>
               </div>
             </div>
           </div>
@@ -282,16 +283,16 @@ function getOrCreateScannerModal() {
           <!-- Ações da Câmera -->
           <div class="scanner-camera-actions" style="display: flex; flex-wrap: wrap; gap: 8px;">
             <button type="button" class="btn btn-secondary btn-sm" id="btn-torch-toggle" style="display: none; border-radius: 4px;">
-              💡 Lanterna
+              ${icon('flash', 14)} Lanterna
             </button>
             <button type="button" class="btn btn-secondary btn-sm" id="btn-switch-camera" title="Inverter Câmera" style="border-radius: 4px;">
-              🔄 Inverter Câmera
+              ${icon('switchCamera', 14)} Inverter
             </button>
             <button type="button" class="btn btn-secondary btn-sm" id="btn-native-camera" title="Abrir Câmera em Alta Definição com foco nativo do aparelho" style="border-radius: 4px; color: var(--yellow); border-color: rgba(245, 197, 24, 0.4);">
-              📷 Câmera HD Nativa
+              ${icon('camera', 14)} Foco Nativo HD
             </button>
             <button type="button" class="btn btn-primary btn-capture" id="btn-snap-photo" style="flex: 1 1 100%; border-radius: 4px; padding: 12px; font-weight: 800; font-size: 0.95rem;">
-              📸 Fotografar e Ler com IA
+              ${icon('sparkles', 16)} Fotografar e Processar
             </button>
           </div>
         </div>
@@ -299,11 +300,11 @@ function getOrCreateScannerModal() {
         <!-- VISÃO 2: Envio de Arquivo / Foto Nativa do Celular -->
         <div class="scanner-view-section" id="view-upload" style="display: none;">
           <label class="scanner-dropzone" for="scanner-file-input">
-            <div class="dropzone-icon">🪪</div>
-            <div class="dropzone-title">Toque aqui para Tirar Foto ou Escolher da Galeria</div>
-            <p class="dropzone-desc">Funciona com foto de CNH física, CNH Digital, RG ou imagem recebida pelo WhatsApp</p>
+            <div class="dropzone-icon" style="color: var(--yellow);">${icon('idCard', 36)}</div>
+            <div class="dropzone-title">Toque para Tirar Foto ou Selecionar da Galeria</div>
+            <p class="dropzone-desc">Suporta fotos nítidas de CNH física, CNH Digital, RG ou imagens recebidas por mensagem</p>
             <span class="btn btn-primary btn-sm" style="margin-top: 10px; pointer-events: none; border-radius: 4px;">
-              Selecionar Foto do Documento
+              ${icon('upload', 14)} Selecionar Imagem
             </span>
             <input type="file" id="scanner-file-input" accept="image/*" capture="environment" style="display: none;">
           </label>
@@ -312,23 +313,23 @@ function getOrCreateScannerModal() {
         <!-- VISÃO 3: Configuração Rápida da Chave Gemini (Exibida se chave não existir) -->
         <div class="scanner-view-section" id="view-key-setup" style="display: none;">
           <div style="background: var(--bg-1); border: 1px solid rgba(245, 197, 24, 0.3); border-radius: 6px; padding: 20px 16px; text-align: center;">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
+            <div style="margin-bottom: 12px; color: var(--yellow);">${icon('key', 36)}</div>
             <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--text-100); margin-bottom: 6px;">
-              Ativar Inteligência Artificial (Google Gemini)
+              Ativar Leitor Inteligente (Google Gemini)
             </h4>
             <p style="font-size: 0.82rem; color: var(--text-300); line-height: 1.45; margin-bottom: 14px;">
-              Para ler CNH e RG por foto com máxima fidelidade (extraindo Nome, CPF, RG e Datas sem errar caracteres), informe sua chave gratuita do Google AI Studio.
+              Para leitura automática de CNH e RG por imagem com máxima precisão, informe sua chave do Google AI Studio.
             </p>
             <div class="form-group" style="text-align: left; margin-bottom: 12px;">
-              <label class="form-label" style="font-size: 0.78rem;">Cole sua Chave do Google Gemini (AI Studio):</label>
+              <label class="form-label" style="font-size: 0.78rem;">Chave do Google Gemini (AI Studio):</label>
               <input type="password" id="input-modal-gemini-key" class="form-control" placeholder="AIzaSy..." style="font-family: monospace; font-size: 0.85rem;">
             </div>
             <div style="display: flex; gap: 8px; flex-direction: column;">
               <button type="button" class="btn btn-primary" id="btn-save-key-and-analyze" style="font-weight: 800; border-radius: 4px; padding: 10px;">
-                ⚡ Salvar Chave e Analisar Documento Agora
+                ${icon('check', 15)} Salvar Chave e Analisar Documento
               </button>
               <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="text-decoration: none; color: var(--cyan); border-color: rgba(6, 182, 212, 0.3); justify-content: center;">
-                🔗 Obter Chave Gratuita no Google (1 minuto) ↗
+                ${icon('externalLink', 14)} Obter Chave no Google AI Studio
               </a>
             </div>
           </div>
@@ -341,8 +342,8 @@ function getOrCreateScannerModal() {
               <img id="scanner-preview-img" alt="Documento capturado">
             </div>
             <div class="scanner-spinner-ring"></div>
-            <h4 class="processing-title" id="processing-status-title">Analisando documento com IA...</h4>
-            <p class="processing-desc" id="processing-status-desc">A Inteligência Artificial do Google Gemini Vision está lendo os campos cadastrais</p>
+            <h4 class="processing-title" id="processing-status-title">Processando imagem do documento...</h4>
+            <p class="processing-desc" id="processing-status-desc">A Inteligência Artificial está lendo e estruturando os campos cadastrais</p>
             
             <div class="scanner-progress-track">
               <div class="scanner-progress-bar" id="scanner-progress-fill" style="width: 25%;"></div>
@@ -356,7 +357,7 @@ function getOrCreateScannerModal() {
           <div class="scanner-results-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <div class="results-badge-ok" style="margin: 0;">
-                <span>✨</span> Documento Identificado pela IA
+                ${icon('checkCircle', 14)} Documento Identificado
               </div>
               <span class="badge badge-paid" id="scan-out-doctype-badge">CNH</span>
             </div>
@@ -395,10 +396,10 @@ function getOrCreateScannerModal() {
 
             <div class="scanner-action-row" style="margin-top: 12px; position: sticky; bottom: 0; background: var(--bg-1); padding-top: 10px;">
               <button type="button" class="btn btn-secondary" id="btn-scan-retry" style="border-radius: 4px;">
-                🔄 Tirar Outra Foto
+                ${icon('refresh', 14)} Tirar Outra Foto
               </button>
               <button type="button" class="btn btn-primary" id="btn-scan-apply" style="border-radius: 4px;">
-                ✅ Preencher Cadastro Automaticamente
+                ${icon('check', 15)} Preencher Cadastro
               </button>
             </div>
           </div>
@@ -488,7 +489,7 @@ async function toggleTorch() {
     await track.applyConstraints({ advanced: [{ torch: isTorchActive }] });
     const torchBtn = scannerModal?.querySelector('#btn-torch-toggle');
     if (torchBtn) {
-      torchBtn.textContent = isTorchActive ? '🔦 Desligar Luz' : '💡 Lanterna';
+      torchBtn.innerHTML = isTorchActive ? `${icon('flash', 14)} Desligar Luz` : `${icon('flash', 14)} Lanterna`;
       torchBtn.classList.toggle('active', isTorchActive);
     }
   } catch (e) {
@@ -623,7 +624,7 @@ export function openDocumentScanner(onConfirmCallback) {
       // Validação do CPF
       if (formattedCpf) {
         const isValid = validateCPF(formattedCpf);
-        cpfBadge.textContent = isValid ? '✅ CPF Válido' : '⚠️ Conferir CPF';
+        cpfBadge.textContent = isValid ? 'CPF Válido' : 'Conferir CPF';
         cpfBadge.className = `badge ${isValid ? 'badge-paid' : 'badge-overdue'}`;
       } else {
         cpfBadge.textContent = 'Não detectado';

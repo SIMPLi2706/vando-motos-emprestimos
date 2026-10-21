@@ -7,6 +7,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput } from '../utils.js';
 import { openMonthlyReportModal } from './pdfExport.js';
+import { icon } from '../icons.js';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -176,7 +177,7 @@ export function renderReports() {
       <div class="card chart-card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">📊 Receita Mensal Realizada</h3>
+            <h3 class="card-title">${icon('chart', 18)} Receita Mensal Realizada</h3>
             <p class="card-subtitle">Soma das parcelas quitadas mês a mês (últimos 6 meses)</p>
           </div>
           <span class="chart-badge">Últimos 6 meses</span>
@@ -194,7 +195,7 @@ export function renderReports() {
       <div class="card chart-card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">🍩 Distribuição das Parcelas</h3>
+            <h3 class="card-title">${icon('pieChart', 18)} Distribuição das Parcelas</h3>
             <p class="card-subtitle">Proporção de parcelas pagas, pendentes e em atraso</p>
           </div>
           <span class="chart-badge">${totalAtivas} parcelas</span>
@@ -213,7 +214,7 @@ export function renderReports() {
       <div class="card chart-card chart-card--full-width">
         <div class="card-header">
           <div>
-            <h3 class="card-title">📈 Evolução do Capital na Rua</h3>
+            <h3 class="card-title">${icon('trendingUp', 18)} Evolução do Capital na Rua</h3>
             <p class="card-subtitle">Volume de capital financiado ativo no mercado ao longo do tempo</p>
           </div>
           <span class="chart-badge" style="color: var(--yellow);">Saldo em Aberto</span>
@@ -496,7 +497,7 @@ function renderBarChartReceita(canvas, tooltipEl, summaryEl) {
         x: found.x + found.w / 2,
         y: found.y,
         html: `
-          <div class="tooltip-title">📅 ${found.data.label}</div>
+          <div class="tooltip-title">${found.data.label}</div>
           <div class="tooltip-row">
             <span>Receita:</span>
             <strong style="color: var(--yellow);">${formatBRL(found.data.total)}</strong>
@@ -553,7 +554,7 @@ function renderDonutChartStatus(canvas, legendEl) {
       amount: paidAmount,
       color: THEME.green,
       lightColor: THEME.greenLight,
-      icon: '✓'
+      icon: icon('checkCircle', 13)
     },
     {
       label: 'Atrasadas',
@@ -561,7 +562,7 @@ function renderDonutChartStatus(canvas, legendEl) {
       amount: overdueAmount,
       color: THEME.red,
       lightColor: THEME.redLight,
-      icon: '🚨'
+      icon: icon('alert', 13)
     },
     {
       label: 'Pendentes',
@@ -569,7 +570,7 @@ function renderDonutChartStatus(canvas, legendEl) {
       amount: pendingAmount,
       color: THEME.yellow,
       lightColor: THEME.yellowLight,
-      icon: '⏳'
+      icon: icon('clock', 13)
     }
   ];
 
@@ -871,7 +872,7 @@ function renderLineChartCapital(canvas, tooltipEl, summaryEl) {
         x: found.x,
         y: found.y,
         html: `
-          <div class="tooltip-title">📈 ${found.data.label}</div>
+          <div class="tooltip-title">${found.data.label}</div>
           <div class="tooltip-row">
             <span>Capital na Rua:</span>
             <strong style="color: var(--yellow);">${formatBRL(found.data.capitalNaRua)}</strong>

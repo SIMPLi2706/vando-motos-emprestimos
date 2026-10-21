@@ -3,6 +3,7 @@
 
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, showToast } from '../utils.js';
+import { icon } from '../icons.js';
 
 export function createCashRegisterModal() {
   const modal = document.createElement('div');
@@ -13,10 +14,10 @@ export function createCashRegisterModal() {
     <div class="modal-card" style="max-width: 820px; max-height: 94vh;">
       <div class="modal-header">
         <div>
-          <h3 class="modal-title">💰 Fechamento de Caixa Diário</h3>
-          <p class="modal-subtitle">Vando motos locadora LTDA • CNPJ 28.623.431-0001-23</p>
+          <h3 class="modal-title">${icon('bank', 18)} Fechamento de Caixa Diário</h3>
+          <p class="modal-subtitle">Vando Motos Locadora LTDA • Demonstrativo Diário</p>
         </div>
-        <button class="modal-close-btn" id="caixa-modal-close">✕</button>
+        <button class="modal-close-btn" id="caixa-modal-close">${icon('x', 16)}</button>
       </div>
 
       <div class="modal-body" style="padding: 20px;">
@@ -27,9 +28,9 @@ export function createCashRegisterModal() {
             <input type="date" class="form-control" id="caixa-input-date" style="max-width: 170px;" />
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary btn-sm" id="caixa-btn-ontem">◀ Ontem</button>
+            <button class="btn btn-secondary btn-sm" id="caixa-btn-ontem">Ontem</button>
             <button class="btn btn-secondary btn-sm" id="caixa-btn-hoje">Hoje</button>
-            <button class="btn btn-primary btn-sm" id="caixa-btn-imprimir">🖨️ Imprimir Fechamento</button>
+            <button class="btn btn-primary btn-sm" id="caixa-btn-imprimir">${icon('print', 14)} Imprimir Fechamento</button>
           </div>
         </div>
 
@@ -38,7 +39,7 @@ export function createCashRegisterModal() {
           <div class="kpi-card" style="border-left: 4px solid var(--emerald-500);">
             <div class="kpi-header">
               <span class="kpi-label">Total em PIX</span>
-              <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-400);">⚡</div>
+              <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-400);">${icon('zap', 18)}</div>
             </div>
             <div class="kpi-value" id="caixa-total-pix" style="font-size: 1.4rem; color: var(--emerald-400);">R$ 0,00</div>
           </div>
@@ -46,7 +47,7 @@ export function createCashRegisterModal() {
           <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
             <div class="kpi-header">
               <span class="kpi-label">Dinheiro (Espécie)</span>
-              <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">💵</div>
+              <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">${icon('dollar', 18)}</div>
             </div>
             <div class="kpi-value" id="caixa-total-dinheiro" style="font-size: 1.4rem; color: #60a5fa;">R$ 0,00</div>
           </div>
@@ -54,7 +55,7 @@ export function createCashRegisterModal() {
           <div class="kpi-card" style="border-left: 4px solid #8b5cf6;">
             <div class="kpi-header">
               <span class="kpi-label">Transferência / TED</span>
-              <div class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">🏦</div>
+              <div class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">${icon('bank', 18)}</div>
             </div>
             <div class="kpi-value" id="caixa-total-transf" style="font-size: 1.4rem; color: #a78bfa;">R$ 0,00</div>
           </div>
@@ -62,7 +63,7 @@ export function createCashRegisterModal() {
           <div class="kpi-card" style="border-left: 4px solid var(--brand-yellow); background: rgba(245, 197, 24, 0.08);">
             <div class="kpi-header">
               <span class="kpi-label" style="font-weight: 800; color: var(--silver-metallic);">TOTAL DO DIA</span>
-              <div class="kpi-icon-wrap" style="background: rgba(245, 197, 24, 0.25); color: var(--brand-yellow);">💰</div>
+              <div class="kpi-icon-wrap" style="background: rgba(245, 197, 24, 0.25); color: var(--brand-yellow);">${icon('wallet', 18)}</div>
             </div>
             <div class="kpi-value" id="caixa-total-geral" style="font-size: 1.5rem; color: var(--brand-yellow); font-weight: 800;">R$ 0,00</div>
           </div>
@@ -100,7 +101,7 @@ export function createCashRegisterModal() {
       <div class="modal-footer" style="justify-content: space-between;">
         <button type="button" class="btn btn-secondary" id="caixa-modal-close-btn">Fechar</button>
         <button type="button" class="btn btn-primary" id="caixa-btn-imprimir-footer">
-          🖨️ Imprimir Relatório de Caixa
+          ${icon('print', 14)} Imprimir Relatório de Caixa
         </button>
       </div>
     </div>

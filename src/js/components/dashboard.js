@@ -4,6 +4,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, createWhatsAppUrl, formatDateForInput } from '../utils.js';
 import { calculateLateCharges } from '../finance.js';
+import { icon } from '../icons.js';
 
 export function renderDashboard() {
   const container = document.createElement('div');
@@ -209,7 +210,7 @@ export function renderDashboard() {
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
           <div>
             <h3 class="card-title" style="display: flex; align-items: center; gap: 8px; font-size: 1rem; color: #fff;">
-              <span>📈</span> Gestão de Juros e Rentabilidade do Capital
+              ${icon('trendingUp', 18)} Gestão de Juros e Rentabilidade do Capital
             </h3>
             <p class="card-subtitle" style="margin-top: 2px;">Demonstrativo de lucros em juros, rolagem e retorno sobre capital na rua</p>
           </div>
