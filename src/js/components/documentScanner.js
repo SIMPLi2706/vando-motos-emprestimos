@@ -352,7 +352,7 @@ function getOrCreateScannerModal() {
         </div>
 
         <!-- VISÃO 5: Revisão e Confirmação de Resultados -->
-        <div class="scanner-view-section" id="view-results" style="display: none;">
+        <div class="scanner-view-section" id="view-results" style="display: none; overflow-y: auto; max-height: calc(80vh - 140px);">
           <div class="scanner-results-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <div class="results-badge-ok" style="margin: 0;">
@@ -391,19 +391,9 @@ function getOrCreateScannerModal() {
                 </div>
               </div>
 
-              <div class="form-group">
-                <label class="form-label">Filiação / Nome da Mãe (Opcional)</label>
-                <input type="text" class="form-control" id="scan-out-filiacao" placeholder="Nome da mãe identificado no documento">
-              </div>
             </div>
 
-            <!-- Diagnóstico / Dados Estruturados da IA -->
-            <details style="margin-top: 14px; background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: 4px; padding: 8px 12px; font-size: 0.75rem;">
-              <summary style="cursor: pointer; font-weight: 700; color: var(--yellow);">🔍 Ver relatório visual da IA (Diagnóstico)</summary>
-              <pre style="white-space: pre-wrap; word-break: break-all; margin-top: 8px; color: var(--text-muted); max-height: 120px; overflow-y: auto;" id="scan-raw-text">-</pre>
-            </details>
-
-            <div class="scanner-action-row" style="margin-top: 16px;">
+            <div class="scanner-action-row" style="margin-top: 12px; position: sticky; bottom: 0; background: var(--bg-1); padding-top: 10px;">
               <button type="button" class="btn btn-secondary" id="btn-scan-retry" style="border-radius: 4px;">
                 🔄 Tirar Outra Foto
               </button>
