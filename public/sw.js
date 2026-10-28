@@ -1,8 +1,8 @@
 // public/sw.js
 // Service Worker para Gestão de Crédito & Finanças - PWA Offline & Auto-Update
-// Versão do Cache: v8 (Com modelos atualizados Google Gemini 3.5 Flash)
+// Versão do Cache: v11 (Suporte a 1 parcela única e juros customizados)
 
-const CACHE_NAME = 'vandomotos-fintech-v10';
+const CACHE_NAME = 'vandomotos-fintech-v11';
 
 const PRECACHE_ASSETS = [
   '/',

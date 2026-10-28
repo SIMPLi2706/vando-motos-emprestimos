@@ -235,7 +235,7 @@ export function createReceiptModal() {
             <div class="promissoria-header-line">
               <div class="promissoria-title-wrap">
                 <span class="promissoria-title">NOTA PROMISSÓRIA</span>
-                <span class="promissoria-parcela-num">${numFormatado} &nbsp;&nbsp;/&nbsp;&nbsp; ${totalFormatado}</span>
+                <span class="promissoria-parcela-num">${totalCount === 1 ? 'ÚNICA' : `${numFormatado} &nbsp;&nbsp;/&nbsp;&nbsp; ${totalFormatado}`}</span>
               </div>
 
               <table class="promissoria-venc-box">
@@ -330,7 +330,7 @@ export function createReceiptModal() {
 
     // Monta as opções do seletor
     selectView.innerHTML = `
-      <option value="all">Todas as ${totalCount} Notas Promissórias (Carnê Completo)</option>
+      <option value="all">${totalCount === 1 ? 'Nota Promissória Única' : `Todas as ${totalCount} Notas Promissórias (Carnê Completo)`}</option>
       ${loanInsts.map(inst => `
         <option value="${inst.number}">Nota nº ${String(inst.number).padStart(2, '0')} de ${String(totalCount).padStart(2, '0')} - Venc. ${formatDate(inst.dueDate)} (${formatBRL(inst.installmentAmount)})</option>
       `).join('')}

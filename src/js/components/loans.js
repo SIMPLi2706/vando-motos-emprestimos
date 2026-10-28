@@ -52,50 +52,88 @@ export function renderLoans(options = {}) {
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <label class="form-label" style="margin-bottom: 0;">Valor do Empréstimo *</label>
-                <span class="sim-val-hint text-yellow" id="sim-val-display" style="font-size: 0.88rem; font-weight: 700;">R$ 5.000,00</span>
+                <span class="sim-val-hint text-yellow" id="sim-val-display" style="font-size: 0.88rem; font-weight: 700;">R$ 1.000,00</span>
               </div>
-              <input type="number" inputmode="decimal" class="form-control" id="sim-valor" value="5000" min="10" step="10" required>
+              <input type="number" inputmode="decimal" class="form-control" id="sim-valor" value="1000" min="10" step="10" required>
               <div class="amount-quick-chips">
+                <button type="button" class="amount-chip" data-set="500">R$ 500</button>
+                <button type="button" class="amount-chip" data-set="1000">R$ 1.000</button>
+                <button type="button" class="amount-chip" data-set="2000">R$ 2.000</button>
+                <button type="button" class="amount-chip" data-set="5000">R$ 5.000</button>
                 <button type="button" class="amount-chip" data-add="500">+ R$ 500</button>
                 <button type="button" class="amount-chip" data-add="1000">+ R$ 1.000</button>
-                <button type="button" class="amount-chip" data-add="2000">+ R$ 2.000</button>
-                <button type="button" class="amount-chip" data-set="5000">R$ 5.000</button>
-                <button type="button" class="amount-chip" data-set="10000">R$ 10.000</button>
               </div>
             </div>
 
+            <!-- Taxa de Juros (%) - Destaque Principal -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0;">Taxa de Juros (%) *</label>
+                <span class="sim-taxa-hint text-yellow" id="sim-taxa-display" style="font-size: 0.88rem; font-weight: 700;">20% (+R$ 200,00 de juros)</span>
+              </div>
+              <input type="number" inputmode="decimal" class="form-control" id="sim-taxa" value="20" min="0" step="0.5" required placeholder="Ex: 20">
+              <div class="rate-quick-chips">
+                <button type="button" class="rate-chip" data-rate="10">10%</button>
+                <button type="button" class="rate-chip" data-rate="15">15%</button>
+                <button type="button" class="rate-chip active" data-rate="20">20%</button>
+                <button type="button" class="rate-chip" data-rate="25">25%</button>
+                <button type="button" class="rate-chip" data-rate="30">30%</button>
+                <button type="button" class="rate-chip" data-rate="40">40%</button>
+              </div>
+            </div>
+
+            <!-- Parcelas com 1x (Única) em destaque -->
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <label class="form-label" style="margin-bottom: 0;">Quantidade de Parcelas *</label>
-                <span class="sim-parcelas-hint text-yellow" id="sim-parcelas-display" style="font-size: 0.88rem; font-weight: 700;">5 parcelas</span>
+                <span class="sim-parcelas-hint text-yellow" id="sim-parcelas-display" style="font-size: 0.88rem; font-weight: 700;">1x (Pagamento Único)</span>
               </div>
               <div class="installment-pills">
+                <button type="button" class="pill-btn active" data-n="1">1x (Única)</button>
                 <button type="button" class="pill-btn" data-n="2">2x</button>
                 <button type="button" class="pill-btn" data-n="3">3x</button>
-                <button type="button" class="pill-btn active" data-n="5">5x</button>
+                <button type="button" class="pill-btn" data-n="4">4x</button>
+                <button type="button" class="pill-btn" data-n="5">5x</button>
                 <button type="button" class="pill-btn" data-n="6">6x</button>
                 <button type="button" class="pill-btn" data-n="10">10x</button>
                 <button type="button" class="pill-btn" data-n="12">12x</button>
               </div>
               <div style="margin-top: 8px;">
-                <input type="number" inputmode="numeric" class="form-control" id="sim-parcelas" value="5" min="1" max="120" placeholder="Ou digite o número de parcelas" required>
+                <input type="number" inputmode="numeric" class="form-control" id="sim-parcelas" value="1" min="1" max="120" placeholder="Número de parcelas (1 = Pagamento Único)" required>
+              </div>
+            </div>
+
+            <!-- Data de Início e Periodicidade -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Data do Empréstimo *</label>
+                <input type="date" class="form-control" id="sim-data-inicio" value="${formatDateForInput()}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Periodicidade *</label>
+                <select class="form-control" id="sim-periodicidade">
+                  <option value="monthly" selected>Mensal (30 dias)</option>
+                  <option value="biweekly">Quinzenal (15 dias)</option>
+                  <option value="weekly">Semanal (7 dias)</option>
+                  <option value="daily">Diário (1 dia)</option>
+                </select>
               </div>
             </div>
 
             <!-- Hero Box de Resumo Imediato (Fintech) -->
             <div class="sim-hero-box">
               <div class="sim-hero-main">
-                <span class="sim-hero-label">Valor Estimado da Parcela</span>
-                <div class="sim-hero-value" id="sim-hero-parcela">5x de R$ 0,00</div>
+                <span class="sim-hero-label" id="sim-hero-label">Pagamento Único (Total com Juros)</span>
+                <div class="sim-hero-value" id="sim-hero-parcela">R$ 1.200,00</div>
               </div>
               <div class="sim-hero-subgrid">
                 <div class="sim-hero-subitem">
                   <span class="sim-hero-sublabel">Total a Receber</span>
-                  <span class="sim-hero-subvalue text-green" id="sim-hero-total">R$ 0,00</span>
+                  <span class="sim-hero-subvalue text-green" id="sim-hero-total">R$ 1.200,00</span>
                 </div>
                 <div class="sim-hero-subitem">
                   <span class="sim-hero-sublabel">Total de Juros</span>
-                  <span class="sim-hero-subvalue text-yellow" id="sim-hero-juros">R$ 0,00</span>
+                  <span class="sim-hero-subvalue text-yellow" id="sim-hero-juros">R$ 200,00 (20%)</span>
                 </div>
               </div>
             </div>
@@ -115,7 +153,7 @@ export function renderLoans(options = {}) {
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                   </svg>
-                  <span>Opções Avançadas (Taxas, Prazos & Garantias)</span>
+                  <span>Opções Avançadas (Modelo de Cálculo, Multas & Garantias)</span>
                 </span>
                 <span class="sim-details-chevron">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -125,41 +163,19 @@ export function renderLoans(options = {}) {
               </summary>
 
               <div class="sim-advanced-body">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label class="form-label">Taxa de Juros (%) *</label>
-                    <input type="number" inputmode="decimal" class="form-control" id="sim-taxa" value="10" min="0" step="0.1" required>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Tipo de Juros *</label>
-                    <select class="form-control" id="sim-tipo-juros">
-                      <option value="price">Tabela Price (Parcelas Fixas)</option>
-                      <option value="simple">Juros Simples (Taxa Fixa)</option>
-                      <option value="sac">Tabela SAC (Amortização Constante)</option>
-                      <option value="interest_only">Só Juros (Amortização no Fim)</option>
-                    </select>
-                  </div>
+                <div class="form-group">
+                  <label class="form-label">Modelo de Amortização / Cálculo</label>
+                  <select class="form-control" id="sim-tipo-juros">
+                    <option value="price" selected>Tabela Price (Parcelas Fixas / Padrão)</option>
+                    <option value="simple">Juros Simples (Taxa Fixa)</option>
+                    <option value="sac">Tabela SAC (Amortização Constante)</option>
+                    <option value="interest_only">Só Juros (Amortização no Fim)</option>
+                  </select>
                 </div>
 
                 <div class="form-grid">
                   <div class="form-group">
-                    <label class="form-label">Periodicidade *</label>
-                    <select class="form-control" id="sim-periodicidade">
-                      <option value="monthly">Mensal</option>
-                      <option value="biweekly">Quinzenal (15 dias)</option>
-                      <option value="weekly">Semanal (7 dias)</option>
-                      <option value="daily">Diário</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Data de Início *</label>
-                    <input type="date" class="form-control" id="sim-data-inicio" value="${formatDateForInput()}" required>
-                  </div>
-                </div>
-
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label class="form-label">Carência (Dias p/ 1ª parcela)</label>
+                    <label class="form-label">Carência (Dias adicionais p/ 1ª parcela)</label>
                     <input type="number" inputmode="numeric" class="form-control" id="sim-carencia" value="0" min="0">
                   </div>
                   <div class="form-group">
@@ -261,7 +277,7 @@ export function renderLoans(options = {}) {
                     <div>
                       <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">${client.name}</div>
                       <div style="font-size: 0.8rem; color: var(--text-400);">
-                        Liberado em: ${formatDate(loan.startDate)} • Tipo: <strong>${tipoFormatado}</strong> (${loan.interestRate}% ${loan.periodicity === 'monthly' ? 'a.m.' : 'período'})
+                        Liberado em: ${formatDate(loan.startDate)} • ${Number(loan.installmentsCount) === 1 ? '<strong>Pagamento Único</strong>' : `${loan.installmentsCount} parcelas`} • Tipo: <strong>${tipoFormatado}</strong> (${loan.interestRate}% ${loan.periodicity === 'monthly' ? 'a.m.' : 'período'})
                       </div>
                       ${loan.notes ? `<div style="font-size: 0.75rem; color: var(--text-400); margin-top: 4px;">Obs: ${loan.notes}</div>` : ''}
                     </div>
@@ -278,7 +294,7 @@ export function renderLoans(options = {}) {
                   <!-- Barra de Progresso de Quitação -->
                   <div style="margin: 12px 0;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-400); margin-bottom: 6px;">
-                      <span>Progresso: ${paidInsts} de ${totalInsts} parcelas pagas (${progressPct}%)</span>
+                      <span>${totalInsts === 1 ? (paidInsts === 1 ? 'Pagamento Único Quitado (100%)' : 'Pagamento Único Pendente (0%)') : `Progresso: ${paidInsts} de ${totalInsts} parcelas pagas (${progressPct}%)`}</span>
                       <span>Total recebido: <strong style="color: var(--text-100);">${formatBRL(totalPaid)}</strong></span>
                     </div>
                     <div style="height: 6px; background: var(--bg-1); border-radius: var(--r-full); overflow: hidden;">
@@ -310,11 +326,11 @@ export function renderLoans(options = {}) {
   function updateSimulation() {
     const val = Number(container.querySelector('#sim-valor').value) || 0;
     const taxa = Number(container.querySelector('#sim-taxa').value) || 0;
-    const tipo = container.querySelector('#sim-tipo-juros').value;
-    const periodicidade = container.querySelector('#sim-periodicidade').value;
+    const tipo = container.querySelector('#sim-tipo-juros')?.value || 'price';
+    const periodicidade = container.querySelector('#sim-periodicidade')?.value || 'monthly';
     const parcelas = parseInt(container.querySelector('#sim-parcelas').value, 10) || 1;
-    const dataInicio = container.querySelector('#sim-data-inicio').value;
-    const carencia = parseInt(container.querySelector('#sim-carencia').value, 10) || 0;
+    const dataInicio = container.querySelector('#sim-data-inicio')?.value || formatDateForInput();
+    const carencia = parseInt(container.querySelector('#sim-carencia')?.value, 10) || 0;
 
     const res = calculateAmortizationSchedule({
       principal: val,
@@ -331,17 +347,35 @@ export function renderLoans(options = {}) {
     const valDisplay = container.querySelector('#sim-val-display');
     if (valDisplay) valDisplay.textContent = formatBRL(val);
 
-    const parcelasDisplay = container.querySelector('#sim-parcelas-display');
-    if (parcelasDisplay) parcelasDisplay.textContent = `${parcelas} parcela${parcelas > 1 ? 's' : ''}`;
+    const taxaDisplay = container.querySelector('#sim-taxa-display');
+    if (taxaDisplay) {
+      taxaDisplay.textContent = `${taxa}% (+${formatBRL(res.totalInterest)} de juros)`;
+    }
 
+    const parcelasDisplay = container.querySelector('#sim-parcelas-display');
+    if (parcelasDisplay) {
+      if (parcelas === 1) {
+        parcelasDisplay.textContent = '1x (Pagamento Único)';
+      } else {
+        parcelasDisplay.textContent = `${parcelas} parcelas`;
+      }
+    }
+
+    const heroLabel = container.querySelector('#sim-hero-label');
     const heroParcela = container.querySelector('#sim-hero-parcela');
     if (heroParcela) {
-      if (res.schedule.length > 1 && tipo === 'sac') {
-        const first = res.schedule[0].installmentAmount;
-        const last = res.schedule[res.schedule.length - 1].installmentAmount;
-        heroParcela.textContent = `${parcelas}x (${formatBRL(first)} ~ ${formatBRL(last)})`;
+      if (parcelas === 1) {
+        if (heroLabel) heroLabel.textContent = 'Pagamento Único (Total com Juros)';
+        heroParcela.textContent = formatBRL(res.totalPayable);
       } else {
-        heroParcela.textContent = `${parcelas}x de ${formatBRL(parcelaUnit)}`;
+        if (heroLabel) heroLabel.textContent = 'Valor Estimado da Parcela';
+        if (res.schedule.length > 1 && tipo === 'sac') {
+          const first = res.schedule[0].installmentAmount;
+          const last = res.schedule[res.schedule.length - 1].installmentAmount;
+          heroParcela.textContent = `${parcelas}x (${formatBRL(first)} ~ ${formatBRL(last)})`;
+        } else {
+          heroParcela.textContent = `${parcelas}x de ${formatBRL(parcelaUnit)}`;
+        }
       }
     }
 
@@ -353,18 +387,25 @@ export function renderLoans(options = {}) {
 
     container.querySelector('#sim-total-pagar').textContent = formatBRL(res.totalPayable);
     container.querySelector('#sim-total-juros').textContent = formatBRL(res.totalInterest);
-    container.querySelector('#sim-badge-parcelas').textContent = `${parcelas}x parcelas`;
+    container.querySelector('#sim-badge-parcelas').textContent = parcelas === 1 ? '1x Pagamento Único' : `${parcelas}x parcelas`;
 
     // Sincroniza active dos botões de parcelas (pills)
-    container.querySelectorAll('.pill-btn').forEach(btn => {
+    container.querySelectorAll('.installment-pills .pill-btn').forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.n, 10) === parcelas);
+    });
+
+    // Sincroniza active dos botões de taxa (rate-chips)
+    container.querySelectorAll('.rate-chip').forEach(btn => {
+      btn.classList.toggle('active', Number(btn.dataset.rate) === taxa);
     });
 
     const tbody = container.querySelector('#sim-tabela-parcelas tbody');
     tbody.innerHTML = res.schedule.map(item => `
       <tr>
         <td data-label="Nº">
-          <div class="td-cell-val" style="align-items: flex-start; font-weight: 800; color: var(--yellow);">#${item.number}</div>
+          <div class="td-cell-val" style="align-items: flex-start; font-weight: 800; color: var(--yellow);">
+            ${parcelas === 1 ? 'Única (#1)' : `#${item.number}`}
+          </div>
         </td>
         <td data-label="Vencimento">
           <div class="td-cell-val">${formatDate(item.dueDate)}</div>
@@ -424,8 +465,17 @@ export function renderLoans(options = {}) {
       });
     });
 
-    // Pills de parcelas (2x, 3x, 5x, 6x, 10x, 12x)
-    container.querySelectorAll('.pill-btn').forEach(pill => {
+    // Chips de taxa rápida (10%, 15%, 20%, 25%, 30%, 40%)
+    container.querySelectorAll('.rate-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const input = container.querySelector('#sim-taxa');
+        input.value = chip.dataset.rate;
+        updateSimulation();
+      });
+    });
+
+    // Pills de parcelas (1x, 2x, 3x, 4x, 5x, 6x, 10x, 12x)
+    container.querySelectorAll('.installment-pills .pill-btn').forEach(pill => {
       pill.addEventListener('click', () => {
         const input = container.querySelector('#sim-parcelas');
         input.value = pill.dataset.n;

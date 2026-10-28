@@ -202,7 +202,7 @@ export function renderInstallments(options = {}) {
             <div class="td-cell-val">${badgeHtml}</div>
           </td>
           <td data-label="Parcela">
-            <div class="td-cell-val" style="font-weight: 700;">#${item.number}</div>
+            <div class="td-cell-val" style="font-weight: 700;">${Number(item.loan?.installmentsCount) === 1 ? 'Única' : `#${item.number}`}</div>
           </td>
           <td data-label="Cliente">
             <div class="td-cell-val">

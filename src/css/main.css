@@ -1097,6 +1097,45 @@ body.modal-open #app {
   transform: translateY(-1px);
 }
 
+/* Quick Chips de Taxa de Juros (%) */
+.rate-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.rate-chip {
+  padding: 5px 12px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-full);
+  color: var(--text-300);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.rate-chip:hover,
+.rate-chip:active {
+  background: rgba(245, 197, 24, 0.15);
+  border-color: var(--yellow-border);
+  color: var(--yellow);
+  transform: translateY(-1px);
+}
+
+.rate-chip.active {
+  background: var(--yellow);
+  color: #07080a;
+  border-color: var(--yellow);
+  font-weight: 700;
+  box-shadow: 0 2px 8px var(--yellow-glow);
+}
+
 /* Pills de Quantidade de Parcelas */
 .installment-pills {
   display: flex;
@@ -1120,6 +1159,11 @@ body.modal-open #app {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
+}
+
+.installment-pills .pill-btn[data-n="1"] {
+  min-width: 78px;
+  flex: 1.2;
 }
 
 .pill-btn:hover {
