@@ -3,6 +3,7 @@
 
 import { createLoginScreen, isAuthenticated } from './js/components/loginScreen.js';
 import { state } from './js/state.js';
+window.state = state;
 import { renderDashboard } from './js/components/dashboard.js';
 import { renderLoans } from './js/components/loans.js';
 import { renderInstallments } from './js/components/installments.js';
@@ -228,7 +229,7 @@ const closeSidebarBtn = document.getElementById('btn-close-sidebar');
 
 export function updateScrollLockState() {
   const isDrawerOpen = sidebar && sidebar.classList.contains('open');
-  const hasActiveModal = !!document.querySelector('.modal-overlay.active, .global-search-overlay.active');
+  const hasActiveModal = !!document.querySelector('.modal-overlay.active, .global-search-overlay.active, .scanner-modal-overlay.active, .sig-modal-overlay.active');
 
   // Adiciona / remove classes de efeito visual
   if (isDrawerOpen) {
@@ -320,7 +321,7 @@ const modalObserver = new MutationObserver(() => {
 });
 
 // Registra modais já existentes
-document.querySelectorAll('.modal-overlay, .global-search-overlay').forEach(modal => {
+document.querySelectorAll('.modal-overlay, .global-search-overlay, .scanner-modal-overlay, .sig-modal-overlay').forEach(modal => {
   modalObserver.observe(modal, { attributes: true, attributeFilter: ['class'] });
 });
 
@@ -328,7 +329,12 @@ document.querySelectorAll('.modal-overlay, .global-search-overlay').forEach(moda
 const bodyChildObserver = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
-      if (node.nodeType === 1 && (node.classList.contains('modal-overlay') || node.classList.contains('global-search-overlay'))) {
+      if (node.nodeType === 1 && (
+        node.classList.contains('modal-overlay') || 
+        node.classList.contains('global-search-overlay') ||
+        node.classList.contains('scanner-modal-overlay') ||
+        node.classList.contains('sig-modal-overlay')
+      )) {
         modalObserver.observe(node, { attributes: true, attributeFilter: ['class'] });
         updateScrollLockState();
       }
@@ -337,10 +343,17 @@ const bodyChildObserver = new MutationObserver((mutations) => {
 });
 bodyChildObserver.observe(document.body, { childList: true });
 
-// Previne arrastar o fundo fora do card do modal
+// Previne arrastar o fundo fora do card do modal (sem interferir na rolagem interna)
 document.addEventListener('touchmove', (e) => {
-  if (e.target && (e.target.classList.contains('modal-overlay') || e.target.classList.contains('global-search-overlay'))) {
-    e.preventDefault();
+  if (e.target && (
+    e.target.classList.contains('modal-overlay') || 
+    e.target.classList.contains('global-search-overlay') ||
+    e.target.classList.contains('scanner-modal-overlay') ||
+    e.target.classList.contains('sig-modal-overlay')
+  )) {
+    if (!e.target.closest('.modal-card, .scanner-modal-card, .sig-modal-card, .global-search-card')) {
+      e.preventDefault();
+    }
   }
 }, { passive: false });
 
@@ -402,7 +415,7 @@ state.subscribe(() => {
 });
 
 // Versão da Aplicação e Gestão de Cache PWA
-const CURRENT_APP_VERSION = '2.7.0';
+const CURRENT_APP_VERSION = '2.8.0';
 try {
   const lastVersion = localStorage.getItem('vando_app_version');
   if (lastVersion !== CURRENT_APP_VERSION) {

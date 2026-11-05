@@ -34,8 +34,8 @@ export function createPaymentModal() {
         </div>
       </div>
 
-      <form id="form-baixa-parcela">
-        <div class="modal-body">
+      <form id="form-baixa-parcela" class="modal-card-form" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
+        <div class="modal-body" style="overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-y !important; flex: 1 1 auto; min-height: 0;">
           <input type="hidden" id="pay-inst-id">
 
           <!-- Resumo da Parcela -->
@@ -342,6 +342,9 @@ export function createPaymentModal() {
   window.openPaymentModal = function(installmentId) {
     const inst = state.getInstallmentById(installmentId);
     if (!inst) return;
+
+    const modalBody = modal.querySelector('.modal-body');
+    if (modalBody) modalBody.scrollTop = 0;
 
     const client = state.getClientById(inst.clientId) || { name: 'Cliente Removido' };
     const loan = state.getLoanById(inst.loanId) || {};

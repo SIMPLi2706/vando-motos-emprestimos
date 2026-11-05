@@ -1348,12 +1348,22 @@ body.modal-open #app {
   overflow: hidden;
 }
 
+.modal-card > form,
+.modal-card-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-header {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -1394,8 +1404,12 @@ body.modal-open #app {
 
 .modal-body {
   padding: 18px 20px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .modal-footer {
@@ -1404,6 +1418,7 @@ body.modal-open #app {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 /* Toast */
@@ -2305,17 +2320,44 @@ body.modal-open #app {
   .modal-overlay {
     padding: 0;
     align-items: flex-end;
+    overflow: hidden;
   }
 
   .modal-card {
-    max-height: 92dvh;
+    max-height: 90dvh;
+    height: auto;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  .modal-card > form,
+  .modal-card-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(90dvh - 120px);
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior: contain;
+    padding: 16px 14px;
+  }
+
   .modal-footer {
+    flex-shrink: 0;
     flex-direction: column-reverse;
+    padding: 12px 14px;
   }
 
   .modal-footer .btn {
@@ -3125,5 +3167,518 @@ body.modal-open #app {
   border-bottom-left-radius: var(--r-lg);
   border-bottom-right-radius: var(--r-lg);
 }
+
+/* ==========================================================================
+   ESTILOS OFICIAIS DA NOTA PROMISSÓRIA (MODELO OFICIAL DO BRASIL)
+   ========================================================================== */
+.promissoria-print-sheet {
+  background: transparent;
+  color: #000000 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: Arial, Helvetica, sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.promissoria-frame {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000;
+  outline: 1px solid #000000;
+  outline-offset: 2px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+  margin-bottom: 8px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.promissoria-frame,
+.promissoria-frame * {
+  color: #000000 !important;
+  box-sizing: border-box;
+}
+
+.promissoria-inner {
+  display: flex;
+  min-height: 275px;
+  position: relative;
+  background: #ffffff !important;
+}
+
+/* Faixa Lateral Vertical Esquerda */
+.promissoria-sidebar {
+  width: 44px;
+  border-right: 1.5px solid #000000;
+  background: #ffffff !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 2px 10px 2px;
+  flex-shrink: 0;
+}
+
+.promissoria-vertical-text {
+  writing-mode: vertical-rl;
+  -webkit-writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 11px;
+  font-weight: 600;
+  color: #000000 !important;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.promissoria-brasao-img {
+  width: 32px;
+  height: auto;
+  display: block;
+}
+
+/* Área de Conteúdo Principal */
+.promissoria-main {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Linha Superior: Título + Parcela + Tabela de Vencimento e Valor */
+.promissoria-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.promissoria-title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+.promissoria-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #000000 !important;
+}
+
+.promissoria-parcela-num {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #000000 !important;
+}
+
+/* Tabela de Vencimento e Valor */
+.promissoria-venc-box {
+  border: 1.5px solid #000000;
+  border-collapse: collapse;
+  min-width: 260px;
+  background: #ffffff !important;
+  font-size: 11px;
+}
+
+.promissoria-venc-box td {
+  border: 1px solid #000000;
+  padding: 3px 8px;
+  color: #000000 !important;
+}
+
+.pvb-label {
+  font-weight: bold;
+  width: 85px;
+  text-align: center;
+  background: #f8fafc;
+  color: #000000 !important;
+}
+
+.pvb-val {
+  text-align: center;
+  font-size: 12px;
+  color: #000000 !important;
+}
+
+.pvb-val-highlight {
+  font-weight: bold;
+  font-size: 13px;
+  color: #000000 !important;
+}
+
+/* Corpo Legal */
+.promissoria-body-section {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #000000 !important;
+  margin-bottom: 6px;
+}
+
+.pbs-line {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 2px;
+  color: #000000 !important;
+  flex-wrap: wrap;
+}
+
+.pbs-line-1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pbs-field-date {
+  font-size: 11.5px;
+  padding: 0 4px;
+  font-weight: 600;
+  color: #000000 !important;
+}
+
+.pbs-pagar-via {
+  font-size: 11px;
+  color: #000000 !important;
+}
+
+.pbs-field-beneficiario {
+  font-weight: bold;
+  font-size: 12px;
+  margin-left: 8px;
+  color: #000000 !important;
+}
+
+.pbs-field-cnpj {
+  font-weight: bold;
+  margin-left: 14px;
+  color: #000000 !important;
+}
+
+.pbs-line-4 {
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pbs-ordem-label {
+  white-space: nowrap;
+  font-size: 11px;
+  color: #000000 !important;
+}
+
+.pbs-extenso-box {
+  flex: 1;
+  min-width: 180px;
+  border: 1px solid #000000;
+  background-color: #f1f5f9;
+  min-height: 24px;
+  padding: 3px 10px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #000000 !important;
+}
+
+.pbs-line-5 {
+  font-size: 11px;
+  margin-top: 3px;
+  color: #000000 !important;
+}
+
+/* Rodapé: Caixa do Emitente e Assinatura */
+.promissoria-footer-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.promissoria-emitente-box {
+  border: 1px solid #000000;
+  padding: 6px 8px;
+  width: 56%;
+  min-width: 200px;
+  font-size: 11px;
+  line-height: 1.45;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.peb-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.peb-label {
+  min-width: 65px;
+  color: #000000 !important;
+  font-weight: 600;
+}
+
+.peb-val {
+  color: #000000 !important;
+}
+
+.promissoria-assinatura-wrap {
+  width: 40%;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  text-align: center;
+}
+
+.paw-data {
+  font-size: 10.5px;
+  margin-bottom: 18px;
+  color: #000000 !important;
+  white-space: nowrap;
+}
+
+.paw-signature-area {
+  width: 100%;
+}
+
+.paw-line {
+  border-top: 1.5px solid #000000;
+  width: 85%;
+  margin: 0 auto 3px auto;
+}
+
+.paw-name {
+  font-size: 11px;
+  font-weight: bold;
+  color: #000000 !important;
+}
+
+/* Linha de Corte entre Notas */
+.promissoria-cut-divider {
+  margin: 12px 0;
+  text-align: center;
+  position: relative;
+}
+
+.cut-line-dash {
+  border-top: 2px dashed #000000;
+  position: relative;
+}
+
+.cut-icon {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: #e2e8f0;
+  padding: 0 6px;
+  font-size: 14px;
+  color: #000000 !important;
+}
+
+/* ADAPTAÇÃO RESPONSIVA PARA TELAS MOBILE (< 640px) */
+@media (max-width: 640px) {
+  .promissoria-inner {
+    flex-direction: row;
+    min-height: auto;
+  }
+
+  .promissoria-sidebar {
+    width: 32px;
+    padding: 10px 1px 6px 1px;
+  }
+
+  .promissoria-vertical-text {
+    font-size: 9px;
+    letter-spacing: 0.2px;
+  }
+
+  .promissoria-brasao-img {
+    width: 22px;
+  }
+
+  .promissoria-main {
+    padding: 8px 10px 8px 10px;
+  }
+
+  .promissoria-header-line {
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .promissoria-title-wrap {
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  .promissoria-title {
+    font-size: 14px;
+  }
+
+  .promissoria-parcela-num {
+    font-size: 12px;
+  }
+
+  .promissoria-venc-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .promissoria-body-section {
+    font-size: 10.5px;
+    line-height: 1.5;
+  }
+
+  .pbs-field-beneficiario {
+    margin-left: 4px;
+  }
+
+  .pbs-field-cnpj {
+    margin-left: 6px;
+  }
+
+  .pbs-extenso-box {
+    min-width: 100%;
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .promissoria-footer-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .promissoria-emitente-box {
+    width: 100%;
+    font-size: 10.5px;
+  }
+
+  .promissoria-assinatura-wrap {
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  .paw-data {
+    font-size: 10px;
+    margin-bottom: 14px;
+    white-space: normal;
+  }
+
+  .paw-line {
+    width: 75%;
+  }
+}
+
+/* IMPRESSÃO A4 (3 NOTAS POR FOLHA) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .sidebar,
+  .top-header,
+  .mobile-bottom-nav,
+  .modal-header,
+  .modal-footer,
+  .header-actions,
+  .tabs-bar,
+  .search-bar-wrap,
+  .btn-toolbar,
+  #doc-modal-controls,
+  button {
+    display: none !important;
+  }
+
+  .main-wrapper,
+  #app {
+    margin: 0 !important;
+    padding: 0 !important;
+    filter: none !important;
+    width: 100% !important;
+  }
+
+  .modal-overlay {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    padding: 0 !important;
+  }
+
+  .modal-card {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-radius: 0 !important;
+  }
+
+  .modal-body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .promissoria-print-sheet {
+    gap: 0 !important;
+  }
+
+  .promissoria-frame {
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    height: 86mm !important;
+  }
+
+  .promissoria-cut-divider {
+    margin: 3mm 0 !important;
+  }
+
+  .cut-icon {
+    background: #ffffff !important;
+  }
+
+  .page-break-divider {
+    page-break-after: always !important;
+    break-after: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  .page-break-divider .cut-line-dash {
+    display: none !important;
+  }
+}
+
 
 

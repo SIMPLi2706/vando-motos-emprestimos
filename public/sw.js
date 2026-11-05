@@ -1,8 +1,8 @@
 // public/sw.js
 // Service Worker para Gestão de Crédito & Finanças - PWA Offline & Auto-Update
-// Versão do Cache: v11 (Suporte a 1 parcela única e juros customizados)
+// Versão do Cache: v12 (Correção Promissória e Rolagem de Modais Mobile)
 
-const CACHE_NAME = 'vandomotos-fintech-v11';
+const CACHE_NAME = 'vandomotos-fintech-v12';
 
 const PRECACHE_ASSETS = [
   '/',

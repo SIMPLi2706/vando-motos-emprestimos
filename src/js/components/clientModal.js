@@ -19,8 +19,8 @@ export function createClientModal() {
         <button class="modal-close-btn" id="client-modal-close">${icon('x', 16)}</button>
       </div>
 
-      <form id="form-cliente">
-        <div class="modal-body">
+      <form id="form-cliente" class="modal-card-form" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
+        <div class="modal-body" style="overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-y !important; flex: 1 1 auto; min-height: 0;">
           <input type="hidden" id="cli-id">
 
           <!-- Scanner Hero CTA -->
@@ -166,6 +166,9 @@ export function createClientModal() {
   });
 
   window.openClientModal = function(clientId = null, prefillData = null) {
+    const modalBody = modal.querySelector('.modal-body');
+    if (modalBody) modalBody.scrollTop = 0;
+
     const pdfBtn = modal.querySelector('#client-modal-pdf');
     const statementBtn = modal.querySelector('#client-modal-statement');
     if (clientId) {

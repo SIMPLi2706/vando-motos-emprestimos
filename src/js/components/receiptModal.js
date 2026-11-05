@@ -13,21 +13,21 @@ export function createReceiptModal() {
   modal.id = 'modal-recibo-impressao';
 
   modal.innerHTML = `
-    <div class="modal-card" style="max-width: 860px; max-height: 94vh;">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
+    <div class="modal-card doc-modal-card" style="max-width: 860px;">
+      <div class="modal-header" style="flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <h3 class="modal-title" id="doc-modal-title">${icon('fileText', 18)} Nota Promissória Oficial</h3>
-          <!-- Seletor de Modo / Carnê quando for Nota Promissória -->
-          <div id="doc-modal-controls" style="display: none; margin-left: auto; margin-right: 12px;">
-            <select class="form-control" id="select-promissory-view" style="padding: 4px 10px; font-size: 0.82rem; min-height: 32px; background: var(--bg-card); color: var(--text-main);">
-              <!-- Opções dinâmicas -->
-            </select>
-          </div>
+          <button class="modal-close-btn" id="doc-modal-close" title="Fechar">${icon('x', 16)}</button>
         </div>
-        <button class="modal-close-btn" id="doc-modal-close">${icon('x', 16)}</button>
+        <!-- Seletor de Modo / Carnê quando for Nota Promissória -->
+        <div id="doc-modal-controls" style="display: none; width: 100%; margin-top: 4px;">
+          <select class="form-control" id="select-promissory-view" style="padding: 8px 12px; font-size: 0.88rem; min-height: 40px; background: var(--bg-3); color: #fff; border: 1px solid var(--border-soft); border-radius: var(--r-sm); width: 100%;">
+            <!-- Opções dinâmicas -->
+          </select>
+        </div>
       </div>
 
-      <div class="modal-body" id="doc-modal-body" style="background: #e2e8f0; padding: 20px; overflow-y: auto;">
+      <div class="modal-body doc-modal-body" id="doc-modal-body" style="background: #cbd5e1; padding: 16px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;">
         <!-- Conteúdo do Documento formatado -->
       </div>
 
@@ -219,91 +219,91 @@ export function createReceiptModal() {
     const totalFormatado = String(totalCount).padStart(2, '0');
 
     return `
-      <div class="promissoria-frame">
-        <div class="promissoria-inner">
+      <div class="promissoria-frame" style="background: #ffffff !important; color: #000000 !important;">
+        <div class="promissoria-inner" style="background: #ffffff !important; color: #000000 !important;">
           
           <!-- Faixa Lateral Vertical Esquerda -->
-          <div class="promissoria-sidebar">
-            <div class="promissoria-vertical-text">República Federativa do Brasil</div>
+          <div class="promissoria-sidebar" style="background: #ffffff !important;">
+            <div class="promissoria-vertical-text" style="color: #000000 !important;">República Federativa do Brasil</div>
             <img src="${BRASAO_BRASIL_B64}" class="promissoria-brasao-img" alt="Brasão da República" />
           </div>
 
           <!-- Conteúdo Principal -->
-          <div class="promissoria-main">
+          <div class="promissoria-main" style="background: #ffffff !important; color: #000000 !important;">
             
             <!-- Linha Superior: Título + Parcela + Tabela de Vencimento e Valor -->
             <div class="promissoria-header-line">
               <div class="promissoria-title-wrap">
-                <span class="promissoria-title">NOTA PROMISSÓRIA</span>
-                <span class="promissoria-parcela-num">${totalCount === 1 ? 'ÚNICA' : `${numFormatado} &nbsp;&nbsp;/&nbsp;&nbsp; ${totalFormatado}`}</span>
+                <span class="promissoria-title" style="color: #000000 !important;">NOTA PROMISSÓRIA</span>
+                <span class="promissoria-parcela-num" style="color: #000000 !important;">${totalCount === 1 ? 'ÚNICA' : `${numFormatado} &nbsp;&nbsp;/&nbsp;&nbsp; ${totalFormatado}`}</span>
               </div>
 
-              <table class="promissoria-venc-box">
+              <table class="promissoria-venc-box" style="background: #ffffff !important; color: #000000 !important;">
                 <tr>
-                  <td class="pvb-label">Vencimento</td>
-                  <td class="pvb-val">${venc.dia} de ${mesCap} de ${venc.ano}</td>
+                  <td class="pvb-label" style="color: #000000 !important;">Vencimento</td>
+                  <td class="pvb-val" style="color: #000000 !important;">${venc.dia} de ${mesCap} de ${venc.ano}</td>
                 </tr>
                 <tr>
-                  <td class="pvb-label">Valor</td>
-                  <td class="pvb-val pvb-val-highlight">${formatBRL(valorOriginal)}</td>
+                  <td class="pvb-label" style="color: #000000 !important;">Valor</td>
+                  <td class="pvb-val pvb-val-highlight" style="color: #000000 !important;">${formatBRL(valorOriginal)}</td>
                 </tr>
               </table>
             </div>
 
             <!-- Corpo Legal -->
-            <div class="promissoria-body-section">
-              <div class="pbs-line pbs-line-1">
-                <span>Ao(s)</span>
-                <span class="pbs-field pbs-field-date">${venc.dia} dia(s) do mês de ${venc.mes} do ano de ${venc.ano}</span>
-                <span class="pbs-pagar-via">pagar por esta via de</span>
+            <div class="promissoria-body-section" style="color: #000000 !important;">
+              <div class="pbs-line pbs-line-1" style="color: #000000 !important;">
+                <span style="color: #000000 !important;">Ao(s)</span>
+                <span class="pbs-field pbs-field-date" style="color: #000000 !important;">${venc.dia} dia(s) do mês de ${venc.mes} do ano de ${venc.ano}</span>
+                <span class="pbs-pagar-via" style="color: #000000 !important;">pagar por esta via de</span>
               </div>
 
-              <div class="pbs-line pbs-line-2">
-                <span>NOTA PROMISSÓRIA à</span>
-                <span class="pbs-field pbs-field-beneficiario">${beneficiario}</span>
+              <div class="pbs-line pbs-line-2" style="color: #000000 !important;">
+                <span style="color: #000000 !important;">NOTA PROMISSÓRIA à</span>
+                <span class="pbs-field pbs-field-beneficiario" style="color: #000000 !important;">${beneficiario}</span>
               </div>
 
-              <div class="pbs-line pbs-line-3">
-                <span>CNPJ</span>
-                <span class="pbs-field pbs-field-cnpj">${cnpjBeneficiario}</span>
+              <div class="pbs-line pbs-line-3" style="color: #000000 !important;">
+                <span style="color: #000000 !important;">CNPJ</span>
+                <span class="pbs-field pbs-field-cnpj" style="color: #000000 !important;">${cnpjBeneficiario}</span>
               </div>
 
-              <div class="pbs-line pbs-line-4">
-                <span class="pbs-ordem-label">ou à sua ordem a quantia de</span>
-                <div class="pbs-extenso-box">
-                  <strong>${extensoTexto}</strong>
+              <div class="pbs-line pbs-line-4" style="color: #000000 !important;">
+                <span class="pbs-ordem-label" style="color: #000000 !important;">ou à sua ordem a quantia de</span>
+                <div class="pbs-extenso-box" style="background: #f1f5f9 !important; color: #000000 !important;">
+                  <strong style="color: #000000 !important;">${extensoTexto}</strong>
                 </div>
               </div>
 
-              <div class="pbs-line pbs-line-5">
+              <div class="pbs-line pbs-line-5" style="color: #000000 !important;">
                 Em moeda corrente deste país, pagável na praça de ${praca}
               </div>
             </div>
 
             <!-- Seção do Emitente e Assinatura -->
             <div class="promissoria-footer-section">
-              <div class="promissoria-emitente-box">
+              <div class="promissoria-emitente-box" style="background: #ffffff !important; color: #000000 !important;">
                 <div class="peb-row">
-                  <span class="peb-label">Emitente :</span>
-                  <strong class="peb-val">${emitenteNome}</strong>
+                  <span class="peb-label" style="color: #000000 !important;">Emitente :</span>
+                  <strong class="peb-val" style="color: #000000 !important;">${emitenteNome}</strong>
                 </div>
                 <div class="peb-row">
-                  <span class="peb-label">CNPJ/CPF:</span>
-                  <span class="peb-val">${emitenteDoc}</span>
+                  <span class="peb-label" style="color: #000000 !important;">CNPJ/CPF:</span>
+                  <span class="peb-val" style="color: #000000 !important;">${emitenteDoc}</span>
                 </div>
                 <div class="peb-row">
-                  <span class="peb-label">Endereço:</span>
-                  <span class="peb-val">${emitenteEnd}</span>
+                  <span class="peb-label" style="color: #000000 !important;">Endereço:</span>
+                  <span class="peb-val" style="color: #000000 !important;">${emitenteEnd}</span>
                 </div>
               </div>
 
               <div class="promissoria-assinatura-wrap">
-                <div class="paw-data">
+                <div class="paw-data" style="color: #000000 !important;">
                   ${praca}, ${acordo.dia} de ${acordoMesCap} de ${acordo.ano}
                 </div>
                 <div class="paw-signature-area">
                   <div class="paw-line"></div>
-                  <div class="paw-name">${emitenteNome}</div>
+                  <div class="paw-name" style="color: #000000 !important;">${emitenteNome}</div>
                 </div>
               </div>
             </div>
