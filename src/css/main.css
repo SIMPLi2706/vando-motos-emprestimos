@@ -3588,6 +3588,421 @@ body.modal-open #app {
   }
 }
 
+/* ============================================================
+   PORTAL PÚBLICO DE ASSINATURA DIGITAL (CLIENT-FACING)
+   ============================================================ */
+.public-portal-root {
+  background: var(--bg-0);
+  color: var(--text-100);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+}
+
+.public-portal-wrapper {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.public-portal-header {
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-1);
+  padding: 16px 20px;
+  margin: 0 -16px 12px;
+}
+
+.public-portal-header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.public-portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.public-portal-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+.public-portal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.public-portal-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-400);
+  margin: 2px 0 0;
+}
+
+.public-portal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+}
+
+/* Summary Card */
+.public-summary-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 20px;
+}
+
+.public-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.public-summary-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  margin-bottom: 8px;
+}
+
+.public-summary-status-tag.tag-pending {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.public-summary-status-tag.tag-signed {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.public-summary-client-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.public-summary-client-cpf {
+  font-size: 0.85rem;
+  color: var(--text-400);
+  margin-top: 2px;
+}
+
+.public-summary-amount-box {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+}
+
+.public-summary-amount-box .ps-label {
+  font-size: 0.75rem;
+  color: var(--text-400);
+  text-transform: uppercase;
+}
+
+.public-summary-amount-box .ps-amount {
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.public-summary-amount-box .ps-due {
+  font-size: 0.8rem;
+  color: var(--yellow);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.public-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.public-summary-grid .ps-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-item-label {
+  font-size: 0.75rem;
+  color: var(--text-400);
+  text-transform: uppercase;
+}
+
+.ps-item-value {
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-top: 2px;
+}
+
+.ps-item-sub {
+  font-size: 0.78rem;
+  color: var(--text-400);
+  margin-top: 2px;
+}
+
+/* Preview Section */
+.public-promissory-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.public-section-title-wrap {
+  margin-bottom: 4px;
+}
+
+.public-section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-section-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-400);
+  margin: 2px 0 0;
+}
+
+.public-promissory-scroll-box {
+  background: #cbd5e1;
+  padding: 16px;
+  border-radius: var(--r-md);
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  justify-content: center;
+}
+
+/* Signature Card */
+.public-sig-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.public-sig-header .psh-badge {
+  display: inline-block;
+  background: rgba(245, 197, 24, 0.15);
+  border: 1px solid rgba(245, 197, 24, 0.35);
+  color: var(--yellow);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  margin-bottom: 6px;
+}
+
+.public-sig-header .psh-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-sig-header .psh-desc {
+  font-size: 0.85rem;
+  color: var(--text-300);
+  margin: 4px 0 0;
+}
+
+.public-sig-canvas-wrap {
+  position: relative;
+  background: #ffffff;
+  border: 2px dashed #94a3b8;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.public-sig-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  background: transparent;
+}
+
+.public-sig-guide-line {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  right: 20px;
+  border-top: 1px solid #cbd5e1;
+  pointer-events: none;
+  text-align: center;
+}
+
+.public-sig-guide-line span {
+  position: relative;
+  top: -9px;
+  background: #ffffff;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-family: sans-serif;
+}
+
+.public-sig-terms {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+}
+
+.public-sig-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--text-300);
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+.public-sig-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--yellow);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.public-sig-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Success Card */
+.public-signed-success-card {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, var(--bg-2) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--r-md);
+  padding: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pssc-icon {
+  color: #34d399;
+}
+
+.pssc-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.pssc-desc {
+  font-size: 0.9rem;
+  color: var(--text-300);
+  max-width: 520px;
+  margin: 0;
+}
+
+.pssc-badge-box {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 14px 18px;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.pssc-badge-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-300);
+  gap: 12px;
+}
+
+.pssc-badge-row strong {
+  color: #ffffff;
+  font-family: monospace;
+}
+
+.pssc-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* Footer */
+.public-portal-footer {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 20px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-400);
+}
+
+.public-legal-footer-note {
+  font-size: 0.72rem;
+  color: var(--text-400);
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
 /* IMPRESSÃO A4 (3 NOTAS POR FOLHA) */
 @media print {
   @page {
@@ -3600,6 +4015,26 @@ body.modal-open #app {
     color: #000000 !important;
   }
 
+  /* Quando um modal estiver ativo ou no portal público, esconde o #app completamente para não vazar o fundo */
+  body.modal-open #app,
+  body:has(#public-portal-root) #app,
+  #app[style*="display: none"],
+  body.modal-open .public-portal-root {
+    display: none !important;
+  }
+
+  /* Esconde modais inativos */
+  .modal-overlay:not(.active) {
+    display: none !important;
+  }
+
+  /* No portal público de assinatura, esconde todo o wrapper administrativo e controles */
+  .public-portal-header,
+  .public-portal-badge,
+  .public-summary-card,
+  .public-section-title-wrap,
+  .public-signing-action-section,
+  .public-portal-footer,
   .sidebar,
   .top-header,
   .mobile-bottom-nav,
@@ -3615,14 +4050,24 @@ body.modal-open #app {
   }
 
   .main-wrapper,
-  #app {
+  .public-portal-root,
+  .public-portal-wrapper,
+  .public-promissory-preview-section,
+  .public-promissory-scroll-box {
     margin: 0 !important;
     padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    border: none !important;
+    box-shadow: none !important;
     filter: none !important;
     width: 100% !important;
+    background: transparent !important;
+    overflow: visible !important;
+    display: block !important;
   }
 
-  .modal-overlay {
+  .modal-overlay.active {
     position: static !important;
     background: transparent !important;
     backdrop-filter: none !important;
@@ -3679,6 +4124,7 @@ body.modal-open #app {
     display: none !important;
   }
 }
+
 
 
 

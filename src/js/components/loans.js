@@ -2,8 +2,10 @@
 // Simulador Dinâmico, Emissão de Novos Empréstimos e Gestão de Contratos - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, formatDateForInput, showToast } from '../utils.js';
+import { formatBRL, formatDate, formatDateForInput, createWhatsAppUrl, showToast } from '../utils.js';
 import { calculateAmortizationSchedule } from '../finance.js';
+import { getPromissorySigningUrl } from './publicSignPortal.js';
+import { icon } from '../icons.js';
 
 export function renderLoans(options = {}) {
   const container = document.createElement('div');
@@ -281,11 +283,14 @@ export function renderLoans(options = {}) {
                       </div>
                       ${loan.notes ? `<div style="font-size: 0.75rem; color: var(--text-400); margin-top: 4px;">Obs: ${loan.notes}</div>` : ''}
                     </div>
-                    <div style="text-align: right;">
-                      <span class="badge ${loan.status === 'paid' ? 'badge-paid' : 'badge-pending'}">
-                        ${loan.status === 'paid' ? 'Quitado' : 'Em Andamento'}
-                      </span>
-                      <div style="font-size: 1.2rem; font-weight: 800; color: var(--green); margin-top: 4px;">
+                    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                      <div style="display: flex; gap: 6px; align-items: center;">
+                        ${loan.signature ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;">✓ Assinada</span>` : ''}
+                        <span class="badge ${loan.status === 'paid' ? 'badge-paid' : 'badge-pending'}">
+                          ${loan.status === 'paid' ? 'Quitado' : 'Em Andamento'}
+                        </span>
+                      </div>
+                      <div style="font-size: 1.2rem; font-weight: 800; color: var(--green);">
                         ${formatBRL(loan.totalPayable)}
                       </div>
                     </div>
@@ -306,6 +311,9 @@ export function renderLoans(options = {}) {
                   <div class="loan-card-actions">
                     <button class="btn btn-secondary btn-sm btn-print-promissoria" data-loan-id="${loan.id}">
                       Promissória
+                    </button>
+                    <button class="btn btn-whatsapp btn-sm btn-wpp-promissoria" data-loan-id="${loan.id}" style="background: #25d366; color: #fff; font-weight: 700; border: none; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;" title="Enviar Promissória e Link de Assinatura via WhatsApp">
+                      ${icon('whatsapp', 13)} WhatsApp
                     </button>
                     <button class="btn btn-secondary btn-sm btn-ver-parcelas-loan" data-loan-id="${loan.id}">
                       Parcelas
@@ -544,6 +552,41 @@ export function renderLoans(options = {}) {
     container.querySelectorAll('.btn-print-promissoria').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openPromissoryModal(btn.dataset.loanId);
+      });
+    });
+
+    container.querySelectorAll('.btn-wpp-promissoria').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const loanId = btn.dataset.loanId;
+        const loan = state.getLoanById(loanId);
+        if (!loan) return;
+        const client = state.getClientById(loan.clientId);
+        if (!client) return;
+        const loanInsts = state.getInstallments({ loanId });
+        const settings = state.getSettings();
+        const inst = loanInsts[0];
+        const isSingle = (loanInsts.length === 1);
+        const signingUrl = getPromissorySigningUrl(loan, client, inst, settings);
+        const amountVal = isSingle ? loan.totalPayable : (inst ? inst.installmentAmount : loan.totalPayable);
+        const dueVal = inst ? inst.dueDate : loan.startDate;
+        const numDesc = isSingle ? 'Única' : (inst ? `#01/${String(loanInsts.length).padStart(2, '0')}` : 'Carnê');
+
+        const msg = `🏍️ *VANDO MOTOS LOCADORA - NOTA PROMISSÓRIA*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nOlá, *${client.name}*!\n\nSegue o resumo da sua Nota Promissória referente ao seu empréstimo:\n\n📄 *Título:* Nota Promissória Oficial ${numDesc}\n💰 *Valor do Título:* ${formatBRL(amountVal)}\n📅 *Vencimento:* ${formatDate(dueVal)}\n🏛️ *Credor:* ${settings.businessName}\n📍 *Praça de Pagamento:* ${settings.creditorCity || 'PORTO VELHO RONDONIA'}\n\n✍️ *ASSINE SUA NOTA PROMISSÓRIA ONLINE:*\nAcesse o link seguro abaixo para conferir o documento oficial e assinar com o dedo na tela do seu celular:\n👉 ${signingUrl}\n\n_Documento com validade jurídica integral (MP nº 2.200-2/2001 e Lei Federal nº 14.063/2020)._\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+        if (client.phone) {
+          const url = createWhatsAppUrl(client.phone, msg);
+          window.open(url, '_blank');
+        } else {
+          const inputPhone = prompt('O cliente não possui telefone cadastrado. Digite o número com DDD para abrir o WhatsApp (ex: 69999999999):');
+          if (inputPhone) {
+            const url = createWhatsAppUrl(inputPhone, msg);
+            window.open(url, '_blank');
+          } else {
+            navigator.clipboard.writeText(msg).then(() => {
+              showToast('Mensagem com link copiada para a área de transferência!');
+            });
+          }
+        }
       });
     });
 

@@ -20,6 +20,7 @@ import { createSearchOverlay, openSearch, closeSearch } from './js/components/se
 import { createClientStatementModal } from './js/components/clientStatementModal.js';
 import { formatDateForInput } from './js/utils.js';
 import { generateMonthlyReportPDF, generateClientReportPDF, openMonthlyReportModal } from './js/components/pdfExport.js';
+import { decodePromissorySigningToken, renderPublicSigningPortal } from './js/components/publicSignPortal.js';
 
 // Desativa restauração automática de rolagem do navegador para que a página sempre inicie no topo
 if ('scrollRestoration' in history) {
@@ -43,8 +44,32 @@ export function onAuthSuccess() {
 }
 export const onLoginSuccess = onAuthSuccess;
 
-// Inicializa a tela de login por PIN antes de qualquer outra inicialização
-createLoginScreen(onAuthSuccess);
+// Verificação de Acesso Público para Assinatura Digital de Nota Promissória pelo Cliente
+const urlParams = new URLSearchParams(window.location.search);
+const signToken = urlParams.get('sign') || urlParams.get('assinar');
+const isPublicSigningMode = !!signToken;
+
+if (isPublicSigningMode) {
+  const decodedData = decodePromissorySigningToken(signToken);
+  if (decodedData) {
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.style.display = 'none';
+
+    let portalEl = document.getElementById('public-portal-root');
+    if (!portalEl) {
+      portalEl = document.createElement('div');
+      portalEl.id = 'public-portal-root';
+      portalEl.className = 'public-portal-root';
+      document.body.appendChild(portalEl);
+    }
+    renderPublicSigningPortal(portalEl, decodedData);
+  } else {
+    alert('O link de assinatura digital é inválido ou está expirado. Por favor, solicite um novo link à Vando Motos Locadora.');
+  }
+} else {
+  // Inicializa a tela de login por PIN antes de qualquer outra inicialização
+  createLoginScreen(onAuthSuccess);
+}
 
 let currentTab = 'dashboard';
 let currentTabOptions = {};
@@ -415,7 +440,7 @@ state.subscribe(() => {
 });
 
 // Versão da Aplicação e Gestão de Cache PWA
-const CURRENT_APP_VERSION = '2.8.0';
+const CURRENT_APP_VERSION = '2.9.0';
 try {
   const lastVersion = localStorage.getItem('vando_app_version');
   if (lastVersion !== CURRENT_APP_VERSION) {
@@ -474,10 +499,10 @@ if ('serviceWorker' in navigator) {
     });
   });
 
-  // Quando o novo Service Worker assumir o controle, recarrega a página automaticamente
+  // Quando o novo Service Worker assumir o controle, recarrega a página automaticamente (apenas no app do operador)
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
+    if (!refreshing && !isPublicSigningMode) {
       refreshing = true;
       window.location.reload();
     }
@@ -486,6 +511,6 @@ if ('serviceWorker' in navigator) {
 
 // Inicialização: Só entra no dashboard se já estiver autenticado na sessão atual.
 // Caso contrário, o dashboard só será aberto quando o PIN correto for inserido.
-if (isAuthenticated()) {
+if (!isPublicSigningMode && isAuthenticated()) {
   onAuthSuccess();
 }

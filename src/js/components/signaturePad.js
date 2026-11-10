@@ -107,7 +107,7 @@ function getOrCreateSignatureModal() {
   return modal;
 }
 
-function initCanvas(canvas) {
+export function initCanvas(canvas) {
   const ctx = canvas.getContext('2d');
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;

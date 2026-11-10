@@ -306,6 +306,38 @@ class StateManager {
     return newLoan;
   }
 
+  updateLoan(id, updates = {}) {
+    const loan = this.getLoanById(id);
+    if (!loan) return null;
+
+    Object.assign(loan, updates);
+    this.save();
+
+    if (isSupabaseConfigured()) {
+      pushAllToSupabase(this.data).catch(err => {
+        console.warn('Erro ao atualizar empréstimo no Supabase:', err);
+      });
+    }
+    this.notify();
+    return loan;
+  }
+
+  updateInstallment(id, updates = {}) {
+    const inst = this.getInstallmentById(id);
+    if (!inst) return null;
+
+    Object.assign(inst, updates);
+    this.save();
+
+    if (isSupabaseConfigured()) {
+      pushAllToSupabase(this.data).catch(err => {
+        console.warn('Erro ao atualizar parcela no Supabase:', err);
+      });
+    }
+    this.notify();
+    return inst;
+  }
+
   async deleteLoan(id) {
     this.data.loans = this.data.loans.filter(l => l.id !== id);
     this.data.installments = this.data.installments.filter(i => i.loanId !== id);
