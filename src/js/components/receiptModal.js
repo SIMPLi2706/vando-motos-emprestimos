@@ -50,8 +50,14 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
   const numFormatado = String(currentIndex).padStart(2, '0');
   const totalFormatado = String(totalCount).padStart(2, '0');
 
-  // Verifica se há assinatura eletrônica salva (no installment ou no loan)
-  const sig = (installment && installment.signature) || (loan && loan.signature) || null;
+  // Verifica se há assinatura eletrônica salva (no installment, no loan ou no localStorage)
+  let sig = (installment && installment.signature) || (loan && loan.signature) || null;
+  if (!sig && loan && loan.id) {
+    try {
+      const raw = localStorage.getItem(`vando_signed_${loan.id}`);
+      if (raw) sig = JSON.parse(raw);
+    } catch (e) {}
+  }
   let signatureAreaHtml = `
     <div class="paw-line"></div>
     <div class="paw-name" style="color: #000000 !important;">${emitenteNome}</div>

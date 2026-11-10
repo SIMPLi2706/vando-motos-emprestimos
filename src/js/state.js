@@ -148,6 +148,23 @@ class StateManager {
           this.data.loans = [];
           this.data.installments = [];
         }
+
+        // Reconcilia assinaturas digitais salvas no navegador
+        if (this.data.loans && this.data.loans.length > 0) {
+          this.data.loans.forEach(loan => {
+            if (!loan.signature) {
+              try {
+                const savedSig = localStorage.getItem(`vando_signed_${loan.id}`);
+                if (savedSig) {
+                  loan.signature = JSON.parse(savedSig);
+                  loan.signedAt = loan.signature.timestamp;
+                  loan.signProtocol = loan.signature.protocol;
+                }
+              } catch (e) {}
+            }
+          });
+        }
+
         this.save();
       } else {
         // NUNCA carrega dados fictícios automaticamente. O sistema inicia sempre limpo.
@@ -388,9 +405,10 @@ class StateManager {
     const inst = this.getInstallmentById(installmentId);
     if (!inst) throw new Error('Parcela não encontrada.');
 
-    const amountPaid = Number(paymentInfo.amountPaid);
-    const paymentDate = paymentInfo.paymentDate || formatDateForInput();
-    const paymentMethod = paymentInfo.paymentMethod || 'PIX';
+    const rawAmount = paymentInfo.amountPaid !== undefined ? paymentInfo.amountPaid : paymentInfo.paidAmount;
+    const amountPaid = Number(rawAmount !== undefined ? rawAmount : inst.installmentAmount);
+    const paymentDate = paymentInfo.paymentDate || paymentInfo.paidDate || formatDateForInput();
+    const paymentMethod = paymentInfo.paymentMethod || paymentInfo.method || 'PIX';
     const notes = paymentInfo.notes || '';
     const discount = Number(paymentInfo.discount || 0);
     const lateChargesPaid = Number(paymentInfo.lateChargesPaid || 0);
@@ -412,8 +430,8 @@ class StateManager {
     inst.paymentHistory = inst.paymentHistory || [];
     inst.paymentHistory.push(receipt);
 
-    // Se o valor pago cobriu o total da parcela (considerando descontos)
-    if (newTotalPaid + discount >= inst.installmentAmount) {
+    // Se o valor pago cobriu o total da parcela (com tolerância de centavos)
+    if (newTotalPaid + discount >= Number(inst.installmentAmount) - 0.01) {
       inst.status = 'paid';
       inst.paidDate = paymentDate;
     } else {

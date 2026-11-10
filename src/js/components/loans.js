@@ -285,7 +285,7 @@ export function renderLoans(options = {}) {
                     </div>
                     <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                       <div style="display: flex; gap: 6px; align-items: center;">
-                        ${loan.signature ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;">✓ Assinada</span>` : ''}
+                        ${(loan.signature || localStorage.getItem(`vando_signed_${loan.id}`)) ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;">✓ Assinada</span>` : ''}
                         <span class="badge ${loan.status === 'paid' ? 'badge-paid' : 'badge-pending'}">
                           ${loan.status === 'paid' ? 'Quitado' : 'Em Andamento'}
                         </span>

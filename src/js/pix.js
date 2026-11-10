@@ -151,28 +151,52 @@ export function createPixModal() {
     if (url) window.open(url, '_blank');
   });
 
-  window.openPixModal = function(installmentId) {
-    const inst = state.getInstallmentById(installmentId);
-    if (!inst) return;
+  window.openPixModal = function(param) {
+    let clientName = 'Cliente';
+    let phone = '';
+    let finalAmount = 0;
+    let titleDesc = '';
+    let txid = 'COBRANCA';
+    let instNumber = 1;
 
-    const client = state.getClientById(inst.clientId) || { name: 'Cliente', phone: '' };
-    const loan = state.getLoanById(inst.loanId) || {};
     const settings = state.getSettings();
 
-    // Se estiver atrasada, calcula com multa e juros
-    let finalAmount = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
-    const today = new Date().toISOString().split('T')[0];
-    if (inst.dueDate < today && inst.status !== 'paid') {
-      const charges = calculateLateCharges(
-        inst,
-        new Date(),
-        loan.penaltyRate || settings.defaultPenaltyRate,
-        loan.dailyInterestRate || settings.defaultDailyRate
-      );
-      finalAmount = charges.totalUpdatedAmount;
+    if (typeof param === 'string') {
+      const inst = state.getInstallmentById(param);
+      if (!inst) return;
+
+      const client = state.getClientById(inst.clientId) || { name: 'Cliente', phone: '' };
+      const loan = state.getLoanById(inst.loanId) || {};
+
+      clientName = client.name;
+      phone = client.phone;
+      instNumber = inst.number;
+      finalAmount = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
+
+      const today = new Date().toISOString().split('T')[0];
+      if (inst.dueDate < today && inst.status !== 'paid') {
+        const charges = calculateLateCharges(
+          inst,
+          new Date(),
+          loan.penaltyRate || settings.defaultPenaltyRate,
+          loan.dailyInterestRate || settings.defaultDailyRate
+        );
+        finalAmount = charges.totalUpdatedAmount;
+      }
+      titleDesc = `${client.name} • Parcela nº ${inst.number} (Venc. ${formatDate(inst.dueDate)})`;
+      txid = `PARC${inst.number}`;
+    } else if (typeof param === 'object' && param !== null) {
+      clientName = param.clientName || 'Cliente';
+      phone = param.phone || '';
+      finalAmount = Number(param.amount) || 0;
+      titleDesc = param.description || `${clientName} • Cobrança Avulsa`;
+      txid = param.txid || 'AVULSO';
+      instNumber = param.instNumber || 1;
+    } else {
+      return;
     }
 
-    modal.querySelector('#pix-client-title').textContent = `${client.name} • Parcela nº ${inst.number} (Venc. ${formatDate(inst.dueDate)})`;
+    modal.querySelector('#pix-client-title').textContent = titleDesc;
     modal.querySelector('#pix-amount-title').textContent = formatBRL(finalAmount);
 
     const payload = generatePixPayload({
@@ -180,7 +204,7 @@ export function createPixModal() {
       name: settings.pixHolder || settings.businessName,
       city: settings.creditorCity || 'PORTO VELHO',
       amount: finalAmount,
-      txid: `PARC${inst.number}`
+      txid: txid
     });
 
     textarea.value = payload;
@@ -197,9 +221,9 @@ export function createPixModal() {
     });
 
     currentWppData = {
-      clientName: client.name,
-      phone: client.phone,
-      instNumber: inst.number,
+      clientName: clientName,
+      phone: phone,
+      instNumber: instNumber,
       amount: finalAmount,
       businessName: settings.businessName
     };
