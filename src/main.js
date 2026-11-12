@@ -1,7 +1,7 @@
 // src/main.js
 // Ponto de Entrada da Aplicação e Roteamento de Telas - Vando Motos Locadora LTDA
 
-import { createLoginScreen, isAuthenticated } from './js/components/loginScreen.js';
+import { createLoginScreen, isAuthenticated, getCurrentOperator, openOperatorSwitch } from './js/components/loginScreen.js';
 import { state } from './js/state.js';
 window.state = state;
 import { renderDashboard } from './js/components/dashboard.js';
@@ -18,6 +18,7 @@ import { createPixModal } from './js/pix.js';
 import { createCashRegisterModal } from './js/components/cashRegisterModal.js';
 import { createSearchOverlay, openSearch, closeSearch } from './js/components/searchBar.js';
 import { createClientStatementModal } from './js/components/clientStatementModal.js';
+import { createLoanManageModals } from './js/components/loanManageModal.js';
 import { formatDateForInput } from './js/utils.js';
 import { generateMonthlyReportPDF, generateClientReportPDF, openMonthlyReportModal } from './js/components/pdfExport.js';
 import { decodePromissorySigningToken, renderPublicSigningPortal } from './js/components/publicSignPortal.js';
@@ -39,6 +40,7 @@ window.addEventListener('pageshow', () => {
 // Callback exportado disparado após autenticação bem-sucedida pelo PIN
 export function onAuthSuccess() {
   updateBrandDisplay();
+  updateOperatorDisplay();
   navigateToTab('dashboard');
   window.scrollTo(0, 0);
 }
@@ -82,6 +84,7 @@ createPixModal();
 createCashRegisterModal();
 createSearchOverlay();
 createClientStatementModal();
+createLoanManageModals();
 
 let navTransitionTimeout = null;
 let navEnterTimeout = null;
@@ -216,6 +219,20 @@ export function updateBrandDisplay() {
     footerBusiness.textContent = settings.businessName;
   }
 }
+
+export function updateOperatorDisplay() {
+  const op = getCurrentOperator();
+  const sopName = document.getElementById('sidebar-operator-name');
+  if (sopName && op) {
+    const roleTag = op.role === 'collector' ? 'Cobrador' : 'Admin';
+    sopName.textContent = `${op.name} (${roleTag})`;
+  }
+}
+
+document.getElementById('btn-switch-operator-sidebar')?.addEventListener('click', () => {
+  closeMobileDrawer();
+  openOperatorSwitch();
+});
 
 function updateOverdueBadge() {
   const todayStr = formatDateForInput(new Date());
@@ -426,6 +443,7 @@ document.getElementById('btn-header-quick-client')?.addEventListener('click', ()
 window.navigateToTab = navigateToTab;
 window.refreshCurrentTab = refreshCurrentTab;
 window.updateBrandDisplay = updateBrandDisplay;
+window.updateOperatorDisplay = updateOperatorDisplay;
 window.onAuthSuccess = onAuthSuccess;
 window.onLoginSuccess = onAuthSuccess;
 window.openSearch = openSearch;
@@ -440,7 +458,7 @@ state.subscribe(() => {
 });
 
 // Versão da Aplicação e Gestão de Cache PWA
-const CURRENT_APP_VERSION = '2.9.0';
+const CURRENT_APP_VERSION = '3.0.0';
 try {
   const lastVersion = localStorage.getItem('vando_app_version');
   if (lastVersion !== CURRENT_APP_VERSION) {
@@ -499,10 +517,11 @@ if ('serviceWorker' in navigator) {
     });
   });
 
-  // Quando o novo Service Worker assumir o controle, recarrega a página automaticamente (apenas no app do operador)
+  // Quando um Service Worker existente é substituído por uma nova versão, recarrega automaticamente
+  const hadController = !!navigator.serviceWorker.controller;
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing && !isPublicSigningMode) {
+    if (hadController && !refreshing && !isPublicSigningMode) {
       refreshing = true;
       window.location.reload();
     }

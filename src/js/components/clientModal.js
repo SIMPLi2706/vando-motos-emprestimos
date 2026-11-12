@@ -62,14 +62,31 @@ export function createClientModal() {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Endereço Residencial / Comercial</label>
-              <input type="text" class="form-control" id="cli-address" placeholder="Rua, número, bairro, cidade" autocomplete="street-address">
+              <label class="form-label">Indicado por (Opcional)</label>
+              <input type="text" class="form-control" id="cli-referred-by" list="cli-referred-list" placeholder="Nome de quem indicou" autocomplete="off">
+              <datalist id="cli-referred-list"></datalist>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Endereço Residencial / Comercial</label>
+            <input type="text" class="form-control" id="cli-address" placeholder="Rua, número, bairro, cidade" autocomplete="street-address">
           </div>
 
           <div class="form-group">
             <label class="form-label">Observações Internas</label>
             <textarea class="form-control" id="cli-notes" rows="2" placeholder="Garantias, fiador, local de trabalho ou referências..."></textarea>
+          </div>
+
+          <!-- Lista de Restrição / Bloqueio -->
+          <div class="client-block-box">
+            <label class="client-block-toggle">
+              <input type="checkbox" id="cli-blocked">
+              <span><strong>Bloquear para novos empréstimos</strong> (Lista de Restrição)</span>
+            </label>
+            <div id="cli-blocked-reason-wrap" style="display: none; margin-top: 8px;">
+              <input type="text" class="form-control" id="cli-blocked-reason" placeholder="Motivo da restrição (ex: Inadimplência recorrente, acordo descumprido...)">
+            </div>
           </div>
         </div>
 
@@ -92,6 +109,14 @@ export function createClientModal() {
   const cancelBtn = modal.querySelector('#client-modal-cancel');
   const inputCpf = modal.querySelector('#cli-cpf');
   const inputPhone = modal.querySelector('#cli-phone');
+  const chkBlocked = modal.querySelector('#cli-blocked');
+  const blockedReasonWrap = modal.querySelector('#cli-blocked-reason-wrap');
+
+  chkBlocked?.addEventListener('change', () => {
+    if (blockedReasonWrap) {
+      blockedReasonWrap.style.display = chkBlocked.checked ? 'block' : 'none';
+    }
+  });
 
   inputCpf.addEventListener('input', (e) => {
     e.target.value = maskCPF(e.target.value);
@@ -142,8 +167,11 @@ export function createClientModal() {
     const cpf = modal.querySelector('#cli-cpf').value.trim();
     const phone = modal.querySelector('#cli-phone').value.trim();
     const creditLimit = Number(modal.querySelector('#cli-limit').value || 0);
+    const referredBy = modal.querySelector('#cli-referred-by')?.value.trim() || '';
     const address = modal.querySelector('#cli-address').value.trim();
     const notes = modal.querySelector('#cli-notes').value.trim();
+    const blocked = !!chkBlocked?.checked;
+    const blockedReason = blocked ? (modal.querySelector('#cli-blocked-reason')?.value.trim() || '') : '';
 
     if (!name || !phone) {
       showToast('Nome e telefone são obrigatórios.', 'error');
@@ -156,8 +184,11 @@ export function createClientModal() {
       cpf,
       phone,
       creditLimit,
+      referredBy,
       address,
-      notes
+      notes,
+      blocked,
+      blockedReason
     });
 
     closeModal();
@@ -168,6 +199,17 @@ export function createClientModal() {
   window.openClientModal = function(clientId = null, prefillData = null) {
     const modalBody = modal.querySelector('.modal-body');
     if (modalBody) modalBody.scrollTop = 0;
+
+    // Popula sugestões de "Indicado por" com nomes de clientes existentes e indicações anteriores
+    const refList = modal.querySelector('#cli-referred-list');
+    if (refList) {
+      const suggestions = new Set();
+      state.getClients().forEach(c => {
+        if (c.id !== clientId && c.name) suggestions.add(c.name);
+        if (c.referredBy) suggestions.add(c.referredBy);
+      });
+      refList.innerHTML = Array.from(suggestions).map(n => `<option value="${n.replace(/"/g, '&quot;')}"></option>`).join('');
+    }
 
     const pdfBtn = modal.querySelector('#client-modal-pdf');
     const statementBtn = modal.querySelector('#client-modal-statement');
@@ -180,8 +222,12 @@ export function createClientModal() {
       modal.querySelector('#cli-cpf').value = client.cpf || '';
       modal.querySelector('#cli-phone').value = client.phone || '';
       modal.querySelector('#cli-limit').value = client.creditLimit || 5000;
+      modal.querySelector('#cli-referred-by').value = client.referredBy || '';
       modal.querySelector('#cli-address').value = client.address || '';
       modal.querySelector('#cli-notes').value = client.notes || '';
+      if (chkBlocked) chkBlocked.checked = !!client.blocked;
+      modal.querySelector('#cli-blocked-reason').value = client.blockedReason || '';
+      if (blockedReasonWrap) blockedReasonWrap.style.display = client.blocked ? 'block' : 'none';
       if (pdfBtn) {
         pdfBtn.style.display = 'inline-flex';
         pdfBtn.onclick = () => generateClientReportPDF(client.id);
@@ -199,6 +245,8 @@ export function createClientModal() {
       modal.querySelector('#cli-id').value = '';
       form.reset();
       modal.querySelector('#cli-limit').value = '5000';
+      if (chkBlocked) chkBlocked.checked = false;
+      if (blockedReasonWrap) blockedReasonWrap.style.display = 'none';
       if (pdfBtn) pdfBtn.style.display = 'none';
       if (statementBtn) statementBtn.style.display = 'none';
 

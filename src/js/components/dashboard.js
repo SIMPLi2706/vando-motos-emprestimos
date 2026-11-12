@@ -2,7 +2,7 @@
 // Visão Geral, Indicadores Financeiros e Painel Rápido - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, createWhatsAppUrl, formatDateForInput } from '../utils.js';
+import { formatBRL, formatDate, createWhatsAppUrl, formatDateForInput, escapeHtml, buildWhatsAppCollectionMessage } from '../utils.js';
 import { calculateLateCharges } from '../finance.js';
 import { icon } from '../icons.js';
 
@@ -10,13 +10,16 @@ export function renderDashboard() {
   const container = document.createElement('div');
   container.className = 'dashboard-view animate-fade-in';
 
-  const clients = state.getClients();
   const loans = state.getLoans();
   const installments = state.getInstallments();
   const settings = state.getSettings();
   const interestStats = state.getInterestProfitStats();
 
-  const todayStr = formatDateForInput(new Date());
+  const todayDate = new Date();
+  const todayStr = formatDateForInput(todayDate);
+  const plus3Date = new Date(todayDate);
+  plus3Date.setDate(plus3Date.getDate() + 3);
+  const plus3Str = formatDateForInput(plus3Date);
 
   // Cálculos de Indicadores
   let capitalNaRua = 0;
@@ -35,6 +38,8 @@ export function renderDashboard() {
 
   // Analisa parcelas
   const todayDueList = [];
+  const upcomingList = [];
+  const promiseList = [];
   const overdueList = [];
   const recentPayments = [];
 
@@ -42,13 +47,20 @@ export function renderDashboard() {
     const isPaid = inst.status === 'paid';
     const client = state.getClientById(inst.clientId) || { name: 'Cliente', phone: '' };
     const pendingAmount = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
+    const dueNorm = String(inst.dueDate || '').split('T')[0];
 
     if (!isPaid) {
       capitalNaRua += Number(inst.amortizationAmount || pendingAmount);
 
-      if (inst.dueDate === todayStr) {
+      if (inst.promisedDate) {
+        promiseList.push({ ...inst, client });
+      }
+
+      if (dueNorm === todayStr) {
         todayDueList.push({ ...inst, client });
-      } else if (inst.dueDate < todayStr) {
+      } else if (dueNorm > todayStr && dueNorm <= plus3Str) {
+        upcomingList.push({ ...inst, client });
+      } else if (dueNorm < todayStr) {
         const charges = calculateLateCharges(
           inst,
           new Date(),
@@ -74,6 +86,8 @@ export function renderDashboard() {
 
   recentPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
   overdueList.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+  promiseList.sort((a, b) => String(a.promisedDate || '').localeCompare(String(b.promisedDate || '')));
+  upcomingList.sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
 
   container.innerHTML = `
     <!-- Banner de Alerta para Parcelas em Atraso -->
@@ -291,10 +305,10 @@ export function renderDashboard() {
                   </button>
                   <button class="btn btn-whatsapp btn-sm btn-action-whatsapp" 
                     data-client="${encodeURIComponent(item.client.name)}"
-                    data-phone="${item.client.phone}"
+                    data-phone="${escapeHtml(item.client.phone || '')}"
                     data-amount="${item.installmentAmount}"
                     data-number="${item.number}"
-                    data-date="${formatDate(item.dueDate)}">
+                    data-raw-date="${String(item.dueDate || '').split('T')[0]}">
                     WhatsApp
                   </button>
                   <button class="btn btn-primary btn-sm btn-action-pay" data-id="${item.id}">
@@ -326,7 +340,7 @@ export function renderDashboard() {
             ${overdueList.slice(0, 4).map(item => `
               <div class="due-item-card due-item-overdue">
                 <div class="due-item-header">
-                  <div class="due-item-name">${item.client.name}</div>
+                  <div class="due-item-name">${escapeHtml(item.client.name)}</div>
                   <div class="due-item-amount text-danger">${formatBRL(item.charges.totalUpdatedAmount)}</div>
                 </div>
                 <div class="due-item-sub">
@@ -338,10 +352,10 @@ export function renderDashboard() {
                   </button>
                   <button class="btn btn-whatsapp btn-sm btn-action-whatsapp-overdue" 
                     data-client="${encodeURIComponent(item.client.name)}"
-                    data-phone="${item.client.phone}"
+                    data-phone="${escapeHtml(item.client.phone || '')}"
                     data-amount="${item.charges.totalUpdatedAmount}"
                     data-number="${item.number}"
-                    data-date="${formatDate(item.dueDate)}"
+                    data-raw-date="${String(item.dueDate || '').split('T')[0]}"
                     data-days="${item.charges.daysOverdue}">
                     Cobrar
                   </button>
@@ -355,6 +369,85 @@ export function renderDashboard() {
         `}
       </div>
 
+    </div>
+
+    <!-- Agenda de Promessas & Preventivos (Vencem em Breve 3d) -->
+    <div class="dashboard-columns-grid" style="margin-top: 20px;">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">${icon('bell', 16)} Promessas de Pagamento (${promiseList.length})</h3>
+            <p class="card-subtitle">Compromissos combinados com os clientes</p>
+          </div>
+        </div>
+        ${promiseList.length === 0 ? `
+          <div class="empty-state-box">
+            <p>Nenhuma promessa de pagamento agendada no momento.</p>
+          </div>
+        ` : `
+          <div class="due-items-list">
+            ${promiseList.slice(0, 4).map(item => {
+              const duePromiseToday = item.promisedDate <= todayStr;
+              return `
+                <div class="due-item-card ${duePromiseToday ? 'due-item-overdue' : ''}">
+                  <div class="due-item-header">
+                    <div class="due-item-name">${escapeHtml(item.client.name)}</div>
+                    <div class="due-item-amount ${duePromiseToday ? 'text-danger' : 'text-yellow'}">${formatDate(item.promisedDate)}</div>
+                  </div>
+                  <div class="due-item-sub">
+                    Parcela nº ${item.number} (${formatBRL(item.installmentAmount)})${item.promiseNote ? ` • "${escapeHtml(item.promiseNote)}"` : ''}
+                  </div>
+                  <div class="due-item-actions">
+                    <button class="btn btn-secondary btn-sm btn-dash-promise" data-id="${item.id}">Editar</button>
+                    <button class="btn btn-primary btn-sm btn-action-pay" data-id="${item.id}">Baixar</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">${icon('clock', 16)} Vencem em Breve — Próximos 3 dias (${upcomingList.length})</h3>
+            <p class="card-subtitle">Envie lembrete preventivo antes do vencimento</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-ver-em-breve">Ver Filtro</button>
+        </div>
+        ${upcomingList.length === 0 ? `
+          <div class="empty-state-box">
+            <p>Nenhum vencimento nos próximos 3 dias.</p>
+          </div>
+        ` : `
+          <div class="due-items-list">
+            ${upcomingList.slice(0, 4).map(item => `
+              <div class="due-item-card">
+                <div class="due-item-header">
+                  <div class="due-item-name">${escapeHtml(item.client.name)}</div>
+                  <div class="due-item-amount text-yellow">${formatBRL(item.installmentAmount)}</div>
+                </div>
+                <div class="due-item-sub">
+                  Parcela nº ${item.number} • Vence em <strong>${formatDate(item.dueDate)}</strong>
+                </div>
+                <div class="due-item-actions">
+                  <button class="btn btn-whatsapp btn-sm btn-action-whatsapp"
+                    data-client="${encodeURIComponent(item.client.name)}"
+                    data-phone="${escapeHtml(item.client.phone || '')}"
+                    data-amount="${item.installmentAmount}"
+                    data-number="${item.number}"
+                    data-raw-date="${String(item.dueDate || '').split('T')[0]}"
+                    data-stage="upcoming">
+                    ${icon('whatsapp', 13)} Lembrar
+                  </button>
+                  <button class="btn btn-secondary btn-sm btn-dash-promise" data-id="${item.id}">Promessa</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
     </div>
 
     <!-- Histórico de Últimos Recebimentos -->
@@ -422,21 +515,34 @@ export function renderDashboard() {
       window.navigateToTab('installments', { filter: 'overdue' });
     });
 
+    container.querySelector('#btn-ver-em-breve')?.addEventListener('click', () => {
+      window.navigateToTab('installments', { filter: 'upcoming' });
+    });
+
+    container.querySelectorAll('.btn-dash-promise').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.openPromiseModal(btn.dataset.id);
+      });
+    });
+
     container.querySelectorAll('.btn-action-whatsapp').forEach(btn => {
       btn.addEventListener('click', () => {
-        const client = decodeURIComponent(btn.dataset.client);
+        const clientName = decodeURIComponent(btn.dataset.client);
         const phone = btn.dataset.phone;
-        const amount = formatBRL(btn.dataset.amount);
-        const number = btn.dataset.number;
-        const date = btn.dataset.date;
-        
-        let msg = settings.whatsappTemplate
-          .replace('{cliente}', client)
-          .replace('{parcela_num}', number)
-          .replace('{valor_parcela}', amount)
-          .replace('{data_vencimento}', date)
-          .replace('{chave_pix}', settings.pixKey)
-          .replace('{titular_pix}', settings.pixHolder);
+        const amount = Number(btn.dataset.amount || 0);
+        const installmentNumber = btn.dataset.number;
+        const rawDueDate = btn.dataset.rawDate;
+        const stageOverride = btn.dataset.stage || null;
+
+        const msg = buildWhatsAppCollectionMessage({
+          clientName,
+          installmentNumber,
+          amount,
+          dueDate: rawDueDate,
+          daysOverdue: 0,
+          settings: state.getSettings(),
+          stageOverride
+        });
 
         const url = createWhatsAppUrl(phone, msg);
         if (url) window.open(url, '_blank');
@@ -445,15 +551,22 @@ export function renderDashboard() {
 
     container.querySelectorAll('.btn-action-whatsapp-overdue').forEach(btn => {
       btn.addEventListener('click', () => {
-        const client = decodeURIComponent(btn.dataset.client);
+        const clientName = decodeURIComponent(btn.dataset.client);
         const phone = btn.dataset.phone;
-        const amount = formatBRL(btn.dataset.amount);
-        const number = btn.dataset.number;
-        const date = btn.dataset.date;
-        const days = btn.dataset.days;
+        const amount = Number(btn.dataset.amount || 0);
+        const installmentNumber = btn.dataset.number;
+        const rawDueDate = btn.dataset.rawDate;
+        const daysOverdue = Number(btn.dataset.days || 1);
 
-        const msg = `Olá, ${client}! Constatamos que sua parcela nº ${number} (vencida em ${date}, há ${days} dias) continua em aberto. O valor atualizado para quitação hoje com os encargos é ${amount}.\n\nPara quitar via PIX:\nChave: ${settings.pixKey} (${settings.pixHolder})\n\nPor favor, nos envie o comprovante assim que realizar o pagamento.`;
-        
+        const msg = buildWhatsAppCollectionMessage({
+          clientName,
+          installmentNumber,
+          amount,
+          dueDate: rawDueDate,
+          daysOverdue,
+          settings: state.getSettings()
+        });
+
         const url = createWhatsAppUrl(phone, msg);
         if (url) window.open(url, '_blank');
       });

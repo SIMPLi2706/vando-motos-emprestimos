@@ -4123,7 +4123,573 @@ body.modal-open #app {
   .page-break-divider .cut-line-dash {
     display: none !important;
   }
+
+  /* Impressão Térmica (58mm / 80mm) */
+  body.printing-thermal-58 .doc-view-tabs,
+  body.printing-thermal-80 .doc-view-tabs {
+    display: none !important;
+  }
+
+  body.printing-thermal-58 .thermal-58mm {
+    page: thermal58;
+  }
+
+  body.printing-thermal-80 .thermal-80mm {
+    page: thermal80;
+  }
+
+  body.printing-thermal-58 .thermal-ticket,
+  body.printing-thermal-80 .thermal-ticket {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .debt-contract-doc {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    padding: 8mm 10mm !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
 }
+
+@page thermal58 {
+  size: 58mm auto;
+  margin: 2mm;
+}
+
+@page thermal80 {
+  size: 80mm auto;
+  margin: 3mm;
+}
+
+@media print and (max-width: 90mm) {
+  .thermal-ticket {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
+
+/* ============================================================================
+   MELHORIAS OPERACIONAIS, SCORE, GARANTIAS, CONTRATO A4 & CUPOM TÉRMICO
+   ============================================================================ */
+
+/* Badges de Score A/B/C/D */
+.score-pill-sm {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+.score-pill-lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Cartão de Insight de Risco / Limite no Simulador */
+.sim-client-insight-card {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sim-client-insight-card.is-blocked {
+  border-color: rgba(244, 63, 94, 0.55);
+  background: rgba(244, 63, 94, 0.08);
+}
+
+.sci-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sci-ref,
+.sci-exp {
+  font-size: 0.76rem;
+  color: var(--text-300);
+}
+
+.sci-blocked-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #fda4af;
+  font-size: 0.82rem;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: rgba(244, 63, 94, 0.14);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.sci-limit-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--text-300);
+}
+
+.sci-limit-bar {
+  height: 6px;
+  background: var(--bg-1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sci-limit-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.sci-limit-fill.fill-danger {
+  background: var(--red);
+}
+
+.sci-limit-warn {
+  font-size: 0.75rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* Subpainéis Garantia & Avalista no Simulador */
+.sim-subpanel {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.sim-subpanel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--yellow);
+  margin-bottom: 10px;
+}
+
+/* Filtros & Chips de Contratos */
+.filter-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-pill {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  color: var(--text-300);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-pill:hover {
+  border-color: rgba(245, 197, 24, 0.4);
+  color: #fff;
+}
+
+.filter-pill.active {
+  background: rgba(245, 197, 24, 0.16);
+  border-color: var(--yellow);
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.contract-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  font-size: 0.74rem;
+  color: var(--text-200);
+}
+
+.contract-meta-chip.chip-guarantee {
+  background: rgba(245, 197, 24, 0.1);
+  border-color: rgba(245, 197, 24, 0.35);
+  color: #fde68a;
+}
+
+.contract-meta-chip.chip-guarantor {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+}
+
+.contract-meta-chip.chip-discount {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+/* Bloqueio no Modal de Cliente */
+.client-block-box {
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: var(--r-sm);
+  background: rgba(244, 63, 94, 0.06);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.client-block-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  color: #fecdd3;
+}
+
+.client-block-toggle input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--red);
+}
+
+/* Promessas de Pagamento */
+.promise-inline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(245, 197, 24, 0.14);
+  color: var(--yellow);
+  border: 1px solid rgba(245, 197, 24, 0.35);
+}
+
+.promise-inline-badge.promise-due {
+  background: rgba(244, 63, 94, 0.16);
+  color: #fda4af;
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+/* Abas de Documentos (Promissória / Contrato A4 / 58mm / 80mm) & WhatsApp */
+.doc-view-tabs,
+.wpp-stage-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wpp-stage-tabs {
+  margin-bottom: 14px;
+}
+
+.doc-tab-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  color: var(--text-300);
+  padding: 6px 11px;
+  border-radius: var(--r-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doc-tab-btn:hover {
+  color: #fff;
+  border-color: rgba(245, 197, 24, 0.45);
+}
+
+.doc-tab-btn.active {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #090a0d;
+}
+
+/* Contrato A4 Formal de Confissão de Dívida */
+.debt-contract-doc {
+  background: #ffffff;
+  color: #0f172a;
+  padding: 26px 30px;
+  border-radius: 6px;
+  border: 1.5px solid #0f172a;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  font-family: "Times New Roman", Times, Georgia, serif;
+  max-width: 790px;
+  margin: 0 auto;
+}
+
+/* Cupom Térmico (58mm & 80mm) */
+.thermal-ticket {
+  background: #ffffff;
+  color: #000000;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 14px 12px;
+  margin: 0 auto;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  border: 1px dashed #64748b;
+}
+
+.thermal-58mm {
+  width: 58mm;
+  max-width: 100%;
+  font-size: 10.5px;
+}
+
+.thermal-80mm {
+  width: 80mm;
+  max-width: 100%;
+  font-size: 12px;
+}
+
+.tt-center { text-align: center; }
+.tt-bold { font-weight: 800; }
+.tt-lg { font-size: 1.15em; letter-spacing: 0.03em; }
+.tt-sm { font-size: 0.85em; }
+.tt-divider {
+  border-top: 1px dashed #000;
+  margin: 8px 0;
+}
+.tt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.tt-box {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  margin: 6px 0;
+  font-size: 0.92em;
+}
+
+/* Fluxo de Caixa Manual */
+.caixa-manual-box {
+  background: var(--bg-3);
+  border: 1px solid rgba(245, 197, 24, 0.35);
+  border-radius: var(--r-sm);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.caixa-methods-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  font-size: 0.8rem;
+  color: var(--text-300);
+}
+
+/* Previsão de Recebíveis & Score Distribution (Reports) */
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.proj-box {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.proj-label {
+  font-size: 0.72rem;
+  color: var(--text-400);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.proj-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.proj-sub {
+  font-size: 0.68rem;
+  color: var(--text-400);
+}
+
+.proj-summary-bar {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.8rem;
+  color: var(--text-300);
+}
+
+.score-dist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.score-dist-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-bottom: 5px;
+}
+
+.score-dist-bar {
+  height: 8px;
+  background: var(--bg-1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.score-dist-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Operadores & Sidebar Pill */
+.operator-row-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+
+.sidebar-operator-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: var(--r-sm);
+  background: rgba(245, 197, 24, 0.08);
+  border: 1px solid rgba(245, 197, 24, 0.28);
+  color: var(--text-100);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.sop-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+.sop-text {
+  flex: 1;
+  text-align: left;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sop-switch {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+/* Galeria de Anexos */
+.att-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 12px;
+}
+
+.att-card {
+  background: var(--bg-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.att-thumb {
+  width: 100%;
+  height: 135px;
+  object-fit: cover;
+  cursor: zoom-in;
+  background: #000;
+}
+
+.att-meta {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.att-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--yellow);
+}
+
+.att-caption {
+  font-size: 0.78rem;
+  color: var(--text-200);
+}
+
+.att-date {
+  font-size: 0.7rem;
+  color: var(--text-400);
+}
+
 
 
 

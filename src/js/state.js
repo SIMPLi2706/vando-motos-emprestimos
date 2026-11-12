@@ -1,8 +1,8 @@
 // src/js/state.js
 // Gerenciamento de Estado, Persistência Local (LocalStorage) e Nuvem (Supabase / PostgreSQL)
 
-import { generateId, formatDateForInput, addDays, addMonths, formatDate, formatBRL } from './utils.js';
-import { calculateAmortizationSchedule } from './finance.js';
+import { generateId, formatDateForInput, addDays, addMonths, formatDate, formatBRL, DEFAULT_WHATSAPP_STAGE_TEMPLATES } from './utils.js';
+import { calculateAmortizationSchedule, calculateLateCharges } from './finance.js';
 import { isSupabaseConfigured, pullAllFromSupabase, pushAllToSupabase, setupRealtimeSync, deleteClientFromSupabase, deleteLoanFromSupabase, wipeAllFromSupabase } from './supabaseClient.js';
 
 const STORAGE_KEY = 'vandomotos_data_v1';
@@ -17,7 +17,9 @@ const DEFAULT_SETTINGS = {
   pixHolder: 'Vando motos locadora LTDA',
   defaultPenaltyRate: 2.0, // 2% multa
   defaultDailyRate: 0.1,   // 0.1% mora ao dia
-  whatsappTemplate: 'Olá, {cliente}! Lembramos que sua parcela nº {parcela_num} no valor de {valor_parcela} venceu/vence em {data_vencimento}.\n\nPara facilitar o pagamento via PIX da Vando Motos Locadora:\nChave PIX (CNPJ): {chave_pix}\nFavorecido: {titular_pix}\n\nApós o pagamento, envie o comprovante por aqui. Obrigado!',
+  whatsappTemplate: DEFAULT_WHATSAPP_STAGE_TEMPLATES.dueToday,
+  whatsappTemplates: { ...DEFAULT_WHATSAPP_STAGE_TEMPLATES },
+  operators: [],
   geminiApiKey: ''
 };
 
@@ -27,12 +29,41 @@ class StateManager {
       clients: [],
       loans: [],
       installments: [],
+      cashFlows: [],
+      auditLogs: [],
       settings: { ...DEFAULT_SETTINGS }
     };
     this.listeners = [];
     this.isSyncing = false;
     this.load();
     this.initSupabaseSync();
+  }
+
+  getActiveOperatorInfo() {
+    try {
+      const raw = sessionStorage.getItem('vandomotos_current_operator');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { id: 'admin', name: 'Administrador', role: 'admin' };
+  }
+
+  logAudit(action, details, entityType = 'system', entityId = null) {
+    const op = this.getActiveOperatorInfo();
+    this.data.auditLogs = this.data.auditLogs || [];
+    this.data.auditLogs.unshift({
+      id: generateId('aud'),
+      timestamp: new Date().toISOString(),
+      operatorId: op.id || 'admin',
+      operatorName: op.name || 'Administrador',
+      operatorRole: op.role || 'admin',
+      action,
+      entityType,
+      entityId,
+      details
+    });
+    if (this.data.auditLogs.length > 500) {
+      this.data.auditLogs = this.data.auditLogs.slice(0, 500);
+    }
   }
 
   initSupabaseSync() {
@@ -91,10 +122,33 @@ class StateManager {
 
       // Supabase é a autoridade: sincroniza exatamente o que está na nuvem
       this.data.clients = remote.clients || [];
-      this.data.loans = remote.loans || [];
+      this.data.loans = (remote.loans || []).map(l => {
+        if (!l.signature) {
+          try {
+            const savedSig = localStorage.getItem(`vando_signed_${l.id}`);
+            if (savedSig) {
+              const parsedSig = JSON.parse(savedSig);
+              l.signature = parsedSig;
+              l.signedAt = parsedSig.timestamp;
+              l.signProtocol = parsedSig.protocol;
+            }
+          } catch (e) {}
+        }
+        return l;
+      });
       this.data.installments = remote.installments || [];
+      this.data.cashFlows = remote.cashFlows || this.data.cashFlows || [];
+      this.data.auditLogs = remote.auditLogs || this.data.auditLogs || [];
       if (remote.settings) {
-        this.data.settings = { ...this.data.settings, ...remote.settings };
+        this.data.settings = {
+          ...DEFAULT_SETTINGS,
+          ...this.data.settings,
+          ...remote.settings,
+          whatsappTemplates: {
+            ...DEFAULT_WHATSAPP_STAGE_TEMPLATES,
+            ...(remote.settings.whatsappTemplates || {})
+          }
+        };
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
@@ -122,7 +176,14 @@ class StateManager {
 
       if (stored) {
         this.data = JSON.parse(stored);
-        this.data.settings = { ...DEFAULT_SETTINGS, ...(this.data.settings || {}) };
+        this.data.settings = {
+          ...DEFAULT_SETTINGS,
+          ...(this.data.settings || {}),
+          whatsappTemplates: {
+            ...DEFAULT_WHATSAPP_STAGE_TEMPLATES,
+            ...((this.data.settings && this.data.settings.whatsappTemplates) || {})
+          }
+        };
         if (!this.data.settings.businessName || this.data.settings.businessName.includes('CrediSys') || !this.data.settings.creditorCpfCnpj || this.data.settings.creditorCpfCnpj !== '28.623.431-0001-23') {
           this.data.settings.businessName = 'Vando motos locadora LTDA';
           this.data.settings.creditorCpfCnpj = '28.623.431-0001-23';
@@ -135,6 +196,8 @@ class StateManager {
         this.data.clients = this.data.clients || [];
         this.data.loans = this.data.loans || [];
         this.data.installments = this.data.installments || [];
+        this.data.cashFlows = this.data.cashFlows || [];
+        this.data.auditLogs = this.data.auditLogs || [];
 
         const demoNames = ['BRUNO VASQUEZ CASTRO', 'Carlos Silva Santos', 'Mariana Souza Oliveira', 'Roberto Ferreira Dias'];
         if (this.data.clients.some(c => demoNames.includes(c.name))) {
@@ -147,6 +210,7 @@ class StateManager {
           this.data.clients = [];
           this.data.loans = [];
           this.data.installments = [];
+          this.data.cashFlows = [];
         }
 
         // Reconcilia assinaturas digitais salvas no navegador
@@ -172,6 +236,8 @@ class StateManager {
           clients: [],
           loans: [],
           installments: [],
+          cashFlows: [],
+          auditLogs: [],
           settings: { ...DEFAULT_SETTINGS }
         };
         this.save();
@@ -182,6 +248,8 @@ class StateManager {
         clients: [],
         loans: [],
         installments: [],
+        cashFlows: [],
+        auditLogs: [],
         settings: { ...DEFAULT_SETTINGS }
       };
     }
@@ -226,21 +294,146 @@ class StateManager {
   }
 
   saveClient(client) {
-    if (!client.id) {
+    localStorage.removeItem('vandomotos_wiped');
+    const wasNew = !client.id;
+    let prevBlocked = false;
+    if (wasNew) {
       client.id = generateId('cli');
       client.createdAt = new Date().toISOString();
       this.data.clients.unshift(client);
+      this.logAudit('CREATE_CLIENT', `Cliente cadastrado: ${client.name}`, 'client', client.id);
     } else {
       const idx = this.data.clients.findIndex(c => c.id === client.id);
       if (idx !== -1) {
+        prevBlocked = !!this.data.clients[idx].blocked;
         this.data.clients[idx] = { ...this.data.clients[idx], ...client };
+        if (client.blocked !== undefined && client.blocked !== prevBlocked) {
+          this.logAudit(
+            client.blocked ? 'BLOCK_CLIENT' : 'UNBLOCK_CLIENT',
+            `${client.name}: ${client.blocked ? (client.blockedReason || 'Bloqueado na lista de restrição') : 'Desbloqueado'}`,
+            'client',
+            client.id
+          );
+        } else {
+          this.logAudit('UPDATE_CLIENT', `Cadastro atualizado: ${client.name}`, 'client', client.id);
+        }
       }
     }
     this.save();
     return client;
   }
 
+  getClientActiveExposure(clientId) {
+    const client = this.getClientById(clientId) || {};
+    const activeLoans = this.getLoans().filter(l => l.clientId === clientId && l.status === 'active');
+    const openInstallments = this.getInstallments({ clientId }).filter(
+      i => i.status !== 'paid' && i.status !== 'renegotiated'
+    );
+    const openPrincipal = openInstallments.reduce((acc, i) => acc + Number(i.amortizationAmount || i.installmentAmount || 0), 0);
+    const openTotal = openInstallments.reduce((acc, i) => acc + Math.max(0, Number(i.installmentAmount || 0) - Number(i.paidAmount || 0)), 0);
+    const creditLimit = Number(client.creditLimit || 0);
+    const remainingLimit = Math.max(0, creditLimit - openTotal);
+    return {
+      activeLoansCount: activeLoans.length,
+      openPrincipal: Math.round(openPrincipal * 100) / 100,
+      openTotal: Math.round(openTotal * 100) / 100,
+      creditLimit,
+      remainingLimit: Math.round(remainingLimit * 100) / 100
+    };
+  }
+
+  getClientScore(clientId) {
+    const client = this.getClientById(clientId);
+    const loans = this.getLoans().filter(l => l.clientId === clientId);
+    const insts = this.getInstallments({ clientId });
+    const todayStr = formatDateForInput();
+
+    if (client && client.blocked) {
+      return {
+        score: 100,
+        grade: 'D',
+        label: 'Restrito / Bloqueado',
+        color: '#f43f5e',
+        stats: { paidOnTime: 0, paidLate: 0, overdueCount: 0, maxDaysOverdue: 0, completedLoans: 0, rolloverCount: 0, totalInsts: insts.length }
+      };
+    }
+
+    if (loans.length === 0 && insts.length === 0) {
+      return {
+        score: null,
+        grade: 'Novo',
+        label: 'Sem Histórico',
+        color: '#94a3b8',
+        stats: { paidOnTime: 0, paidLate: 0, overdueCount: 0, maxDaysOverdue: 0, completedLoans: 0, rolloverCount: 0, totalInsts: 0 }
+      };
+    }
+
+    let paidOnTime = 0;
+    let paidLate = 0;
+    let overdueCount = 0;
+    let maxDaysOverdue = 0;
+    let rolloverCount = 0;
+
+    insts.forEach(i => {
+      rolloverCount += Number(i.rolloverCount || 0);
+      if (i.status === 'paid') {
+        const paidDay = String(i.paidDate || '').split('T')[0];
+        if (paidDay && i.dueDate && paidDay > i.dueDate) {
+          paidLate++;
+        } else {
+          paidOnTime++;
+        }
+      } else if (i.status !== 'renegotiated' && i.dueDate && i.dueDate < todayStr) {
+        overdueCount++;
+        const charges = calculateLateCharges(i, new Date(), 2, 0.1);
+        if (charges.daysOverdue > maxDaysOverdue) maxDaysOverdue = charges.daysOverdue;
+      }
+    });
+
+    const completedLoans = loans.filter(l => l.status === 'paid').length;
+
+    let score = 700;
+    score += Math.min(200, paidOnTime * 25);
+    score += Math.min(120, completedLoans * 40);
+    score -= paidLate * 30;
+    score -= rolloverCount * 12;
+    score -= overdueCount * 120;
+    score -= Math.min(250, maxDaysOverdue * 3);
+    score = Math.max(50, Math.min(1000, Math.round(score)));
+
+    let grade = 'B';
+    let label = 'Bom Pagador';
+    let color = '#10b981';
+
+    if (score >= 820) {
+      grade = 'A';
+      label = 'Excelente';
+      color = '#34d399';
+    } else if (score >= 650) {
+      grade = 'B';
+      label = 'Bom Pagador';
+      color = '#f5c518';
+    } else if (score >= 450) {
+      grade = 'C';
+      label = 'Atenção';
+      color = '#f59e0b';
+    } else {
+      grade = 'D';
+      label = 'Alto Risco';
+      color = '#f43f5e';
+    }
+
+    return {
+      score,
+      grade,
+      label,
+      color,
+      stats: { paidOnTime, paidLate, overdueCount, maxDaysOverdue, completedLoans, rolloverCount, totalInsts: insts.length }
+    };
+  }
+
   async deleteClient(id, cascade = true) {
+    const client = this.getClientById(id);
     const hasActiveLoans = this.data.loans.some(l => l.clientId === id && l.status === 'active');
     if (hasActiveLoans && !cascade) {
       throw new Error('Não é possível excluir um cliente com empréstimos ativos.');
@@ -253,6 +446,7 @@ class StateManager {
     }
 
     this.data.clients = this.data.clients.filter(c => c.id !== id);
+    this.logAudit('DELETE_CLIENT', `Cliente excluído: ${client ? client.name : id}`, 'client', id);
     this.save();
 
     if (isSupabaseConfigured()) {
@@ -272,6 +466,13 @@ class StateManager {
   }
 
   createLoan(loanData) {
+    localStorage.removeItem('vandomotos_wiped');
+    const client = this.getClientById(loanData.clientId);
+    if (!client) throw new Error('Cliente não encontrado.');
+    if (client.blocked) {
+      throw new Error(`Cliente bloqueado para novos empréstimos: ${client.blockedReason || 'Lista de restrição.'}`);
+    }
+
     const loanId = generateId('loan');
     const scheduleResult = calculateAmortizationSchedule({
       principal: loanData.principal,
@@ -283,6 +484,7 @@ class StateManager {
       firstPaymentDays: loanData.firstPaymentDays
     });
 
+    const op = this.getActiveOperatorInfo();
     const newLoan = {
       id: loanId,
       clientId: loanData.clientId,
@@ -298,6 +500,12 @@ class StateManager {
       totalInterest: scheduleResult.totalInterest,
       status: 'active',
       notes: loanData.notes || '',
+      disbursementMethod: loanData.disbursementMethod || 'PIX',
+      guarantee: loanData.guarantee || null,
+      guarantor: loanData.guarantor || null,
+      attachments: [],
+      operatorId: op.id,
+      operatorName: op.name,
       createdAt: new Date().toISOString()
     };
 
@@ -319,6 +527,12 @@ class StateManager {
 
     this.data.loans.unshift(newLoan);
     this.data.installments.push(...newInstallments);
+    this.logAudit(
+      'CREATE_LOAN',
+      `Empréstimo de ${formatBRL(newLoan.principal)} (${newLoan.installmentsCount}x) p/ ${client.name} via ${newLoan.disbursementMethod}`,
+      'loan',
+      loanId
+    );
     this.save();
     return newLoan;
   }
@@ -339,6 +553,134 @@ class StateManager {
     return loan;
   }
 
+  updateLoanDetails(loanId, { notes, penaltyRate, dailyInterestRate, disbursementMethod, guarantee, guarantor, installmentDates = {} }) {
+    const loan = this.getLoanById(loanId);
+    if (!loan) throw new Error('Contrato não encontrado.');
+
+    if (notes !== undefined) loan.notes = notes;
+    if (penaltyRate !== undefined) loan.penaltyRate = Number(penaltyRate);
+    if (dailyInterestRate !== undefined) loan.dailyInterestRate = Number(dailyInterestRate);
+    if (disbursementMethod !== undefined) loan.disbursementMethod = disbursementMethod;
+    if (guarantee !== undefined) loan.guarantee = guarantee;
+    if (guarantor !== undefined) loan.guarantor = guarantor;
+
+    let updatedDatesCount = 0;
+    Object.entries(installmentDates).forEach(([instId, newDue]) => {
+      const inst = this.getInstallmentById(instId);
+      if (inst && inst.loanId === loanId && inst.status !== 'paid' && newDue && inst.dueDate !== newDue) {
+        inst.previousDueDate = inst.dueDate;
+        inst.dueDate = newDue;
+        updatedDatesCount++;
+      }
+    });
+
+    const client = this.getClientById(loan.clientId);
+    this.logAudit(
+      'UPDATE_LOAN',
+      `Contrato editado (${client ? client.name : loanId})${updatedDatesCount ? ` • ${updatedDatesCount} vencimento(s) ajustado(s)` : ''}`,
+      'loan',
+      loanId
+    );
+    this.save();
+    return loan;
+  }
+
+  settleLoanEarly(loanId, { discount = 0, paymentDate = formatDateForInput(), paymentMethod = 'PIX', notes = '' }) {
+    const loan = this.getLoanById(loanId);
+    if (!loan) throw new Error('Contrato não encontrado.');
+
+    const openInsts = this.data.installments
+      .filter(i => i.loanId === loanId && i.status !== 'paid' && i.status !== 'renegotiated')
+      .sort((a, b) => a.number - b.number);
+
+    if (openInsts.length === 0) throw new Error('Este contrato já não possui parcelas pendentes.');
+
+    const totalRemaining = openInsts.reduce((acc, i) => acc + Math.max(0, Number(i.installmentAmount) - Number(i.paidAmount || 0)), 0);
+    const appliedDiscount = Math.min(Math.max(0, Number(discount || 0)), totalRemaining);
+    let remainingDiscount = appliedDiscount;
+
+    // Aplica o desconto das últimas parcelas para trás, mantendo os recebimentos exatamente iguais ao valor líquido recebido
+    const perInstDiscount = {};
+    for (let idx = openInsts.length - 1; idx >= 0; idx--) {
+      const inst = openInsts[idx];
+      const rem = Math.max(0, Number(inst.installmentAmount) - Number(inst.paidAmount || 0));
+      const discHere = Math.min(rem, remainingDiscount);
+      perInstDiscount[inst.id] = Math.round(discHere * 100) / 100;
+      remainingDiscount = Math.max(0, remainingDiscount - discHere);
+    }
+
+    let totalCashReceived = 0;
+    const op = this.getActiveOperatorInfo();
+
+    openInsts.forEach(inst => {
+      const rem = Math.max(0, Number(inst.installmentAmount) - Number(inst.paidAmount || 0));
+      const discHere = perInstDiscount[inst.id] || 0;
+      const cashHere = Math.max(0, Math.round((rem - discHere) * 100) / 100);
+      totalCashReceived += cashHere;
+
+      const receipt = {
+        id: generateId('rec_settle'),
+        date: paymentDate,
+        amount: cashHere,
+        discount: discHere,
+        lateChargesPaid: 0,
+        method: paymentMethod,
+        operatorName: op.name,
+        notes: notes || `Quitação antecipada integral do contrato${appliedDiscount > 0 ? ` (Desc. global: ${formatBRL(appliedDiscount)})` : ''}`
+      };
+
+      inst.paidAmount = Number(inst.paidAmount || 0) + cashHere;
+      inst.paymentHistory = inst.paymentHistory || [];
+      inst.paymentHistory.push(receipt);
+      inst.status = 'paid';
+      inst.paidDate = paymentDate;
+      inst.promisedDate = null;
+      inst.promiseNote = '';
+    });
+
+    loan.status = 'paid';
+    loan.settledEarlyDiscount = (Number(loan.settledEarlyDiscount || 0)) + appliedDiscount;
+
+    const client = this.getClientById(loan.clientId);
+    this.logAudit(
+      'SETTLE_LOAN',
+      `Quitação antecipada de ${openInsts.length} parcela(s) (${client ? client.name : loanId}) • Recebido ${formatBRL(totalCashReceived)}${appliedDiscount > 0 ? ` (Desc. ${formatBRL(appliedDiscount)})` : ''}`,
+      'loan',
+      loanId
+    );
+    this.save();
+    return { loan, totalCashReceived, appliedDiscount, settledCount: openInsts.length };
+  }
+
+  addLoanAttachment(loanId, attachment) {
+    const loan = this.getLoanById(loanId);
+    if (!loan) throw new Error('Contrato não encontrado.');
+    loan.attachments = loan.attachments || [];
+    if (loan.attachments.length >= 8) {
+      throw new Error('Limite máximo de 8 anexos por contrato atingido.');
+    }
+    const item = {
+      id: generateId('att'),
+      category: attachment.category || 'Comprovante PIX',
+      caption: attachment.caption || '',
+      dataUrl: attachment.dataUrl,
+      sizeKB: attachment.sizeKB || 0,
+      createdAt: new Date().toISOString()
+    };
+    loan.attachments.unshift(item);
+    this.logAudit('ADD_ATTACHMENT', `Anexo (${item.category}) adicionado ao contrato ${loanId}`, 'loan', loanId);
+    this.save();
+    return item;
+  }
+
+  removeLoanAttachment(loanId, attachmentId) {
+    const loan = this.getLoanById(loanId);
+    if (!loan) return;
+    loan.attachments = (loan.attachments || []).filter(a => a.id !== attachmentId);
+    this.logAudit('REMOVE_ATTACHMENT', `Anexo removido do contrato ${loanId}`, 'loan', loanId);
+    this.save();
+  }
+
   updateInstallment(id, updates = {}) {
     const inst = this.getInstallmentById(id);
     if (!inst) return null;
@@ -356,8 +698,11 @@ class StateManager {
   }
 
   async deleteLoan(id) {
+    const loan = this.getLoanById(id);
+    const client = loan ? this.getClientById(loan.clientId) : null;
     this.data.loans = this.data.loans.filter(l => l.id !== id);
     this.data.installments = this.data.installments.filter(i => i.loanId !== id);
+    this.logAudit('DELETE_LOAN', `Contrato excluído (${client ? client.name : id} • ${loan ? formatBRL(loan.principal) : ''})`, 'loan', id);
     this.save();
 
     if (isSupabaseConfigured()) {
@@ -371,6 +716,8 @@ class StateManager {
     this.data.clients = [];
     this.data.loans = [];
     this.data.installments = [];
+    this.data.cashFlows = [];
+    this.logAudit('WIPE_ALL', 'Todos os dados do sistema foram zerados', 'system', null);
     localStorage.setItem('vandomotos_wiped', 'true');
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
     this.notify();
@@ -415,6 +762,7 @@ class StateManager {
 
     const currentPaid = Number(inst.paidAmount || 0);
     const newTotalPaid = currentPaid + amountPaid;
+    const op = this.getActiveOperatorInfo();
 
     const receipt = {
       id: generateId('rec'),
@@ -423,6 +771,7 @@ class StateManager {
       discount,
       lateChargesPaid,
       method: paymentMethod,
+      operatorName: op.name,
       notes
     };
 
@@ -434,6 +783,8 @@ class StateManager {
     if (newTotalPaid + discount >= Number(inst.installmentAmount) - 0.01) {
       inst.status = 'paid';
       inst.paidDate = paymentDate;
+      inst.promisedDate = null;
+      inst.promiseNote = '';
     } else {
       inst.status = 'partial';
     }
@@ -446,6 +797,13 @@ class StateManager {
       loan.status = 'paid';
     }
 
+    const client = this.getClientById(inst.clientId);
+    this.logAudit(
+      'PAY_INSTALLMENT',
+      `Baixa Parcela #${inst.number} (${client ? client.name : inst.clientId}) • ${formatBRL(amountPaid)} (${paymentMethod})`,
+      'installment',
+      inst.id
+    );
     this.save();
     return { installment: inst, receipt };
   }
@@ -456,6 +814,7 @@ class StateManager {
   revertPayment(installmentId) {
     const inst = this.getInstallmentById(installmentId);
     if (!inst) return;
+    const client = this.getClientById(inst.clientId);
     inst.paidAmount = 0;
     inst.paidDate = null;
     inst.status = 'pending';
@@ -466,6 +825,47 @@ class StateManager {
       loan.status = 'active';
     }
 
+    this.logAudit(
+      'REVERT_PAYMENT',
+      `Estorno de baixa da Parcela #${inst.number} (${client ? client.name : inst.clientId})`,
+      'installment',
+      inst.id
+    );
+    this.save();
+  }
+
+  /**
+   * Agenda ou limpa promessa de pagamento de uma parcela
+   */
+  setInstallmentPromise(installmentId, { promisedDate, promiseNote = '' }) {
+    const inst = this.getInstallmentById(installmentId);
+    if (!inst) throw new Error('Parcela não encontrada.');
+    if (!promisedDate) throw new Error('Informe a data prometida para o pagamento.');
+
+    const op = this.getActiveOperatorInfo();
+    const client = this.getClientById(inst.clientId);
+    inst.promisedDate = promisedDate;
+    inst.promiseNote = (promiseNote || '').trim();
+    inst.promiseCreatedAt = new Date().toISOString();
+    inst.promiseOperator = op.name;
+
+    this.logAudit(
+      'SET_PROMISE',
+      `Promessa Parcela #${inst.number} (${client ? client.name : inst.clientId}) para ${formatDate(promisedDate)}${inst.promiseNote ? `: ${inst.promiseNote}` : ''}`,
+      'installment',
+      inst.id
+    );
+    this.save();
+    return inst;
+  }
+
+  clearInstallmentPromise(installmentId) {
+    const inst = this.getInstallmentById(installmentId);
+    if (!inst) return;
+    inst.promisedDate = null;
+    inst.promiseNote = '';
+    inst.promiseCreatedAt = null;
+    inst.promiseOperator = null;
     this.save();
   }
 
@@ -491,13 +891,16 @@ class StateManager {
     if (amount <= 0) throw new Error('O valor dos juros pagos deve ser maior que zero.');
 
     // Se nova data não foi informada, avança 1 ciclo (1 mês ou período correspondente)
-    const nextDate = newDueDate || addMonths(inst.dueDate, 1);
+    const rawNext = newDueDate || addMonths(inst.dueDate, 1);
+    const nextDate = typeof rawNext === 'string' ? rawNext : formatDateForInput(rawNext);
+    const op = this.getActiveOperatorInfo();
 
     const rolloverReceipt = {
       id: generateId('rec_roll'),
       date: paymentDate,
       amount: amount,
       method: paymentMethod,
+      operatorName: op.name,
       type: 'interest_rollover',
       notes: notes || `Rolagem de dívida. Juros do ciclo quitados. Vencimento prorrogado para ${formatDate(nextDate)}.`
     };
@@ -511,11 +914,20 @@ class StateManager {
     inst.previousDueDate = inst.dueDate;
     inst.dueDate = nextDate;
     inst.status = 'pending'; // Parcela renovada e ativa para o novo vencimento
+    inst.promisedDate = null;
+    inst.promiseNote = '';
 
     if (loan.status === 'overdue') {
       loan.status = 'active';
     }
 
+    const client = this.getClientById(inst.clientId);
+    this.logAudit(
+      'ROLLOVER_INSTALLMENT',
+      `Rolagem Parcela #${inst.number} (${client ? client.name : inst.clientId}) • Juros ${formatBRL(amount)} -> Novo venc. ${formatDate(nextDate)}`,
+      'installment',
+      inst.id
+    );
     this.save();
     return { installment: inst, receipt: rolloverReceipt };
   }
@@ -807,7 +1219,8 @@ class StateManager {
       createdAt: nowIso
     };
 
-    const newInstallments = schedule.installments.map(item => ({
+    const scheduleRows = schedule.schedule || schedule.installments || [];
+    const newInstallments = scheduleRows.map(item => ({
       id: generateId('inst'),
       loanId: newLoan.id,
       clientId,
@@ -824,25 +1237,85 @@ class StateManager {
 
     this.data.loans.unshift(newLoan);
     this.data.installments.push(...newInstallments);
+    this.logAudit(
+      'RENEGOTIATE',
+      `Renegociação p/ ${client.name} • ${installmentIds.length} parcela(s) -> Novo saldo ${formatBRL(newPrincipal)} (${installmentsCount}x)`,
+      'loan',
+      newLoan.id
+    );
     this.save();
 
     return { loan: newLoan, installments: newInstallments };
   }
 
+  // --- FLUXO DE CAIXA REAL (ENTRADAS VS SAÍDAS) ---
+  addCashFlow({ date = formatDateForInput(), type = 'outflow', category = 'Despesa', method = 'Dinheiro', amount, description = '' }) {
+    const val = Number(amount);
+    if (!val || val <= 0) throw new Error('Informe um valor maior que zero.');
+    const op = this.getActiveOperatorInfo();
+    this.data.cashFlows = this.data.cashFlows || [];
+    const entry = {
+      id: generateId('cf'),
+      date,
+      type, // 'outflow' | 'inflow'
+      category,
+      method,
+      amount: val,
+      description: description || category,
+      operatorName: op.name,
+      createdAt: new Date().toISOString()
+    };
+    this.data.cashFlows.unshift(entry);
+    this.logAudit(
+      'CASH_FLOW',
+      `${type === 'outflow' ? 'Saída' : 'Entrada avulsa'} (${category} / ${method}): ${formatBRL(val)} - ${entry.description}`,
+      'cashflow',
+      entry.id
+    );
+    this.save();
+    return entry;
+  }
+
+  deleteCashFlow(id) {
+    this.data.cashFlows = (this.data.cashFlows || []).filter(c => c.id !== id);
+    this.logAudit('DELETE_CASH_FLOW', `Movimentação manual de caixa removida (${id})`, 'cashflow', id);
+    this.save();
+  }
+
   /**
-   * Fechamento de Caixa Diário
-   * Retorna os recebimentos e totais por modalidade (PIX, Dinheiro, etc.) para uma data
+   * Fechamento de Caixa Diário Completo (Entradas vs. Saídas e Saldo Líquido)
    */
   getCashRegisterReport(targetDate = formatDateForInput()) {
     const list = [];
+    const outflows = [];
+    const allMovements = [];
+
     let totalCollected = 0;
-    let totalPix = 0;
-    let totalCash = 0;
-    let totalTransfer = 0;
-    let totalOther = 0;
+    let totalPixIn = 0;
+    let totalCashIn = 0;
+    let totalTransferIn = 0;
+    let totalOtherIn = 0;
+
+    let totalManualInflows = 0;
+    let totalLoanOutflows = 0;
+    let totalManualOutflows = 0;
+    let totalCashOut = 0;
+    let totalPixOut = 0;
+    let totalTransferOut = 0;
 
     const allInstallments = this.data.installments || [];
+    const allLoans = this.data.loans || [];
+    const manualCashFlows = this.data.cashFlows || [];
 
+    const classifyMethod = (rawMethod) => {
+      const m = String(rawMethod || 'PIX').toUpperCase();
+      if (m.includes('PIX')) return 'PIX';
+      if (m.includes('DINHEIRO') || m.includes('ESPÉCIE')) return 'CASH';
+      if (m.includes('TRANSF') || m.includes('TED') || m.includes('DOC')) return 'TRANSFER';
+      return 'OTHER';
+    };
+
+    // 1. Entradas de Parcelas
     allInstallments.forEach(inst => {
       if (inst.paymentHistory && inst.paymentHistory.length > 0) {
         inst.paymentHistory.forEach(rec => {
@@ -852,19 +1325,17 @@ class StateManager {
             const amount = Number(rec.amount || 0);
             totalCollected += amount;
 
-            const methodNorm = (rec.method || 'PIX').toUpperCase();
-            if (methodNorm.includes('PIX')) {
-              totalPix += amount;
-            } else if (methodNorm.includes('DINHEIRO') || methodNorm.includes('ESPÉCIE')) {
-              totalCash += amount;
-            } else if (methodNorm.includes('TRANSF') || methodNorm.includes('TED') || methodNorm.includes('DOC')) {
-              totalTransfer += amount;
-            } else {
-              totalOther += amount;
-            }
+            const mType = classifyMethod(rec.method);
+            if (mType === 'PIX') totalPixIn += amount;
+            else if (mType === 'CASH') totalCashIn += amount;
+            else if (mType === 'TRANSFER') totalTransferIn += amount;
+            else totalOtherIn += amount;
 
-            list.push({
+            const entryObj = {
+              id: rec.id,
               receiptId: rec.id,
+              flowType: 'inflow',
+              source: 'installment',
               date: rec.date,
               installmentId: inst.id,
               installmentNumber: inst.number,
@@ -877,24 +1348,218 @@ class StateManager {
               discount: rec.discount || 0,
               lateChargesPaid: rec.lateChargesPaid || 0,
               notes: rec.notes || ''
-            });
+            };
+            list.push(entryObj);
+            allMovements.push(entryObj);
           }
         });
       }
     });
 
+    // 2. Saídas por Empréstimos Liberados na Data (exclui renegociações onde não houve saída de dinheiro novo)
+    allLoans.forEach(loan => {
+      const loanStartOnly = String(loan.startDate || '').split('T')[0];
+      if (loanStartOnly === targetDate && !loan.isRenegotiation && loan.disbursementMethod !== 'Sem Movimentação') {
+        const client = this.getClientById(loan.clientId) || { name: 'Cliente', phone: '' };
+        const amount = Number(loan.principal || 0);
+        const method = loan.disbursementMethod || 'PIX';
+        totalLoanOutflows += amount;
+
+        const mType = classifyMethod(method);
+        if (mType === 'PIX') totalPixOut += amount;
+        else if (mType === 'CASH') totalCashOut += amount;
+        else if (mType === 'TRANSFER') totalTransferOut += amount;
+
+        const outObj = {
+          id: `disb_${loan.id}`,
+          flowType: 'outflow',
+          source: 'loan_disbursement',
+          date: loan.createdAt || loan.startDate,
+          loanId: loan.id,
+          clientId: loan.clientId,
+          clientName: client.name,
+          clientPhone: client.phone,
+          method,
+          amount,
+          notes: `Liberação de Empréstimo (${loan.installmentsCount}x)`
+        };
+        outflows.push(outObj);
+        allMovements.push(outObj);
+      }
+    });
+
+    // 3. Movimentações Manuais de Caixa (Despesas, Sangrias, Aportes)
+    manualCashFlows.forEach(cf => {
+      const cfDateOnly = String(cf.date || '').split('T')[0];
+      if (cfDateOnly === targetDate) {
+        const amount = Number(cf.amount || 0);
+        const mType = classifyMethod(cf.method);
+        if (cf.type === 'inflow') {
+          totalManualInflows += amount;
+          if (mType === 'PIX') totalPixIn += amount;
+          else if (mType === 'CASH') totalCashIn += amount;
+          else if (mType === 'TRANSFER') totalTransferIn += amount;
+          else totalOtherIn += amount;
+        } else {
+          totalManualOutflows += amount;
+          if (mType === 'PIX') totalPixOut += amount;
+          else if (mType === 'CASH') totalCashOut += amount;
+          else if (mType === 'TRANSFER') totalTransferOut += amount;
+        }
+
+        const movObj = {
+          id: cf.id,
+          cashFlowId: cf.id,
+          flowType: cf.type,
+          source: 'manual',
+          date: cf.createdAt || cf.date,
+          clientName: cf.category || (cf.type === 'outflow' ? 'Saída' : 'Aporte'),
+          clientPhone: '',
+          method: cf.method || 'Dinheiro',
+          amount,
+          notes: cf.description || ''
+        };
+        if (cf.type === 'outflow') outflows.push(movObj);
+        allMovements.push(movObj);
+      }
+    });
+
     list.sort((a, b) => (b.date > a.date ? 1 : -1));
+    allMovements.sort((a, b) => (String(b.date) > String(a.date) ? 1 : -1));
+
+    const totalInflows = totalCollected + totalManualInflows;
+    const totalOutflows = totalLoanOutflows + totalManualOutflows;
+    const netBalance = totalInflows - totalOutflows;
+    const netCashInDrawer = totalCashIn - totalCashOut;
 
     return {
       date: targetDate,
       totalCollected,
-      totalPix,
-      totalCash,
-      totalTransfer,
-      totalOther,
+      totalManualInflows,
+      totalInflows,
+      totalLoanOutflows,
+      totalManualOutflows,
+      totalOutflows,
+      netBalance,
+      netCashInDrawer,
+      totalPix: totalPixIn,
+      totalCash: totalCashIn,
+      totalTransfer: totalTransferIn,
+      totalOther: totalOtherIn,
+      totalPixOut,
+      totalCashOut,
+      totalTransferOut,
       count: list.length,
-      entries: list
+      entries: list,
+      outflows,
+      allMovements
     };
+  }
+
+  /**
+   * Previsão de Recebíveis (Próximos 7, 15, 30 dias) e Retorno de Capital
+   */
+  getReceivablesProjection() {
+    const todayStr = formatDateForInput();
+    const d7 = formatDateForInput(addDays(new Date(), 7));
+    const d15 = formatDateForInput(addDays(new Date(), 15));
+    const d30 = formatDateForInput(addDays(new Date(), 30));
+
+    let overdueTotal = 0;
+    let next7Days = 0;
+    let next15Days = 0;
+    let next30Days = 0;
+    let next30Principal = 0;
+    let next30Interest = 0;
+    let totalOpenBalance = 0;
+
+    (this.data.installments || []).forEach(inst => {
+      if (inst.status === 'paid' || inst.status === 'renegotiated') return;
+      const rem = Math.max(0, Number(inst.installmentAmount || 0) - Number(inst.paidAmount || 0));
+      if (rem <= 0) return;
+      totalOpenBalance += rem;
+
+      const due = String(inst.dueDate || '').split('T')[0];
+      if (!due) return;
+
+      if (due < todayStr) {
+        overdueTotal += rem;
+      } else {
+        if (due <= d7) next7Days += rem;
+        if (due <= d15) next15Days += rem;
+        if (due <= d30) {
+          next30Days += rem;
+          const totalInst = Number(inst.installmentAmount || 1);
+          const ratio = totalInst > 0 ? rem / totalInst : 1;
+          next30Principal += Number(inst.amortizationAmount || 0) * ratio;
+          next30Interest += Number(inst.interestAmount || 0) * ratio;
+        }
+      }
+    });
+
+    let totalPrincipalDisbursed = 0;
+    (this.data.loans || []).forEach(l => {
+      if (!l.isRenegotiation) totalPrincipalDisbursed += Number(l.principal || 0);
+    });
+
+    return {
+      overdueTotal: Math.round(overdueTotal * 100) / 100,
+      next7Days: Math.round(next7Days * 100) / 100,
+      next15Days: Math.round(next15Days * 100) / 100,
+      next30Days: Math.round(next30Days * 100) / 100,
+      next30Principal: Math.round(next30Principal * 100) / 100,
+      next30Interest: Math.round(next30Interest * 100) / 100,
+      totalOpenBalance: Math.round(totalOpenBalance * 100) / 100,
+      totalPrincipalDisbursed: Math.round(totalPrincipalDisbursed * 100) / 100
+    };
+  }
+
+  // --- OPERADORES & AUDITORIA ---
+  getOperators() {
+    return (this.data.settings && this.data.settings.operators) || [];
+  }
+
+  saveOperator(op) {
+    const pinStr = String(op.pin || '').trim();
+    if (!/^\d{4}$/.test(pinStr)) {
+      throw new Error('O PIN do operador deve ter exatamente 4 dígitos numéricos.');
+    }
+    const list = [...this.getOperators()];
+    const adminPin = localStorage.getItem('vandomotos_pin') || '1234';
+    if (pinStr === adminPin && op.role !== 'admin') {
+      throw new Error('Este PIN já é o PIN Mestre do Administrador.');
+    }
+    const duplicate = list.find(o => o.pin === pinStr && o.id !== op.id);
+    if (duplicate) {
+      throw new Error(`O PIN ${pinStr} já está em uso pelo operador ${duplicate.name}.`);
+    }
+
+    if (!op.id) {
+      op.id = generateId('op');
+      op.createdAt = new Date().toISOString();
+      op.active = op.active !== false;
+      list.push(op);
+      this.logAudit('CREATE_OPERATOR', `Operador criado: ${op.name} (${op.role === 'admin' ? 'Admin' : 'Cobrador'})`, 'operator', op.id);
+    } else {
+      const idx = list.findIndex(o => o.id === op.id);
+      if (idx !== -1) list[idx] = { ...list[idx], ...op };
+      this.logAudit('UPDATE_OPERATOR', `Operador atualizado: ${op.name}`, 'operator', op.id);
+    }
+
+    this.saveSettings({ operators: list });
+    return op;
+  }
+
+  deleteOperator(opId) {
+    const list = this.getOperators();
+    const target = list.find(o => o.id === opId);
+    const nextList = list.filter(o => o.id !== opId);
+    this.logAudit('DELETE_OPERATOR', `Operador removido: ${target ? target.name : opId}`, 'operator', opId);
+    this.saveSettings({ operators: nextList });
+  }
+
+  getAuditLogs(limit = 100) {
+    return (this.data.auditLogs || []).slice(0, limit);
   }
 
   // --- CONFIGURAÇÕES ---
@@ -927,6 +1592,8 @@ class StateManager {
         throw new Error('Formato de arquivo de backup inválido.');
       }
       this.data = parsed;
+      this.data.cashFlows = this.data.cashFlows || [];
+      this.data.auditLogs = this.data.auditLogs || [];
       this.save();
       return true;
     } catch (err) {

@@ -2,17 +2,21 @@
 // Portal Público de Visualização, Impressão e Assinatura Digital de Notas Promissórias - Vando Motos Locadora LTDA
 // Validade Jurídica: MP nº 2.200-2/2001 e Lei Federal nº 14.063/2020 (Assinatura Eletrônica Avançada)
 
-import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
-import { renderSinglePromissoryCard } from './receiptModal.js';
+import { formatBRL, formatDate, createWhatsAppUrl, showToast, escapeHtml } from '../utils.js';
+import { renderSinglePromissoryCard, renderDebtConfessionContract } from './receiptModal.js';
 import { icon } from '../icons.js';
 import { state } from '../state.js';
 
 /**
- * Codifica os dados da Nota Promissória em um token seguro e compacto para a URL
+ * Codifica os dados da Nota Promissória e do Contrato em um token seguro e compacto para a URL
  */
 export function createPromissorySigningToken(loan, client, installment, settings) {
+  const loanInsts = (typeof state !== 'undefined' && state.getInstallments)
+    ? state.getInstallments({ loanId: loan.id })
+    : [];
+
   const payload = {
-    v: 1,
+    v: 2,
     loanId: loan.id,
     instNum: installment ? installment.number : 1,
     clientId: client.id || '',
@@ -22,8 +26,12 @@ export function createPromissorySigningToken(loan, client, installment, settings
     clientAddress: client.address || '',
     amount: installment ? Number(installment.installmentAmount) : Number(loan.totalPayable || loan.principal || 0),
     principal: Number(loan.principal || 0),
+    totalPayable: Number(loan.totalPayable || loan.principal || 0),
     interestRate: Number(loan.interestRate || 0),
-    totalCount: installment ? (loan.installmentsCount || 1) : 1,
+    interestType: loan.interestType || 'simple',
+    penaltyRate: loan.penaltyRate ?? 2,
+    dailyInterestRate: loan.dailyInterestRate ?? 0.1,
+    totalCount: installment ? (loan.installmentsCount || 1) : (loan.installmentsCount || 1),
     dueDate: installment ? installment.dueDate : (loan.startDate || new Date().toISOString().split('T')[0]),
     startDate: loan.startDate || new Date().toISOString().split('T')[0],
     creditorName: (settings && settings.businessName) || 'Vando motos locadora LTDA',
@@ -32,6 +40,25 @@ export function createPromissorySigningToken(loan, client, installment, settings
     creditorPhone: (settings && (settings.pixKey || settings.phone)) || '69992323382',
     signature: loan.signature || (installment && installment.signature) || null
   };
+
+  if (loan.guarantee && (loan.guarantee.description || loan.guarantee.type)) {
+    payload.guarantee = {
+      type: loan.guarantee.type || '',
+      description: String(loan.guarantee.description || '').slice(0, 120),
+      identifier: String(loan.guarantee.identifier || '').slice(0, 60),
+      value: Number(loan.guarantee.value || 0)
+    };
+  }
+  if (loan.guarantor && loan.guarantor.name) {
+    payload.guarantor = {
+      name: String(loan.guarantor.name).slice(0, 80),
+      cpf: String(loan.guarantor.cpf || '').slice(0, 20),
+      phone: String(loan.guarantor.phone || '').slice(0, 25)
+    };
+  }
+  if (loanInsts.length > 0 && loanInsts.length <= 24) {
+    payload.insts = loanInsts.map(i => [i.number, i.dueDate, Number(i.installmentAmount)]);
+  }
 
   const jsonStr = JSON.stringify(payload);
   // Base64 seguro para URL (sem quebras de linha e caracteres especiais)
@@ -99,7 +126,10 @@ export function renderPublicSigningPortal(container, rawData) {
 
   const isAlreadySigned = !!data.signature;
 
-  // Monta objetos fictícios para renderSinglePromissoryCard
+  // Monta objetos para renderização dos documentos
+  const localLoan = (data.loanId && window.state) ? state.getLoanById(data.loanId) : null;
+  const localClient = (localLoan && window.state) ? state.getClientById(localLoan.clientId) : null;
+
   const mockInstallment = {
     number: data.instNum || 1,
     dueDate: data.dueDate,
@@ -110,18 +140,24 @@ export function renderPublicSigningPortal(container, rawData) {
   const mockLoan = {
     id: data.loanId,
     startDate: data.startDate,
-    totalPayable: data.amount,
-    principal: data.principal,
-    interestRate: data.interestRate,
-    installmentsCount: data.totalCount || 1,
+    totalPayable: data.totalPayable || (localLoan ? localLoan.totalPayable : data.amount),
+    principal: data.principal || (localLoan ? localLoan.principal : 0),
+    interestRate: data.interestRate ?? (localLoan ? localLoan.interestRate : 0),
+    interestType: data.interestType || (localLoan ? localLoan.interestType : 'simple'),
+    penaltyRate: data.penaltyRate ?? (localLoan ? localLoan.penaltyRate : 2),
+    dailyInterestRate: data.dailyInterestRate ?? (localLoan ? localLoan.dailyInterestRate : 0.1),
+    installmentsCount: data.totalCount || (localLoan ? localLoan.installmentsCount : 1) || 1,
+    guarantee: data.guarantee || (localLoan ? localLoan.guarantee : null),
+    guarantor: data.guarantor || (localLoan ? localLoan.guarantor : null),
+    notes: data.notes || (localLoan ? localLoan.notes : ''),
     signature: data.signature
   };
 
   const mockClient = {
     name: data.clientName,
-    cpf: data.clientCpf,
-    phone: data.clientPhone,
-    address: data.clientAddress
+    cpf: data.clientCpf || (localClient ? localClient.cpf : ''),
+    phone: data.clientPhone || (localClient ? localClient.phone : ''),
+    address: data.clientAddress || (localClient ? localClient.address : '')
   };
 
   const mockSettings = {
@@ -129,6 +165,15 @@ export function renderPublicSigningPortal(container, rawData) {
     creditorCpfCnpj: data.creditorCpfCnpj,
     creditorCity: data.creditorCity
   };
+
+  const localInsts = (data.loanId && window.state) ? state.getInstallments({ loanId: data.loanId }) : [];
+  const contractInsts = localInsts.length > 0
+    ? localInsts
+    : (Array.isArray(data.insts) && data.insts.length > 0
+        ? data.insts.map(arr => ({ number: arr[0], dueDate: arr[1], installmentAmount: arr[2] }))
+        : [mockInstallment]);
+
+  let activeDocType = 'promissory';
 
   container.innerHTML = `
     <div class="public-portal-wrapper">
@@ -156,8 +201,8 @@ export function renderPublicSigningPortal(container, rawData) {
               <div class="public-summary-status-tag ${isAlreadySigned ? 'tag-signed' : 'tag-pending'}">
                 ${isAlreadySigned ? `${icon('checkCircle', 14)} Documento Assinado Digitalmente` : `${icon('clock', 14)} Aguardando Sua Assinatura`}
               </div>
-              <h2 class="public-summary-client-name">${data.clientName}</h2>
-              <div class="public-summary-client-cpf">CPF: ${data.clientCpf || 'Não informado'}</div>
+              <h2 class="public-summary-client-name">${escapeHtml(data.clientName)}</h2>
+              <div class="public-summary-client-cpf">CPF: ${escapeHtml(mockClient.cpf || 'Não informado')}</div>
             </div>
             <div class="public-summary-amount-box">
               <span class="ps-label">Valor do Título</span>
@@ -169,27 +214,31 @@ export function renderPublicSigningPortal(container, rawData) {
           <div class="public-summary-grid">
             <div class="ps-item">
               <span class="ps-item-label">Credor / Beneficiário</span>
-              <strong class="ps-item-value">${data.creditorName}</strong>
-              <span class="ps-item-sub">CNPJ: ${data.creditorCpfCnpj}</span>
+              <strong class="ps-item-value">${escapeHtml(data.creditorName)}</strong>
+              <span class="ps-item-sub">CNPJ: ${escapeHtml(data.creditorCpfCnpj)}</span>
             </div>
             <div class="ps-item">
               <span class="ps-item-label">Praça de Pagamento</span>
-              <strong class="ps-item-value">${data.creditorCity}</strong>
+              <strong class="ps-item-value">${escapeHtml(data.creditorCity)}</strong>
               <span class="ps-item-sub">Título nº ${String(data.instNum || 1).padStart(2, '0')}/${String(data.totalCount || 1).padStart(2, '0')}</span>
             </div>
           </div>
         </div>
 
-        <!-- Visualização da Nota Promissória Oficial -->
+        <!-- Visualização dos Documentos Oficiais -->
         <div class="public-promissory-preview-section">
-          <div class="public-section-title-wrap">
-            <h3 class="public-section-title">${icon('fileText', 18)} Visualização da Nota Promissória Oficial</h3>
-            <p class="public-section-subtitle">Confira abaixo o documento emitido com seus dados antes de assinar</p>
+          <div class="public-section-title-wrap" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+            <div>
+              <h3 class="public-section-title">${icon('fileText', 18)} Visualização dos Documentos Oficiais</h3>
+              <p class="public-section-subtitle">Alterne abaixo entre Nota Promissória e Contrato de Confissão de Dívida antes de assinar</p>
+            </div>
+            <div class="doc-view-tabs" id="public-doc-tabs">
+              <button type="button" class="doc-tab-btn active" data-public-doc="promissory">Nota Promissória</button>
+              <button type="button" class="doc-tab-btn" data-public-doc="contract">Contrato Confissão de Dívida</button>
+            </div>
           </div>
 
-          <div class="public-promissory-scroll-box" id="public-promissory-container">
-            ${renderSinglePromissoryCard(mockInstallment, mockLoan, mockClient, mockSettings, data.instNum || 1, data.totalCount || 1)}
-          </div>
+          <div class="public-promissory-scroll-box" id="public-promissory-container"></div>
         </div>
 
         <!-- Seção de Assinatura Digital Touch -->
@@ -199,7 +248,7 @@ export function renderPublicSigningPortal(container, rawData) {
       </main>
 
       <footer class="public-portal-footer">
-        <p>Vando Motos Locadora LTDA • CNPJ ${data.creditorCpfCnpj} • ${data.creditorCity}</p>
+        <p>Vando Motos Locadora LTDA • CNPJ ${escapeHtml(data.creditorCpfCnpj)} • ${escapeHtml(data.creditorCity)}</p>
         <p class="public-legal-footer-note">
           Validade jurídica integral conforme Art. 10 da Medida Provisória nº 2.200-2/2001 e Art. 4º da Lei Federal nº 14.063/2020.
         </p>
@@ -207,9 +256,31 @@ export function renderPublicSigningPortal(container, rawData) {
     </div>
   `;
 
+  function renderPublicDocPreview() {
+    const promContainer = container.querySelector('#public-promissory-container');
+    if (!promContainer) return;
+    mockInstallment.signature = data.signature;
+    mockLoan.signature = data.signature;
+    if (activeDocType === 'contract') {
+      promContainer.innerHTML = renderDebtConfessionContract(mockLoan, mockClient, contractInsts, mockSettings);
+    } else {
+      promContainer.innerHTML = renderSinglePromissoryCard(mockInstallment, mockLoan, mockClient, mockSettings, data.instNum || 1, data.totalCount || 1);
+    }
+  }
+
+  renderPublicDocPreview();
+
+  container.querySelectorAll('[data-public-doc]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeDocType = btn.dataset.publicDoc;
+      container.querySelectorAll('[data-public-doc]').forEach(b => b.classList.toggle('active', b === btn));
+      renderPublicDocPreview();
+    });
+  });
+
   // Inicializa o comportamento da assinatura se ainda não estiver assinado
   if (!isAlreadySigned) {
-    setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockClient, mockSettings);
+    setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockClient, mockSettings, renderPublicDocPreview);
   } else {
     setupSignedActions(container, data);
   }
@@ -298,7 +369,7 @@ function renderSignedSuccessBanner(sig, data) {
 /**
  * Configura o canvas interativo de assinatura touch
  */
-function setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockClient, mockSettings) {
+function setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockClient, mockSettings, renderPublicDocPreview) {
   const canvas = container.querySelector('#public-sig-canvas');
   const clearBtn = container.querySelector('#btn-public-clear-sig');
   const confirmBtn = container.querySelector('#btn-public-confirm-sig');
@@ -432,10 +503,14 @@ function setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockCl
     mockInstallment.signature = signatureData;
     mockLoan.signature = signatureData;
 
-    // Atualiza a prévia da promissória imediatamente para mostrar a assinatura carimbada
-    const promContainer = container.querySelector('#public-promissory-container');
-    if (promContainer) {
-      promContainer.innerHTML = renderSinglePromissoryCard(mockInstallment, mockLoan, mockClient, mockSettings, data.instNum || 1, data.totalCount || 1);
+    // Atualiza a prévia do documento imediatamente para mostrar a assinatura carimbada
+    if (typeof renderPublicDocPreview === 'function') {
+      renderPublicDocPreview();
+    } else {
+      const promContainer = container.querySelector('#public-promissory-container');
+      if (promContainer) {
+        promContainer.innerHTML = renderSinglePromissoryCard(mockInstallment, mockLoan, mockClient, mockSettings, data.instNum || 1, data.totalCount || 1);
+      }
     }
 
     // Atualiza o card de resumo

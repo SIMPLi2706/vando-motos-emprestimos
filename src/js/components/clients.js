@@ -2,9 +2,10 @@
 // Gestão Cadastral de Clientes, Limites e Dossiê Financeiro - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
+import { formatBRL, formatDate, createWhatsAppUrl, showToast, escapeHtml } from '../utils.js';
 import { generateClientReportPDF } from './pdfExport.js';
 import { openDocumentScanner } from './documentScanner.js';
+import { isAdmin } from './loginScreen.js';
 import { icon } from '../icons.js';
 
 export function renderClients(options = {}) {
@@ -81,7 +82,8 @@ export function renderClients(options = {}) {
       return (
         c.name.toLowerCase().includes(term) ||
         (c.cpf && c.cpf.includes(term)) ||
-        (c.phone && c.phone.includes(term))
+        (c.phone && c.phone.includes(term)) ||
+        (c.referredBy && c.referredBy.toLowerCase().includes(term))
       );
     });
 
@@ -91,15 +93,20 @@ export function renderClients(options = {}) {
       return;
     }
 
+    const adminAllowed = isAdmin();
     emptyMsg.style.display = 'none';
     tbody.innerHTML = filtered.map(c => {
       const clientLoans = loans.filter(l => l.clientId === c.id);
       const activeLoans = clientLoans.filter(l => l.status === 'active');
       const clientInsts = installments.filter(i => i.clientId === c.id);
-      const hasOverdue = clientInsts.some(i => i.status !== 'paid' && new Date(i.dueDate) < new Date());
+      const todayStr = new Date().toISOString().split('T')[0];
+      const hasOverdue = clientInsts.some(i => i.status !== 'paid' && String(i.dueDate || '').split('T')[0] < todayStr);
+      const scoreInfo = state.getClientScore(c.id);
 
       let statusBadge = `<span class="badge badge-paid">Bom Pagador</span>`;
-      if (hasOverdue) {
+      if (c.blocked) {
+        statusBadge = `<span class="badge badge-overdue" title="${escapeHtml(c.blockedReason || 'Cliente com restrição')}">Bloqueado</span>`;
+      } else if (hasOverdue) {
         statusBadge = `<span class="badge badge-overdue">Inadimplente</span>`;
       } else if (activeLoans.length === 0) {
         statusBadge = `<span class="badge badge-pending">Sem Dívida</span>`;
@@ -109,14 +116,20 @@ export function renderClients(options = {}) {
         <tr>
           <td data-label="Cliente">
             <div class="td-cell-val">
-              <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${c.name}</div>
-              <div style="font-size: 0.75rem; color: var(--text-400);">CPF: ${c.cpf || 'Não informado'}</div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">${escapeHtml(c.name)}</span>
+                <span class="score-pill-sm" style="border-color: ${scoreInfo.color}; color: ${scoreInfo.color};">Score ${scoreInfo.grade}</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-400);">
+                CPF: ${escapeHtml(c.cpf || 'Não informado')}
+                ${c.referredBy ? ` • Indicado por: <strong>${escapeHtml(c.referredBy)}</strong>` : ''}
+              </div>
             </div>
           </td>
           <td data-label="Telefone">
             <div class="td-cell-val">
               <div style="display: flex; align-items: center; gap: 8px;">
-                <span>${c.phone || '-'}</span>
+                <span>${escapeHtml(c.phone || '-')}</span>
                 ${c.phone ? `
                   <a href="${createWhatsAppUrl(c.phone, `Olá, ${c.name}!`)}" target="_blank" class="btn btn-whatsapp btn-sm" style="padding: 2px 8px; font-size: 0.72rem; min-height: 24px;">
                     WhatsApp
@@ -152,9 +165,11 @@ export function renderClients(options = {}) {
               <button class="btn btn-secondary btn-sm btn-reneg-client" data-id="${c.id}" title="Renegociar Dívidas">
                 Renegociar
               </button>
-              <button class="btn btn-danger btn-sm btn-del-client" data-id="${c.id}" title="Excluir Cliente">
-                Excluir
-              </button>
+              ${adminAllowed ? `
+                <button class="btn btn-danger btn-sm btn-del-client" data-id="${c.id}" title="Excluir Cliente">
+                  Excluir
+                </button>
+              ` : ''}
             </div>
           </td>
         </tr>

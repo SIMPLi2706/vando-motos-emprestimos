@@ -3,7 +3,7 @@
 // Validade Jurídica: MP nº 2.200-2/2001 e Lei Federal nº 14.063/2020
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, formatDateExtenso, numeroParaExtenso, createWhatsAppUrl, showToast } from '../utils.js';
+import { formatBRL, formatDate, formatDateExtenso, numeroParaExtenso, createWhatsAppUrl, showToast, escapeHtml } from '../utils.js';
 import { BRASAO_BRASIL_B64 } from '../brasaoBase64.js';
 import { openSignaturePad } from './signaturePad.js';
 import { getPromissorySigningUrl } from './publicSignPortal.js';
@@ -42,9 +42,10 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
   const beneficiario = settings.businessName || 'Vando motos locadora LTDA';
   const cnpjBeneficiario = settings.creditorCpfCnpj || '28.623.431-0001-23';
 
-  const emitenteNome = client.name || 'BRUNO VASQUEZ CASTRO';
-  const emitenteDoc = client.cpf || '025.653.052-14';
-  const emitenteEnd = client.address || 'RUA DAS CRIANÇAS N:4516 B:FLRESTA';
+  const emitenteNome = client.name || 'Cliente';
+  const emitenteDoc = client.cpf || 'Não informado';
+  const emitenteEnd = client.address || 'Endereço não informado';
+  const avalista = loan && loan.guarantor && loan.guarantor.name ? loan.guarantor : null;
 
   // Número formatado com zero à esquerda
   const numFormatado = String(currentIndex).padStart(2, '0');
@@ -60,7 +61,7 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
   }
   let signatureAreaHtml = `
     <div class="paw-line"></div>
-    <div class="paw-name" style="color: #000000 !important;">${emitenteNome}</div>
+    <div class="paw-name" style="color: #000000 !important;">${escapeHtml(emitenteNome)}</div>
   `;
 
   if (sig) {
@@ -73,7 +74,7 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
         <img src="${sigImg}" style="max-height: 48px; max-width: 210px; display: inline-block;" alt="Assinatura Digital">
       </div>
       <div class="paw-line"></div>
-      <div class="paw-name" style="color: #000000 !important;">${emitenteNome}</div>
+      <div class="paw-name" style="color: #000000 !important;">${escapeHtml(emitenteNome)}</div>
       <div style="font-size: 6.5pt; color: #166534; font-weight: 700; font-family: monospace; margin-top: 2px; line-height: 1.2;">
         ✓ ASSINADO DIGITALMENTE ${sigDate ? `EM ${sigDate}` : ''}
         ${sigProto ? `<br>Protocolo: ${sigProto}` : ''}
@@ -123,12 +124,12 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
 
             <div class="pbs-line pbs-line-2" style="color: #000000 !important;">
               <span style="color: #000000 !important;">NOTA PROMISSÓRIA à</span>
-              <span class="pbs-field pbs-field-beneficiario" style="color: #000000 !important;">${beneficiario}</span>
+              <span class="pbs-field pbs-field-beneficiario" style="color: #000000 !important;">${escapeHtml(beneficiario)}</span>
             </div>
 
             <div class="pbs-line pbs-line-3" style="color: #000000 !important;">
               <span style="color: #000000 !important;">CNPJ</span>
-              <span class="pbs-field pbs-field-cnpj" style="color: #000000 !important;">${cnpjBeneficiario}</span>
+              <span class="pbs-field pbs-field-cnpj" style="color: #000000 !important;">${escapeHtml(cnpjBeneficiario)}</span>
             </div>
 
             <div class="pbs-line pbs-line-4" style="color: #000000 !important;">
@@ -139,7 +140,7 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
             </div>
 
             <div class="pbs-line pbs-line-5" style="color: #000000 !important;">
-              Em moeda corrente deste país, pagável na praça de ${praca}
+              Em moeda corrente deste país, pagável na praça de ${escapeHtml(praca)}
             </div>
           </div>
 
@@ -148,21 +149,27 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
             <div class="promissoria-emitente-box" style="background: #ffffff !important; color: #000000 !important;">
               <div class="peb-row">
                 <span class="peb-label" style="color: #000000 !important;">Emitente :</span>
-                <strong class="peb-val" style="color: #000000 !important;">${emitenteNome}</strong>
+                <strong class="peb-val" style="color: #000000 !important;">${escapeHtml(emitenteNome)}</strong>
               </div>
               <div class="peb-row">
                 <span class="peb-label" style="color: #000000 !important;">CNPJ/CPF:</span>
-                <span class="peb-val" style="color: #000000 !important;">${emitenteDoc}</span>
+                <span class="peb-val" style="color: #000000 !important;">${escapeHtml(emitenteDoc)}</span>
               </div>
               <div class="peb-row">
                 <span class="peb-label" style="color: #000000 !important;">Endereço:</span>
-                <span class="peb-val" style="color: #000000 !important;">${emitenteEnd}</span>
+                <span class="peb-val" style="color: #000000 !important;">${escapeHtml(emitenteEnd)}</span>
               </div>
+              ${avalista ? `
+                <div class="peb-row" style="border-top: 1px dashed #cbd5e1; margin-top: 2px; padding-top: 2px;">
+                  <span class="peb-label" style="color: #000000 !important;">Avalista :</span>
+                  <span class="peb-val" style="color: #000000 !important;">${escapeHtml(avalista.name)}${avalista.cpf ? ` (${escapeHtml(avalista.cpf)})` : ''}</span>
+                </div>
+              ` : ''}
             </div>
 
             <div class="promissoria-assinatura-wrap">
               <div class="paw-data" style="color: #000000 !important;">
-                ${praca}, ${acordo.dia} de ${acordoMesCap} de ${acordo.ano}
+                ${escapeHtml(praca)}, ${acordo.dia} de ${acordoMesCap} de ${acordo.ano}
               </div>
               <div class="paw-signature-area">
                 ${signatureAreaHtml}
@@ -172,6 +179,261 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
 
         </div>
       </div>
+    </div>
+  `;
+}
+
+/**
+ * Renderiza o Instrumento Particular de Confissão de Dívida e Mútuo Financeiro (Padrão A4 Formal)
+ */
+export function renderDebtConfessionContract(loan, client, loanInsts = [], settings = {}) {
+  const praca = settings.creditorCity || 'PORTO VELHO RONDONIA';
+  const beneficiario = settings.businessName || 'Vando motos locadora LTDA';
+  const cnpjBeneficiario = settings.creditorCpfCnpj || '28.623.431-0001-23';
+  const acordo = formatDateExtenso(loan.startDate || new Date());
+
+  const totalPayable = Number(loan.totalPayable || loan.principal || 0);
+  const principal = Number(loan.principal || 0);
+  const interestRate = Number(loan.interestRate || 0);
+  const instsList = (loanInsts && loanInsts.length > 0)
+    ? loanInsts
+    : [{ number: 1, dueDate: loan.startDate, installmentAmount: totalPayable }];
+
+  const g = loan.guarantee && (loan.guarantee.type || loan.guarantee.description || loan.guarantee.plateRenavam) ? loan.guarantee : null;
+  const av = loan.guarantor && loan.guarantor.name ? loan.guarantor : null;
+
+  let sig = loan.signature || null;
+  if (!sig && loan && loan.id) {
+    try {
+      const raw = localStorage.getItem(`vando_signed_${loan.id}`);
+      if (raw) sig = JSON.parse(raw);
+    } catch (e) {}
+  }
+
+  let debtorSigHtml = `
+    <div style="border-top: 1px solid #0f172a; margin-top: 38px; padding-top: 5px; font-weight: 700; font-size: 9pt;">
+      ${escapeHtml(client.name || 'Devedor')}<br>
+      <span style="font-weight: 400; font-size: 8pt;">DEVEDOR(A) • CPF/CNPJ: ${escapeHtml(client.cpf || 'N/I')}</span>
+    </div>
+  `;
+
+  if (sig) {
+    const sigImg = typeof sig === 'string' ? sig : (sig.dataUrl || '');
+    const sigDate = sig.dateFormatted || (sig.timestamp ? formatDate(sig.timestamp) : '');
+    const sigProto = sig.protocol || '';
+    debtorSigHtml = `
+      <div style="margin-bottom: 2px;">
+        <img src="${sigImg}" style="max-height: 46px; max-width: 210px; display: inline-block;" alt="Assinatura Digital">
+      </div>
+      <div style="border-top: 1px solid #0f172a; padding-top: 4px; font-weight: 700; font-size: 9pt;">
+        ${escapeHtml(client.name || 'Devedor')}<br>
+        <span style="font-weight: 400; font-size: 8pt;">DEVEDOR(A) • CPF/CNPJ: ${escapeHtml(client.cpf || 'N/I')}</span>
+      </div>
+      <div style="font-size: 7pt; color: #166534; font-family: monospace; font-weight: 700; margin-top: 2px;">
+        ✓ Assinado eletronicamente ${sigDate ? `em ${sigDate}` : ''}${sigProto ? ` • Protocolo: ${sigProto}` : ''}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="contract-a4-sheet printable-document" style="background: #ffffff !important; color: #0f172a !important;">
+      <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;">
+        <div style="font-size: 13pt; font-weight: 900; letter-spacing: 0.4px;">${escapeHtml(beneficiario.toUpperCase())}</div>
+        <div style="font-size: 8.5pt; color: #334155;">CNPJ/CPF: ${escapeHtml(cnpjBeneficiario)} • Praça: ${escapeHtml(praca)}</div>
+        <h2 style="font-size: 11.5pt; font-weight: 800; margin: 10px 0 2px; text-transform: uppercase;">
+          Instrumento Particular de Confissão de Dívida e Mútuo Financeiro
+        </h2>
+        <div style="font-size: 8pt; color: #475569;">Contrato nº ${escapeHtml((loan.id || '').slice(-8).toUpperCase())} • Emitido em ${formatDate(loan.startDate)}</div>
+      </div>
+
+      <p style="font-size: 9pt; line-height: 1.5; margin-bottom: 10px; text-align: justify;">
+        Pelo presente instrumento particular de Confissão de Dívida (Art. 784, inciso III, do Código de Processo Civil), de um lado como <strong>CREDOR(A)</strong> <strong>${escapeHtml(beneficiario)}</strong>, inscrito(a) no CPF/CNPJ sob nº <strong>${escapeHtml(cnpjBeneficiario)}</strong>, com domicílio na praça de <strong>${escapeHtml(praca)}</strong>, e de outro lado como <strong>DEVEDOR(A)</strong> <strong>${escapeHtml(client.name || 'Cliente')}</strong>, inscrito(a) no CPF/CNPJ nº <strong>${escapeHtml(client.cpf || 'Não informado')}</strong>, telefone <strong>${escapeHtml(client.phone || 'Não informado')}</strong>, residente/domiciliado em <strong>${escapeHtml(client.address || 'Endereço não informado')}</strong>${av ? `, e ainda como <strong>AVALISTA / DEVEDOR SOLIDÁRIO</strong> <strong>${escapeHtml(av.name)}</strong>, CPF nº <strong>${escapeHtml(av.cpf || 'N/I')}</strong>${av.address ? `, residente em ${escapeHtml(av.address)}` : ''}` : ''}, têm entre si justo e contratado o seguinte:
+      </p>
+
+      <div style="margin-bottom: 10px;">
+        <div style="font-size: 9.2pt; font-weight: 800; background: #f1f5f9; padding: 4px 8px; border-left: 3px solid #0f172a; margin-bottom: 6px;">
+          CLÁUSULA 1ª — DO RECONHECIMENTO DA DÍVIDA E CONDIÇÕES
+        </div>
+        <p style="font-size: 8.8pt; line-height: 1.48; text-align: justify; margin: 0 0 8px;">
+          O(A) DEVEDOR(A) confessa e reconhece dever ao(à) CREDOR(A) a quantia líquida, certa e exigível total de <strong>${formatBRL(totalPayable)}</strong> (<em>${numeroParaExtenso(totalPayable)}</em>), originária de mútuo financeiro no capital principal de <strong>${formatBRL(principal)}</strong> acrescido de juros pactuados de <strong>${interestRate}%</strong> (${loan.installmentsCount === 1 ? 'pagamento único' : `parcelado em ${loan.installmentsCount}x`}), com vencimento(s) conforme discriminado abaixo:
+        </p>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 6px;">
+          <thead>
+            <tr style="background: #f8fafc;">
+              <th style="border: 1px solid #cbd5e1; padding: 5px 8px; text-align: left;">Parcela</th>
+              <th style="border: 1px solid #cbd5e1; padding: 5px 8px; text-align: left;">Vencimento</th>
+              <th style="border: 1px solid #cbd5e1; padding: 5px 8px; text-align: right;">Valor da Prestação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${instsList.map(i => `
+              <tr>
+                <td style="border: 1px solid #cbd5e1; padding: 4px 8px;">${loan.installmentsCount === 1 ? 'Parcela Única' : `Parcela ${String(i.number).padStart(2, '0')}/${String(instsList.length).padStart(2, '0')}`}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 4px 8px;">${formatDate(i.dueDate)}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 4px 8px; text-align: right; font-weight: 700;">${formatBRL(i.installmentAmount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${g ? `
+        <div style="margin-bottom: 10px;">
+          <div style="font-size: 9.2pt; font-weight: 800; background: #f1f5f9; padding: 4px 8px; border-left: 3px solid #0f172a; margin-bottom: 6px;">
+            CLÁUSULA 2ª — DA GARANTIA CONTRATUAL VINCULADA
+          </div>
+          <p style="font-size: 8.8pt; line-height: 1.48; text-align: justify; margin: 0;">
+            Como garantia adicional ao fiel cumprimento desta obrigação, fica vinculado ao presente instrumento o seguinte bem: <strong>${escapeHtml(g.type || 'Bem')}</strong>${g.description ? ` — <strong>${escapeHtml(g.description)}</strong>` : ''}${g.plateRenavam ? `, identificação/placa/série <strong>${escapeHtml(g.plateRenavam)}</strong>` : ''}${g.estimatedValue ? `, avaliado em <strong>${formatBRL(g.estimatedValue)}</strong>` : ''}, obrigando-se o DEVEDOR a mantê-lo livre e desembaraçado até a integral quitação do débito.
+          </p>
+        </div>
+      ` : ''}
+
+      <div style="margin-bottom: 10px;">
+        <div style="font-size: 9.2pt; font-weight: 800; background: #f1f5f9; padding: 4px 8px; border-left: 3px solid #0f172a; margin-bottom: 6px;">
+          CLÁUSULA ${g ? '3ª' : '2ª'} — DOS ENCARGOS DE MORA E VENCIMENTO ANTECIPADO
+        </div>
+        <p style="font-size: 8.7pt; line-height: 1.45; text-align: justify; margin: 0;">
+          O atraso no pagamento de qualquer prestação acarretará automaticamente multa moratória de <strong>${loan.penaltyRate ?? 2}%</strong> sobre o saldo em atraso e juros diários de <strong>${loan.dailyInterestRate ?? 0.1}% ao dia</strong>, além de facultar ao CREDOR declarar o vencimento antecipado de toda a dívida remanescente, independentemente de notificação judicial, podendo executar o saldo total acrescido de despesas de cobrança e honorários advocatícios.
+        </p>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <div style="font-size: 9.2pt; font-weight: 800; background: #f1f5f9; padding: 4px 8px; border-left: 3px solid #0f172a; margin-bottom: 6px;">
+          CLÁUSULA ${g ? '4ª' : '3ª'} — VALIDADE DIGITAL E FORO DA COMARCA
+        </div>
+        <p style="font-size: 8.7pt; line-height: 1.45; text-align: justify; margin: 0;">
+          As partes reconhecem expressamente a validade jurídica deste contrato e de eventual assinatura eletrônica aposta em meio digital (MP nº 2.200-2/2001 e Lei nº 14.063/2020), elegendo o foro da Comarca de <strong>${escapeHtml(praca)}</strong> para dirimir quaisquer questões oriundas deste instrumento. ${loan.notes ? `<em>Obs.: ${escapeHtml(loan.notes)}.</em>` : ''}
+        </p>
+      </div>
+
+      <div style="text-align: right; font-size: 9pt; margin: 14px 0 18px;">
+        ${escapeHtml(praca)}, ${acordo.dia} de ${getMesCapitalizado(loan.startDate || new Date())} de ${acordo.ano}.
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; text-align: center; margin-bottom: 22px;">
+        <div class="paw-signature-area">
+          ${debtorSigHtml}
+        </div>
+        <div>
+          <div style="border-top: 1px solid #0f172a; margin-top: 38px; padding-top: 5px; font-weight: 700; font-size: 9pt;">
+            ${escapeHtml(beneficiario)}<br>
+            <span style="font-weight: 400; font-size: 8pt;">CREDOR(A) • CNPJ/CPF: ${escapeHtml(cnpjBeneficiario)}</span>
+          </div>
+        </div>
+      </div>
+
+      ${av ? `
+        <div style="max-width: 300px; margin: 0 auto 20px; text-align: center;">
+          <div style="border-top: 1px solid #0f172a; margin-top: 24px; padding-top: 5px; font-weight: 700; font-size: 8.5pt;">
+            ${escapeHtml(av.name)}<br>
+            <span style="font-weight: 400; font-size: 7.8pt;">AVALISTA / FIADOR • CPF: ${escapeHtml(av.cpf || 'N/I')}</span>
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; font-size: 8pt; color: #334155; margin-top: 10px;">
+        <div style="border-top: 1px dashed #94a3b8; padding-top: 4px;">
+          <strong>Testemunha 1:</strong><br>Nome / CPF: _______________________________
+        </div>
+        <div style="border-top: 1px dashed #94a3b8; padding-top: 4px;">
+          <strong>Testemunha 2:</strong><br>Nome / CPF: _______________________________
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Renderiza comprovante / promissória para Impressora Térmica (58mm ou 80mm)
+ */
+export function renderThermalDocument({ mode, loan, client, installment, loanInsts = [], settings = {}, widthMM = 80 }) {
+  const praca = settings.creditorCity || 'PORTO VELHO RO';
+  const beneficiario = settings.businessName || 'Vando motos locadora LTDA';
+  const cnpjBeneficiario = settings.creditorCpfCnpj || '28.623.431-0001-23';
+  const clsWidth = widthMM === 58 ? 'thermal-58mm' : 'thermal-80mm';
+
+  if (mode === 'receipt' && installment) {
+    const lastPayment = (installment.paymentHistory && installment.paymentHistory.length > 0)
+      ? installment.paymentHistory[installment.paymentHistory.length - 1]
+      : { amount: installment.paidAmount || installment.installmentAmount, date: installment.paidDate || new Date(), method: 'PIX' };
+
+    return `
+      <div class="thermal-ticket ${clsWidth} printable-document">
+        <div class="tt-center tt-bold tt-lg">${escapeHtml(beneficiario.toUpperCase())}</div>
+        <div class="tt-center tt-sm">CNPJ: ${escapeHtml(cnpjBeneficiario)}</div>
+        <div class="tt-center tt-sm">${escapeHtml(praca)}</div>
+        <div class="tt-sep">--------------------------------</div>
+        <div class="tt-center tt-bold">RECIBO DE PAGAMENTO</div>
+        <div class="tt-center tt-sm">REC Nº ${escapeHtml((installment.id || '').slice(-6).toUpperCase())}</div>
+        <div class="tt-sep">--------------------------------</div>
+        <div><strong>CLIENTE:</strong> ${escapeHtml(client.name || 'Cliente')}</div>
+        ${client.cpf ? `<div><strong>CPF/CNPJ:</strong> ${escapeHtml(client.cpf)}</div>` : ''}
+        <div><strong>PARCELA:</strong> Nº ${installment.number}${loan?.installmentsCount ? `/${loan.installmentsCount}` : ''}</div>
+        <div><strong>VENC. ORIG:</strong> ${formatDate(installment.dueDate)}</div>
+        <div><strong>DATA BAIXA:</strong> ${formatDate(lastPayment.date)}</div>
+        <div><strong>FORMA:</strong> ${escapeHtml(lastPayment.method || 'PIX')}</div>
+        ${lastPayment.discount > 0 ? `<div><strong>DESCONTO:</strong> -${formatBRL(lastPayment.discount)}</div>` : ''}
+        ${lastPayment.lateChargesPaid > 0 ? `<div><strong>MULTA/MORA:</strong> +${formatBRL(lastPayment.lateChargesPaid)}</div>` : ''}
+        <div class="tt-sep">--------------------------------</div>
+        <div class="tt-row tt-bold tt-lg">
+          <span>VALOR PAGO:</span>
+          <span>${formatBRL(lastPayment.amount)}</span>
+        </div>
+        <div class="tt-sep">--------------------------------</div>
+        <div class="tt-center tt-sm" style="margin-top: 10px;">Emissão: ${new Date().toLocaleString('pt-BR')}</div>
+        <div class="tt-center tt-sm" style="margin-top: 18px;">__________________________<br>Assinatura / Visto Credor</div>
+        <div class="tt-center tt-sm" style="margin-top: 8px;">Obrigado pela preferência!</div>
+      </div>
+    `;
+  }
+
+  // Cupom Térmico de Contrato / Promissória
+  let sig = loan?.signature || null;
+  if (!sig && loan && loan.id) {
+    try {
+      const raw = localStorage.getItem(`vando_signed_${loan.id}`);
+      if (raw) sig = JSON.parse(raw);
+    } catch (e) {}
+  }
+
+  const instsList = (loanInsts && loanInsts.length > 0) ? loanInsts : [];
+  return `
+    <div class="thermal-ticket ${clsWidth} printable-document">
+      <div class="tt-center tt-bold tt-lg">${escapeHtml(beneficiario.toUpperCase())}</div>
+      <div class="tt-center tt-sm">CNPJ: ${escapeHtml(cnpjBeneficiario)}</div>
+      <div class="tt-sep">--------------------------------</div>
+      <div class="tt-center tt-bold">COMPROVANTE DE PROMISSÓRIA</div>
+      <div class="tt-center tt-sm">CONT Nº ${escapeHtml((loan?.id || '').slice(-6).toUpperCase())}</div>
+      <div class="tt-sep">--------------------------------</div>
+      <div><strong>DEVEDOR:</strong> ${escapeHtml(client.name || 'Cliente')}</div>
+      ${client.cpf ? `<div><strong>CPF/CNPJ:</strong> ${escapeHtml(client.cpf)}</div>` : ''}
+      ${client.phone ? `<div><strong>TEL:</strong> ${escapeHtml(client.phone)}</div>` : ''}
+      <div><strong>DATA:</strong> ${formatDate(loan?.startDate)}</div>
+      <div><strong>CAPITAL:</strong> ${formatBRL(loan?.principal)}</div>
+      <div><strong>TAXA:</strong> ${loan?.interestRate || 0}%</div>
+      <div class="tt-row tt-bold"><span>TOTAL PACTUADO:</span><span>${formatBRL(loan?.totalPayable)}</span></div>
+      ${loan?.guarantee?.description ? `<div><strong>GARANTIA:</strong> ${escapeHtml(loan.guarantee.description)} ${escapeHtml(loan.guarantee.plateRenavam || '')}</div>` : ''}
+      ${loan?.guarantor?.name ? `<div><strong>AVALISTA:</strong> ${escapeHtml(loan.guarantor.name)}</div>` : ''}
+      <div class="tt-sep">--------------------------------</div>
+      <div class="tt-bold">VENCIMENTOS:</div>
+      ${instsList.map(i => `
+        <div class="tt-row tt-sm">
+          <span>#${String(i.number).padStart(2, '0')} ${formatDate(i.dueDate)}</span>
+          <span>${formatBRL(i.installmentAmount)}</span>
+        </div>
+      `).join('')}
+      <div class="tt-sep">--------------------------------</div>
+      <div class="tt-sm">Comprometo-me a pagar a quantia acima na praça de ${escapeHtml(praca)}.</div>
+      ${sig ? `
+        <div class="tt-center" style="margin-top: 8px;">
+          <img src="${typeof sig === 'string' ? sig : (sig.dataUrl || '')}" style="max-height: 36px; max-width: 140px;" alt="Assinatura">
+          <div class="tt-sm">✓ Assinado Digitalmente${sig.protocol ? `<br>${sig.protocol}` : ''}</div>
+        </div>
+      ` : `
+        <div class="tt-center tt-sm" style="margin-top: 22px;">__________________________<br>${escapeHtml(client.name || 'Devedor')}<br>Assinatura do Emitente</div>
+      `}
+      <div class="tt-center tt-sm" style="margin-top: 8px;">Emissão: ${new Date().toLocaleString('pt-BR')}</div>
     </div>
   `;
 }
@@ -188,8 +450,10 @@ export function createReceiptModal() {
           <h3 class="modal-title" id="doc-modal-title">${icon('fileText', 18)} Nota Promissória Oficial</h3>
           <button class="modal-close-btn" id="doc-modal-close" title="Fechar">${icon('x', 16)}</button>
         </div>
+        <!-- Seletor de Tipo de Documento (A4 / Contrato / Térmico 58mm / 80mm) -->
+        <div id="doc-view-tabs" class="doc-view-tabs" style="display: flex; flex-wrap: wrap; gap: 6px; width: 100%;"></div>
         <!-- Seletor de Modo / Carnê quando for Nota Promissória -->
-        <div id="doc-modal-controls" style="display: none; width: 100%; margin-top: 4px;">
+        <div id="doc-modal-controls" style="display: none; width: 100%; margin-top: 2px;">
           <select class="form-control" id="select-promissory-view" style="padding: 8px 12px; font-size: 0.88rem; min-height: 40px; background: var(--bg-3); color: #fff; border: 1px solid var(--border-soft); border-radius: var(--r-sm); width: 100%;">
             <!-- Opções dinâmicas -->
           </select>
@@ -220,16 +484,24 @@ export function createReceiptModal() {
   const copyLinkBtn = modal.querySelector('#doc-modal-copy-link-btn');
   const body = modal.querySelector('#doc-modal-body');
   const controls = modal.querySelector('#doc-modal-controls');
+  const viewTabs = modal.querySelector('#doc-view-tabs');
   const selectView = modal.querySelector('#select-promissory-view');
 
   let currentMode = 'promissory'; // 'receipt' ou 'promissory'
+  let currentDocTab = 'promissory'; // 'promissory' | 'contract' | 'receipt' | 'thermal58' | 'thermal80'
   let currentDebtorName = 'Devedor';
   let currentLoan = null;
   let currentClient = null;
+  let currentInstallment = null;
   let currentInstallments = [];
-  let renderCurrentPromissoryFn = null;
+  let renderCurrentDocFn = null;
+
+  function clearThermalPrintClasses() {
+    document.body.classList.remove('printing-thermal-58', 'printing-thermal-80');
+  }
 
   function closeModal() {
+    clearThermalPrintClasses();
     modal.classList.remove('active');
   }
 
@@ -240,8 +512,46 @@ export function createReceiptModal() {
   });
 
   printBtn.addEventListener('click', () => {
+    clearThermalPrintClasses();
+    if (currentDocTab === 'thermal58') {
+      document.body.classList.add('printing-thermal-58');
+    } else if (currentDocTab === 'thermal80') {
+      document.body.classList.add('printing-thermal-80');
+    }
+    const cleanup = () => clearThermalPrintClasses();
+    window.addEventListener('afterprint', cleanup, { once: true });
+    setTimeout(cleanup, 3500);
     window.print();
   });
+
+  function renderTabsBar() {
+    const tabs = currentMode === 'promissory'
+      ? [
+          { id: 'promissory', label: 'Nota Promissória A4' },
+          { id: 'contract', label: 'Contrato Confissão Dívida' },
+          { id: 'thermal58', label: 'Cupom 58mm' },
+          { id: 'thermal80', label: 'Cupom 80mm' }
+        ]
+      : [
+          { id: 'receipt', label: 'Recibo A4' },
+          { id: 'thermal58', label: 'Cupom 58mm' },
+          { id: 'thermal80', label: 'Cupom 80mm' }
+        ];
+
+    viewTabs.innerHTML = tabs.map(t => `
+      <button type="button" class="doc-tab-btn ${currentDocTab === t.id ? 'active' : ''}" data-doc-tab="${t.id}">
+        ${t.label}
+      </button>
+    `).join('');
+
+    viewTabs.querySelectorAll('.doc-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentDocTab = btn.dataset.docTab;
+        renderTabsBar();
+        if (renderCurrentDocFn) renderCurrentDocFn();
+      });
+    });
+  }
 
   // Assinatura na tela (quando o cliente assina presencialmente com o operador)
   signBtn.addEventListener('click', async () => {
@@ -268,11 +578,12 @@ export function createReceiptModal() {
           signedAt: sigData.timestamp,
           signProtocol: protocol
         });
+        state.logAudit('DOCUMENT_SIGNED_ONSITE', `Assinatura presencial coletada para ${currentDebtorName} (${protocol})`, 'loan', currentLoan.id);
         localStorage.setItem(`vando_signed_${currentLoan.id}`, JSON.stringify(sigData));
       }
 
-      if (currentMode === 'promissory' && renderCurrentPromissoryFn) {
-        renderCurrentPromissoryFn();
+      if (renderCurrentDocFn) {
+        renderCurrentDocFn();
       } else {
         const sigAreas = body.querySelectorAll('.paw-signature-area, .recibo-assinatura-box');
         sigAreas.forEach(area => {
@@ -281,7 +592,7 @@ export function createReceiptModal() {
               <img src="${signature.dataUrl}" style="max-height: 48px; max-width: 200px; display: inline-block;" alt="Assinatura Digital">
             </div>
             <div class="paw-line" style="border-top: 1.5px solid #000; width: 220px; margin: 0 auto 3px;"></div>
-            <div class="paw-name" style="font-weight: 800; font-size: 8pt; color: #000;">${currentDebtorName}</div>
+            <div class="paw-name" style="font-weight: 800; font-size: 8pt; color: #000;">${escapeHtml(currentDebtorName)}</div>
             <div style="font-size: 6pt; color: #166534; font-family: monospace; margin-top: 2px; font-weight: 700;">✓ Assinado digitalmente em ${signature.dateFormatted} • Protocolo: ${protocol}</div>
           `;
         });
@@ -354,84 +665,105 @@ export function createReceiptModal() {
     const settings = state.getSettings();
 
     currentMode = 'receipt';
+    currentDocTab = 'receipt';
     currentLoan = loan;
     currentClient = client;
+    currentInstallment = inst;
+    currentInstallments = [];
     currentDebtorName = client.name;
-    renderCurrentPromissoryFn = null;
 
     controls.style.display = 'none';
     copyLinkBtn.style.display = 'none';
     wppBtn.style.display = 'none';
+    signBtn.style.display = 'none';
     modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Recibo de Pagamento`;
 
     const lastPayment = (inst.paymentHistory && inst.paymentHistory.length > 0)
       ? inst.paymentHistory[inst.paymentHistory.length - 1]
       : { amount: inst.paidAmount || inst.installmentAmount, date: inst.paidDate || new Date(), method: 'PIX' };
 
-    body.innerHTML = `
-      <div class="printable-document" style="background: #fff; color: #0f172a; padding: 28px; border-radius: var(--radius-md); font-family: sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
-        <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
-          <div>
-            <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; color: #0f172a;">${settings.businessName}</h2>
-            <div style="font-size: 0.85rem; color: #64748b;">Comprovante de Quitação de Parcela</div>
-          </div>
-          <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: #059669;">
-            RECIBO Nº ${inst.id.substring(inst.id.length - 6).toUpperCase()}
-          </div>
-        </div>
+    function renderReceiptDoc() {
+      if (currentDocTab === 'thermal58' || currentDocTab === 'thermal80') {
+        const widthMM = currentDocTab === 'thermal58' ? 58 : 80;
+        body.innerHTML = renderThermalDocument({
+          mode: 'receipt',
+          loan,
+          client,
+          installment: inst,
+          settings,
+          widthMM
+        });
+        return;
+      }
 
-        <div style="font-size: 1rem; line-height: 1.8; color: #334155; margin-bottom: 24px;">
-          Recebemos de <strong>${client.name}</strong>${client.cpf ? ` (CPF/CNPJ: ${client.cpf})` : ''},
-          a quantia de <strong style="font-size: 1.15rem; color: #0f172a;">${formatBRL(lastPayment.amount)}</strong>,
-          referente à quitação da <strong>Parcela nº ${inst.number}</strong> do contrato de empréstimo realizado em ${formatDate(loan.startDate || inst.dueDate)}.
-        </div>
-
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 0.9rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span>Vencimento Original:</span>
-            <strong>${formatDate(inst.dueDate)}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span>Data da Baixa:</span>
-            <strong>${formatDate(lastPayment.date)}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span>Forma de Pagamento:</span>
-            <strong>${lastPayment.method || 'PIX'}</strong>
-          </div>
-          ${lastPayment.discount > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #059669;">
-              <span>Desconto Concedido:</span>
-              <strong>- ${formatBRL(lastPayment.discount)}</strong>
+      body.innerHTML = `
+        <div class="printable-document" style="background: #fff; color: #0f172a; padding: 28px; border-radius: var(--radius-md); font-family: sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+          <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+              <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; color: #0f172a;">${escapeHtml(settings.businessName)}</h2>
+              <div style="font-size: 0.85rem; color: #64748b;">Comprovante de Quitação de Parcela</div>
             </div>
-          ` : ''}
-          ${lastPayment.lateChargesPaid > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #dc2626;">
-              <span>Encargos / Mora Pagos:</span>
-              <strong>+ ${formatBRL(lastPayment.lateChargesPaid)}</strong>
+            <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: #059669;">
+              RECIBO Nº ${inst.id.substring(inst.id.length - 6).toUpperCase()}
             </div>
-          ` : ''}
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px;">
-          <div>
-            <div style="font-size: 0.82rem; color: #64748b;">Data de emissão: ${formatDate(new Date())}</div>
           </div>
-          <div style="text-align: center; width: 220px;">
-            <div style="border-top: 1px solid #0f172a; padding-top: 6px; font-size: 0.85rem; font-weight: 700;">
-              ${settings.businessName}
+
+          <div style="font-size: 1rem; line-height: 1.8; color: #334155; margin-bottom: 24px;">
+            Recebemos de <strong>${escapeHtml(client.name)}</strong>${client.cpf ? ` (CPF/CNPJ: ${escapeHtml(client.cpf)})` : ''},
+            a quantia de <strong style="font-size: 1.15rem; color: #0f172a;">${formatBRL(lastPayment.amount)}</strong>,
+            referente à quitação da <strong>Parcela nº ${inst.number}</strong> do contrato de empréstimo realizado em ${formatDate(loan.startDate || inst.dueDate)}.
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span>Vencimento Original:</span>
+              <strong>${formatDate(inst.dueDate)}</strong>
             </div>
-            <div style="font-size: 0.75rem; color: #64748b;">Credor / Emitente</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span>Data da Baixa:</span>
+              <strong>${formatDate(lastPayment.date)}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span>Forma de Pagamento:</span>
+              <strong>${escapeHtml(lastPayment.method || 'PIX')}</strong>
+            </div>
+            ${lastPayment.discount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #059669;">
+                <span>Desconto Concedido:</span>
+                <strong>- ${formatBRL(lastPayment.discount)}</strong>
+              </div>
+            ` : ''}
+            ${lastPayment.lateChargesPaid > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #dc2626;">
+                <span>Encargos / Mora Pagos:</span>
+                <strong>+ ${formatBRL(lastPayment.lateChargesPaid)}</strong>
+              </div>
+            ` : ''}
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px;">
+            <div>
+              <div style="font-size: 0.82rem; color: #64748b;">Data de emissão: ${formatDate(new Date())}</div>
+            </div>
+            <div style="text-align: center; width: 220px;">
+              <div style="border-top: 1px solid #0f172a; padding-top: 6px; font-size: 0.85rem; font-weight: 700;">
+                ${escapeHtml(settings.businessName)}
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b;">Credor / Emitente</div>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    }
 
+    renderCurrentDocFn = renderReceiptDoc;
+    renderTabsBar();
+    renderReceiptDoc();
     modal.classList.add('active');
   };
 
-  // --- 2. NOTA PROMISSÓRIA (MODELO EXATO DO DOCUMENTO EXCEL / PDF) ---
-  window.openPromissoryModal = function(loanId, specificInstallmentNumber = null) {
+  // --- 2. NOTA PROMISSÓRIA / CONTRATO DE CONFISSÃO / CUPOM ---
+  window.openPromissoryModal = function(loanId, specificInstallmentNumber = null, initialTab = 'promissory') {
     const loan = state.getLoanById(loanId);
     if (!loan) return;
 
@@ -441,15 +773,17 @@ export function createReceiptModal() {
     const totalCount = loanInsts.length;
 
     currentMode = 'promissory';
+    currentDocTab = ['promissory', 'contract', 'thermal58', 'thermal80'].includes(initialTab) ? initialTab : 'promissory';
     currentLoan = loan;
     currentClient = client;
+    currentInstallment = null;
     currentInstallments = loanInsts;
     currentDebtorName = client.name;
 
-    modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Nota Promissória (Modelo Oficial)`;
-    controls.style.display = 'block';
+    modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Documentos do Contrato`;
     copyLinkBtn.style.display = 'inline-flex';
     wppBtn.style.display = 'inline-flex';
+    signBtn.style.display = 'inline-flex';
 
     // Monta as opções do seletor
     selectView.innerHTML = `
@@ -467,12 +801,42 @@ export function createReceiptModal() {
 
     function renderView() {
       const selected = selectView.value;
+      const latestLoan = state.getLoanById(loan.id) || loan;
+      currentLoan = latestLoan;
+
+      controls.style.display = (currentDocTab === 'contract') ? 'none' : 'block';
+
+      if (currentDocTab === 'contract') {
+        body.innerHTML = `
+          <div class="promissoria-print-sheet">
+            ${renderDebtConfessionContract(latestLoan, client, loanInsts, settings)}
+          </div>
+        `;
+        return;
+      }
+
+      if (currentDocTab === 'thermal58' || currentDocTab === 'thermal80') {
+        const widthMM = currentDocTab === 'thermal58' ? 58 : 80;
+        const targetInst = selected === 'all'
+          ? loanInsts[0]
+          : (loanInsts.find(i => i.number === parseInt(selected, 10)) || loanInsts[0]);
+        body.innerHTML = renderThermalDocument({
+          mode: 'promissory',
+          loan: latestLoan,
+          client,
+          installment: targetInst,
+          loanInsts,
+          settings,
+          widthMM
+        });
+        return;
+      }
+
       if (selected === 'all') {
         let htmlCarnet = '';
         loanInsts.forEach((inst, idx) => {
-          htmlCarnet += renderSinglePromissoryCard(inst, loan, client, settings, inst.number, totalCount);
+          htmlCarnet += renderSinglePromissoryCard(inst, latestLoan, client, settings, inst.number, totalCount);
 
-          // Adiciona divisória de corte ou quebra de folha
           if (idx < loanInsts.length - 1) {
             const isEndOfPage = ((idx + 1) % 3 === 0);
             htmlCarnet += `
@@ -490,14 +854,15 @@ export function createReceiptModal() {
         const inst = loanInsts.find(i => i.number === instNum) || loanInsts[0];
         body.innerHTML = `
           <div class="promissoria-print-sheet">
-            ${renderSinglePromissoryCard(inst, loan, client, settings, inst.number, totalCount)}
+            ${renderSinglePromissoryCard(inst, latestLoan, client, settings, inst.number, totalCount)}
           </div>
         `;
       }
     }
 
-    renderCurrentPromissoryFn = renderView;
+    renderCurrentDocFn = renderView;
     selectView.onchange = renderView;
+    renderTabsBar();
     renderView();
 
     modal.classList.add('active');

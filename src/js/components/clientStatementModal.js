@@ -2,7 +2,7 @@
 // Extrato Financeiro Consolidado da Conta Corrente do Cliente (Livro Razão, WhatsApp e Impressão)
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, createWhatsAppUrl, showToast } from '../utils.js';
+import { formatBRL, formatDate, createWhatsAppUrl, showToast, escapeHtml } from '../utils.js';
 import { icon } from '../icons.js';
 
 export function createClientStatementModal() {
@@ -276,12 +276,18 @@ export function createClientStatementModal() {
     modal.querySelector('#statement-client-meta').textContent = `CPF: ${st.client.cpf || 'Não informado'} • Telefone: ${st.client.phone || '-'}`;
 
     const badgeWrap = modal.querySelector('#statement-client-badge-wrap');
+    const scoreInfo = state.getClientScore(clientId);
+    const client = st.client || {};
+    const scoreBadge = `<span class="score-pill-sm" style="border-color: ${scoreInfo.color}; color: ${scoreInfo.color};">Score ${scoreInfo.grade} (${scoreInfo.score})</span>`;
+    const blockedBadge = client.blocked ? `<span class="badge badge-overdue" style="margin-left: 6px;">Bloqueado</span>` : '';
+    const refBadge = client.referredBy ? `<span class="badge" style="margin-left: 6px; background: rgba(255,255,255,0.06); color: var(--text-300);">Indicado: ${escapeHtml(client.referredBy)}</span>` : '';
+
     if (st.parcelasAtrasadasQtd > 0) {
-      badgeWrap.innerHTML = `<span class="badge badge-overdue">Inadimplente (${st.parcelasAtrasadasQtd} em atraso)</span>`;
+      badgeWrap.innerHTML = `${scoreBadge}${blockedBadge}${refBadge} <span class="badge badge-overdue" style="margin-left: 6px;">Inadimplente (${st.parcelasAtrasadasQtd} em atraso)</span>`;
     } else if (st.saldoDevedorCapital > 0) {
-      badgeWrap.innerHTML = `<span class="badge badge-pending">Em Aberto (Em dia)</span>`;
+      badgeWrap.innerHTML = `${scoreBadge}${blockedBadge}${refBadge} <span class="badge badge-pending" style="margin-left: 6px;">Em Aberto (Em dia)</span>`;
     } else {
-      badgeWrap.innerHTML = `<span class="badge badge-paid">Quitado / Sem Dívida</span>`;
+      badgeWrap.innerHTML = `${scoreBadge}${blockedBadge}${refBadge} <span class="badge badge-paid" style="margin-left: 6px;">Quitado / Sem Dívida</span>`;
     }
 
     modal.querySelector('#st-kpi-principal').textContent = formatBRL(st.totalPrincipalEmprestado);

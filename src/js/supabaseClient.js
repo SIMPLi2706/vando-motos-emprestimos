@@ -175,7 +175,7 @@ export async function pushAllToSupabase(localData) {
     }
   }
 
-  // 4. Configurações
+  // 4. Configurações e Extensões JSONB
   if (localData.settings) {
     const { error: errSet } = await client.from('settings').upsert({
       id: 'global',
@@ -183,6 +183,75 @@ export async function pushAllToSupabase(localData) {
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
     if (errSet) throw new Error(`Erro ao enviar configurações: ${errSet.message}`);
+  }
+
+  // 5. Extensões (Garantias, Avalistas, Assinaturas, Bloqueios, Promessas, Fluxo de Caixa, Auditoria)
+  const clientExtras = {};
+  (localData.clients || []).forEach(c => {
+    if (c.blocked || c.blockedReason || c.referredBy) {
+      clientExtras[c.id] = {
+        blocked: !!c.blocked,
+        blockedReason: c.blockedReason || '',
+        blockedAt: c.blockedAt || null,
+        referredBy: c.referredBy || ''
+      };
+    }
+  });
+
+  const loanExtras = {};
+  const attachmentsByLoan = {};
+  (localData.loans || []).forEach(l => {
+    if (l.guarantee || l.guarantor || l.disbursementMethod || l.signature || l.signedAt || l.signProtocol || l.operatorName || l.settledEarlyDiscount || l.isRenegotiation) {
+      loanExtras[l.id] = {
+        guarantee: l.guarantee || null,
+        guarantor: l.guarantor || null,
+        disbursementMethod: l.disbursementMethod || 'PIX',
+        signature: l.signature || null,
+        signedAt: l.signedAt || null,
+        signProtocol: l.signProtocol || null,
+        operatorId: l.operatorId || null,
+        operatorName: l.operatorName || null,
+        settledEarlyDiscount: Number(l.settledEarlyDiscount || 0),
+        isRenegotiation: !!l.isRenegotiation
+      };
+    }
+    if (l.attachments && l.attachments.length > 0) {
+      attachmentsByLoan[l.id] = l.attachments;
+    }
+  });
+
+  const installmentExtras = {};
+  (localData.installments || []).forEach(i => {
+    if (i.promisedDate || i.promiseNote) {
+      installmentExtras[i.id] = {
+        promisedDate: i.promisedDate || null,
+        promiseNote: i.promiseNote || '',
+        promiseCreatedAt: i.promiseCreatedAt || null,
+        promiseOperator: i.promiseOperator || null
+      };
+    }
+  });
+
+  const extensionsPayload = {
+    clientExtras,
+    loanExtras,
+    installmentExtras,
+    cashFlows: localData.cashFlows || [],
+    auditLogs: (localData.auditLogs || []).slice(0, 300)
+  };
+
+  await client.from('settings').upsert({
+    id: 'extensions',
+    data: extensionsPayload,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'id' });
+
+  if (Object.keys(attachmentsByLoan).length > 0) {
+    await client.from('settings').upsert({
+      id: 'attachments',
+      data: { byLoan: attachmentsByLoan },
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
   }
 
   return { success: true, count: { clients: localData.clients?.length || 0, loans: localData.loans?.length || 0, installments: localData.installments?.length || 0 } };
@@ -195,73 +264,111 @@ export async function pullAllFromSupabase() {
   const client = getSupabase();
   if (!client) throw new Error('Supabase não conectado.');
 
-  const [resCli, resLoans, resInsts, resSettings] = await Promise.all([
+  const [resCli, resLoans, resInsts, resSettingsAll] = await Promise.all([
     client.from('clients').select('*').order('created_at', { ascending: false }),
     client.from('loans').select('*').order('created_at', { ascending: false }),
     client.from('installments').select('*').order('number', { ascending: true }),
-    client.from('settings').select('*').eq('id', 'global').maybeSingle()
+    client.from('settings').select('*').in('id', ['global', 'extensions', 'attachments'])
   ]);
 
   if (resCli.error) throw resCli.error;
   if (resLoans.error) throw resLoans.error;
   if (resInsts.error) throw resInsts.error;
 
-  const clients = (resCli.data || []).map(c => ({
-    id: c.id,
-    name: c.name,
-    cpf: c.cpf || '',
-    phone: c.phone || '',
-    address: c.address || '',
-    notes: c.notes || '',
-    creditLimit: Number(c.credit_limit || 0),
-    createdAt: c.created_at
-  }));
+  const settingsRows = resSettingsAll.data || [];
+  const globalRow = settingsRows.find(r => r.id === 'global');
+  const extRow = settingsRows.find(r => r.id === 'extensions');
+  const attRow = settingsRows.find(r => r.id === 'attachments');
 
-  const loans = (resLoans.data || []).map(l => ({
-    id: l.id,
-    clientId: l.client_id,
-    principal: Number(l.principal || 0),
-    interestRate: Number(l.interest_rate || 0),
-    interestType: l.interest_type || 'price',
-    periodicity: l.periodicity || 'monthly',
-    installmentsCount: Number(l.installments_count || 1),
-    startDate: l.start_date,
-    totalPayable: Number(l.total_payable || 0),
-    totalInterest: Number(l.total_interest || 0),
-    penaltyRate: Number(l.penalty_rate || 2.0),
-    dailyInterestRate: Number(l.daily_interest_rate || 0.1),
-    firstPaymentDays: Number(l.first_payment_days || 0),
-    notes: l.notes || '',
-    status: l.status || 'active',
-    createdAt: l.created_at
-  }));
+  const extData = (extRow && extRow.data) || {};
+  const attData = (attRow && attRow.data && attRow.data.byLoan) || {};
 
-  const installments = (resInsts.data || []).map(i => ({
-    id: i.id,
-    loanId: i.loan_id,
-    clientId: i.client_id,
-    number: Number(i.number || 1),
-    dueDate: i.due_date,
-    installmentAmount: Number(i.installment_amount || 0),
-    amortizationAmount: Number(i.amortization_amount || 0),
-    interestAmount: Number(i.interest_amount || 0),
-    paidAmount: Number(i.paid_amount || 0),
-    paidDate: i.paid_date || null,
-    status: i.status || 'pending',
-    paymentMethod: i.payment_method || null,
-    paymentHistory: i.payment_history || []
-  }));
+  const clients = (resCli.data || []).map(c => {
+    const ex = (extData.clientExtras && extData.clientExtras[c.id]) || {};
+    return {
+      id: c.id,
+      name: c.name,
+      cpf: c.cpf || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      notes: c.notes || '',
+      creditLimit: Number(c.credit_limit || 0),
+      createdAt: c.created_at,
+      blocked: !!ex.blocked,
+      blockedReason: ex.blockedReason || '',
+      blockedAt: ex.blockedAt || null,
+      referredBy: ex.referredBy || ''
+    };
+  });
+
+  const loans = (resLoans.data || []).map(l => {
+    const ex = (extData.loanExtras && extData.loanExtras[l.id]) || {};
+    return {
+      id: l.id,
+      clientId: l.client_id,
+      principal: Number(l.principal || 0),
+      interestRate: Number(l.interest_rate || 0),
+      interestType: l.interest_type || 'price',
+      periodicity: l.periodicity || 'monthly',
+      installmentsCount: Number(l.installments_count || 1),
+      startDate: l.start_date,
+      totalPayable: Number(l.total_payable || 0),
+      totalInterest: Number(l.total_interest || 0),
+      penaltyRate: Number(l.penalty_rate || 2.0),
+      dailyInterestRate: Number(l.daily_interest_rate || 0.1),
+      firstPaymentDays: Number(l.first_payment_days || 0),
+      notes: l.notes || '',
+      status: l.status || 'active',
+      createdAt: l.created_at,
+      guarantee: ex.guarantee || null,
+      guarantor: ex.guarantor || null,
+      disbursementMethod: ex.disbursementMethod || 'PIX',
+      signature: ex.signature || null,
+      signedAt: ex.signedAt || null,
+      signProtocol: ex.signProtocol || null,
+      operatorId: ex.operatorId || null,
+      operatorName: ex.operatorName || null,
+      settledEarlyDiscount: Number(ex.settledEarlyDiscount || 0),
+      isRenegotiation: !!ex.isRenegotiation,
+      attachments: attData[l.id] || []
+    };
+  });
+
+  const installments = (resInsts.data || []).map(i => {
+    const ex = (extData.installmentExtras && extData.installmentExtras[i.id]) || {};
+    return {
+      id: i.id,
+      loanId: i.loan_id,
+      clientId: i.client_id,
+      number: Number(i.number || 1),
+      dueDate: i.due_date,
+      installmentAmount: Number(i.installment_amount || 0),
+      amortizationAmount: Number(i.amortization_amount || 0),
+      interestAmount: Number(i.interest_amount || 0),
+      paidAmount: Number(i.paid_amount || 0),
+      paidDate: i.paid_date || null,
+      status: i.status || 'pending',
+      paymentMethod: i.payment_method || null,
+      paymentHistory: i.payment_history || [],
+      promisedDate: ex.promisedDate || null,
+      promiseNote: ex.promiseNote || '',
+      promiseCreatedAt: ex.promiseCreatedAt || null,
+      promiseOperator: ex.promiseOperator || null
+    };
+  });
 
   let settings = null;
-  if (resSettings.data && resSettings.data.data) {
-    settings = resSettings.data.data;
+  if (globalRow && globalRow.data) {
+    settings = globalRow.data;
   }
 
   return {
     clients,
     loans,
     installments,
-    settings
+    settings,
+    cashFlows: extData.cashFlows || [],
+    auditLogs: extData.auditLogs || []
   };
 }
 
@@ -340,6 +447,7 @@ export async function wipeAllFromSupabase() {
     await client.from('installments').delete().neq('id', '___none___');
     await client.from('loans').delete().neq('id', '___none___');
     await client.from('clients').delete().neq('id', '___none___');
+    await client.from('settings').delete().in('id', ['extensions', 'attachments']);
   } catch (err) {
     console.error('Erro ao zerar dados no Supabase:', err);
     throw err;

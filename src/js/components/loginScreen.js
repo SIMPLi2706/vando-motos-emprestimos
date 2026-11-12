@@ -2,11 +2,32 @@
 // Tela de Login com PIN de 4 Dígitos - Vando Motos Locadora LTDA (Opcional & 100% Responsiva)
 
 import { showToast } from '../utils.js';
+import { state } from '../state.js';
 
 const PIN_STORAGE_KEY = 'vandomotos_pin';
 const PIN_ENABLED_KEY = 'vandomotos_pin_enabled';
 const AUTH_SESSION_KEY = 'vandomotos_authenticated';
+const OPERATOR_SESSION_KEY = 'vandomotos_current_operator';
 const DEFAULT_PIN = '1234';
+
+/**
+ * Retorna o operador logado na sessão atual
+ */
+export function getCurrentOperator() {
+  try {
+    const raw = sessionStorage.getItem(OPERATOR_SESSION_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { id: 'admin', name: 'Administrador', role: 'admin' };
+}
+
+export function isAdmin() {
+  return getCurrentOperator().role !== 'collector';
+}
+
+export function setCurrentOperatorSession(op) {
+  sessionStorage.setItem(OPERATOR_SESSION_KEY, JSON.stringify(op || { id: 'admin', name: 'Administrador', role: 'admin' }));
+}
 
 /**
  * Verifica se a proteção por PIN está ativada no sistema
@@ -70,7 +91,16 @@ export function setStoredPin(newPin) {
 export function lockSession() {
   setPinEnabled(true);
   sessionStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(OPERATOR_SESSION_KEY);
   window.location.reload();
+}
+
+/**
+ * Abre a tela de troca de operador sem apagar dados
+ */
+export function openOperatorSwitch(onSuccess) {
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  return createLoginScreen(onSuccess, { forcePrompt: true });
 }
 
 /**
@@ -78,17 +108,19 @@ export function lockSession() {
  */
 export function logout() {
   sessionStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(OPERATOR_SESSION_KEY);
   window.location.reload();
 }
 
 /**
  * Cria e renderiza a tela de login por PIN (caso ativada)
  * @param {Function} [onSuccess] Callback executado ao validar o PIN com sucesso
+ * @param {Object} [opts]
  * @returns {HTMLElement|null}
  */
-export function createLoginScreen(onSuccess) {
-  // Se o PIN estiver desativado ou já autenticado, prossegue direto
-  if (isAuthenticated()) {
+export function createLoginScreen(onSuccess, opts = {}) {
+  // Se o PIN estiver desativado ou já autenticado (e não for troca manual), prossegue direto
+  if (!opts.forcePrompt && isAuthenticated()) {
     const cb = onSuccess || window.onAuthSuccess || window.onLoginSuccess;
     if (typeof cb === 'function') {
       setTimeout(() => cb(), 0);
@@ -103,6 +135,8 @@ export function createLoginScreen(onSuccess) {
   }
 
   getStoredPin();
+  const activeOperators = (state.getOperators ? state.getOperators() : []).filter(o => o.active !== false);
+  const hasCustomOperators = activeOperators.length > 0;
 
   let enteredPin = '';
   let isChecking = false;
@@ -116,7 +150,7 @@ export function createLoginScreen(onSuccess) {
       <div class="pin-brand">
         <img src="/logo-vandomotos.png" alt="Vando Motos Locadora" class="pin-logo" />
         <h1 class="pin-title">Vando Motos Locadora</h1>
-        <p class="pin-subtitle">Digite seu PIN para acessar</p>
+        <p class="pin-subtitle">${hasCustomOperators ? 'Digite o PIN do Administrador ou Operador' : 'Digite seu PIN para acessar'}</p>
       </div>
 
       <div class="pin-dots" id="pin-dots" aria-live="polite" aria-label="Dígitos informados">
@@ -152,11 +186,20 @@ export function createLoginScreen(onSuccess) {
         </button>
       </div>
 
-      <div class="pin-footer-actions">
-        <button type="button" class="pin-skip-btn" id="btn-skip-pin">
-          Entrar sem PIN
-        </button>
-      </div>
+      ${!hasCustomOperators || opts.forcePrompt ? `
+        <div class="pin-footer-actions">
+          ${!hasCustomOperators ? `
+            <button type="button" class="pin-skip-btn" id="btn-skip-pin">
+              Entrar sem PIN
+            </button>
+          ` : ''}
+          ${opts.forcePrompt && hasCustomOperators ? `
+            <button type="button" class="pin-skip-btn" id="btn-cancel-switch">
+              Cancelar
+            </button>
+          ` : ''}
+        </div>
+      ` : ''}
     </div>
   `;
 
@@ -194,13 +237,20 @@ export function createLoginScreen(onSuccess) {
     updateDots();
   }
 
-  function closeAndProceed() {
+  function closeAndProceed(operatorObj) {
+    if (operatorObj) {
+      setCurrentOperatorSession(operatorObj);
+      if (state && typeof state.logAudit === 'function') {
+        state.logAudit('LOGIN', `Acesso ao sistema por ${operatorObj.name} (${operatorObj.role === 'admin' ? 'Admin' : 'Cobrador'})`, 'operator', operatorObj.id);
+        state.save();
+      }
+    }
     sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
     screen.classList.add('fade-out');
 
     const cb = onSuccess || window.onAuthSuccess || window.onLoginSuccess;
     if (typeof cb === 'function') {
-      cb();
+      cb(operatorObj);
     }
 
     cleanupListeners();
@@ -209,10 +259,18 @@ export function createLoginScreen(onSuccess) {
 
   function validatePin() {
     isChecking = true;
-    const correctPin = getStoredPin();
+    const masterPin = getStoredPin();
+    const matchedOp = activeOperators.find(o => String(o.pin) === enteredPin);
 
-    if (enteredPin === correctPin) {
-      closeAndProceed();
+    if (enteredPin === masterPin) {
+      closeAndProceed({ id: 'admin', name: 'Administrador', role: 'admin' });
+    } else if (matchedOp) {
+      closeAndProceed({
+        id: matchedOp.id,
+        name: matchedOp.name,
+        role: matchedOp.role || 'collector',
+        commissionPct: Number(matchedOp.commissionPct || 0)
+      });
     } else {
       dotsContainer.classList.add('shake');
       showToast('PIN incorreto', 'error');
@@ -244,7 +302,13 @@ export function createLoginScreen(onSuccess) {
   keypad.addEventListener('click', handleKeypadClick);
 
   screen.querySelector('#btn-skip-pin')?.addEventListener('click', () => {
-    closeAndProceed();
+    closeAndProceed({ id: 'admin', name: 'Administrador', role: 'admin' });
+  });
+
+  screen.querySelector('#btn-cancel-switch')?.addEventListener('click', () => {
+    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+    cleanupListeners();
+    screen.remove();
   });
 
   const handleKeyDown = (e) => {

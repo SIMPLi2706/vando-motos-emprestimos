@@ -233,3 +233,125 @@ export function numeroParaExtenso(valor) {
   return resultado;
 }
 
+export function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Redimensiona e comprime imagem no navegador para otimizar armazenamento em nuvem/local
+ * @param {File} file
+ * @param {number} maxSize
+ * @param {number} quality
+ * @returns {Promise<{dataUrl: string, sizeKB: number, width: number, height: number}>}
+ */
+export function compressImageFile(file, maxSize = 800, quality = 0.65) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Falha ao ler o arquivo selecionado.'));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Arquivo não é uma imagem válida.'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width >= height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const approxBytes = Math.round((dataUrl.length * 3) / 4);
+        resolve({
+          dataUrl,
+          sizeKB: Math.max(1, Math.round(approxBytes / 1024)),
+          width,
+          height
+        });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export const DEFAULT_WHATSAPP_STAGE_TEMPLATES = {
+  upcoming: 'Olá, {cliente}! Tudo bem? Passando para lembrar com antecedência que sua parcela nº {parcela_num} no valor de {valor_parcela} vence em {data_vencimento}.\n\nChave PIX: {chave_pix}\nFavorecido: {titular_pix}\n\nQualquer dúvida estou à disposição!',
+  dueToday: 'Olá, {cliente}! Lembramos que sua parcela nº {parcela_num} no valor de {valor_parcela} vence hoje ({data_vencimento}).\n\nPara facilitar o pagamento via PIX da {empresa}:\nChave PIX: {chave_pix}\nFavorecido: {titular_pix}\n\nApós o pagamento, envie o comprovante por aqui. Obrigado!',
+  overdueLight: 'Olá, {cliente}! Constatamos que sua parcela nº {parcela_num} venceu em {data_vencimento} (há {dias_atraso} dia(s)). O valor atualizado para quitação hoje é {valor_parcela}.\n\nChave PIX: {chave_pix} ({titular_pix})\n\nPor gentileza, envie o comprovante após realizar a transferência.',
+  overdueMedium: 'Prezado(a) {cliente}, sua parcela nº {parcela_num} encontra-se em aberto há {dias_atraso} dias (vencimento {data_vencimento}). O valor atualizado com multa e mora é {valor_parcela}.\n\nChave PIX: {chave_pix} ({titular_pix})\n\nEntre em contato hoje para quitar ou alinhar uma data de pagamento/acordo.',
+  overdueCritical: 'AVISO IMPORTANTE - {empresa}\nPrezado(a) {cliente}, a parcela nº {parcela_num} está vencida há {dias_atraso} dias (desde {data_vencimento}), somando {valor_parcela} atualizados.\n\nSolicitamos contato imediato para regularização ou renegociação amigável antes da cobrança contratual / acionamento de garantia.\nChave PIX: {chave_pix}'
+};
+
+/**
+ * Seleciona o estágio da régua de cobrança com base nos dias em relação ao vencimento
+ */
+export function getWhatsAppCollectionStage(dueDateStr, todayStr = formatDateForInput()) {
+  if (!dueDateStr) return { stage: 'dueToday', daysDiff: 0 };
+  const dDue = new Date(String(dueDateStr).split('T')[0] + 'T12:00:00');
+  const dToday = new Date(String(todayStr).split('T')[0] + 'T12:00:00');
+  const daysOverdue = Math.round((dToday.getTime() - dDue.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (daysOverdue >= 15) return { stage: 'overdueCritical', daysOverdue };
+  if (daysOverdue >= 5) return { stage: 'overdueMedium', daysOverdue };
+  if (daysOverdue >= 1) return { stage: 'overdueLight', daysOverdue };
+  if (daysOverdue === 0) return { stage: 'dueToday', daysOverdue: 0 };
+  return { stage: 'upcoming', daysOverdue };
+}
+
+/**
+ * Monta mensagem personalizada por estágio da régua de cobrança
+ */
+export function buildWhatsAppCollectionMessage({
+  clientName,
+  installmentNumber,
+  amount,
+  dueDate,
+  daysOverdue = 0,
+  settings = {},
+  stageOverride = null
+}) {
+  const templates = {
+    ...DEFAULT_WHATSAPP_STAGE_TEMPLATES,
+    ...(settings.whatsappTemplates || {})
+  };
+  if (settings.whatsappTemplate && !(settings.whatsappTemplates && settings.whatsappTemplates.dueToday)) {
+    templates.dueToday = settings.whatsappTemplate;
+  }
+
+  let stage = stageOverride;
+  let calcDays = Number(daysOverdue) || 0;
+  if (!stage) {
+    const auto = getWhatsAppCollectionStage(dueDate);
+    stage = auto.stage;
+    calcDays = auto.daysOverdue;
+  }
+
+  const rawTemplate = templates[stage] || templates.dueToday;
+  const formattedDue = String(dueDate || '').includes('/') ? dueDate : formatDate(dueDate);
+  const formattedVal = typeof amount === 'string' && amount.includes('R$') ? amount : formatBRL(amount);
+
+  return rawTemplate
+    .replace(/\{cliente\}/g, clientName || 'Cliente')
+    .replace(/\{parcela_num\}/g, String(installmentNumber || '1'))
+    .replace(/\{valor_parcela\}/g, formattedVal)
+    .replace(/\{data_vencimento\}/g, formattedDue)
+    .replace(/\{dias_atraso\}/g, String(Math.max(0, calcDays)))
+    .replace(/\{chave_pix\}/g, settings.pixKey || '')
+    .replace(/\{titular_pix\}/g, settings.pixHolder || settings.businessName || '')
+    .replace(/\{empresa\}/g, settings.businessName || 'Vando motos locadora LTDA');
+}
+
+

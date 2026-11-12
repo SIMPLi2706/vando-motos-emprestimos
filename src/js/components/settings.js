@@ -2,11 +2,19 @@
 // Configurações do Negócio, Chave PIX, Template do WhatsApp e Backup de Dados - Vando Motos Locadora LTDA
 
 import { state } from '../state.js';
-import { showToast } from '../utils.js';
+import { showToast, escapeHtml, DEFAULT_WHATSAPP_STAGE_TEMPLATES } from '../utils.js';
 import { openMonthlyReportModal } from './pdfExport.js';
-import { isPinEnabled, setPinEnabled, getStoredPin, setStoredPin, lockSession } from './loginScreen.js';
+import { isPinEnabled, setPinEnabled, getStoredPin, setStoredPin, lockSession, isAdmin, getCurrentOperator, openOperatorSwitch } from './loginScreen.js';
 import { isSupabaseConfigured, testSupabaseConnection } from '../supabaseClient.js';
 import { icon } from '../icons.js';
+
+const WPP_STAGE_META = [
+  { id: 'upcoming', label: '1. Preventivo (Antes)' },
+  { id: 'dueToday', label: '2. Vence Hoje' },
+  { id: 'overdueLight', label: '3. Atraso 1–5d' },
+  { id: 'overdueMedium', label: '4. Atraso 6–15d' },
+  { id: 'overdueCritical', label: '5. Crítico +15d' }
+];
 
 export function renderSettings() {
   const container = document.createElement('div');
@@ -17,11 +25,31 @@ export function renderSettings() {
   const isCloudActive = isSupabaseConfigured();
   const geminiKey = state.getGeminiApiKey();
   const hasGeminiKey = Boolean(geminiKey);
+  const adminAllowed = isAdmin();
+  const currentOp = getCurrentOperator();
+  const operators = state.getOperators();
+  const auditLogs = state.getAuditLogs(40);
+  const stageTemplates = {
+    ...DEFAULT_WHATSAPP_STAGE_TEMPLATES,
+    ...(settings.whatsappTemplates || {})
+  };
+  let activeStage = 'dueToday';
 
   container.innerHTML = `
+    ${!adminAllowed ? `
+      <div class="alert-overdue" style="margin-bottom: 18px; border-color: rgba(245, 197, 24, 0.35); background: rgba(245, 197, 24, 0.08);">
+        <div class="alert-content">
+          <div class="alert-title" style="color: var(--yellow);">Operador Conectado: ${escapeHtml(currentOp.name)} (Perfil Cobrador)</div>
+          <div class="alert-body">Configurações empresariais, operadoras e exclusão total ficam restritas ao Administrador.</div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-switch-op-banner">Trocar Operador</button>
+      </div>
+    ` : ''}
+
     <div class="settings-grid">
       
       <!-- Card: Dados do Credor e PIX -->
+      ${adminAllowed ? `
       <div class="card">
         <div class="card-header">
           <div>
@@ -34,24 +62,24 @@ export function renderSettings() {
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Nome da Empresa / Locadora *</label>
-              <input type="text" class="form-control" id="set-business-name" value="${settings.businessName || ''}" required>
+              <input type="text" class="form-control" id="set-business-name" value="${escapeHtml(settings.businessName || '')}" required>
             </div>
 
             <div class="form-group">
               <label class="form-label">CNPJ / CPF do Credor *</label>
-              <input type="text" class="form-control" id="set-creditor-doc" value="${settings.creditorCpfCnpj || ''}" required placeholder="00.000.000/0000-00">
+              <input type="text" class="form-control" id="set-creditor-doc" value="${escapeHtml(settings.creditorCpfCnpj || '')}" required placeholder="00.000.000/0000-00">
             </div>
           </div>
 
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Cidade / Praça do Acordo *</label>
-              <input type="text" class="form-control" id="set-creditor-city" value="${settings.creditorCity || ''}" required placeholder="Ex: PORTO VELHO - RO">
+              <input type="text" class="form-control" id="set-creditor-city" value="${escapeHtml(settings.creditorCity || '')}" required placeholder="Ex: PORTO VELHO - RO">
             </div>
 
             <div class="form-group">
               <label class="form-label">Titular da Conta PIX *</label>
-              <input type="text" class="form-control" id="set-pix-holder" value="${settings.pixHolder || ''}" required>
+              <input type="text" class="form-control" id="set-pix-holder" value="${escapeHtml(settings.pixHolder || '')}" required>
             </div>
           </div>
 
@@ -68,7 +96,7 @@ export function renderSettings() {
 
             <div class="form-group">
               <label class="form-label">Chave PIX *</label>
-              <input type="text" class="form-control" id="set-pix-key" value="${settings.pixKey || ''}" required>
+              <input type="text" class="form-control" id="set-pix-key" value="${escapeHtml(settings.pixKey || '')}" required>
             </div>
           </div>
 
@@ -89,39 +117,52 @@ export function renderSettings() {
           </button>
         </form>
       </div>
+      ` : ''}
 
-      <!-- Card: Template de Mensagem de Cobrança WhatsApp -->
+      <!-- Card: Régua de Mensagens WhatsApp em 5 Estágios -->
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">Modelo de Mensagem (WhatsApp)</h3>
-            <p class="card-subtitle">Texto enviado aos clientes na cobrança de parcelas</p>
+            <h3 class="card-title">Régua de Cobrança WhatsApp (5 Estágios)</h3>
+            <p class="card-subtitle">Personalize cada estágio da régua automática de cobrança</p>
           </div>
+        </div>
+
+        <div class="wpp-stage-tabs" id="wpp-stage-tabs">
+          ${WPP_STAGE_META.map(s => `
+            <button type="button" class="doc-tab-btn ${s.id === activeStage ? 'active' : ''}" data-wpp-stage="${s.id}">${s.label}</button>
+          `).join('')}
         </div>
 
         <form id="form-settings-wpp">
           <div class="form-group">
-            <label class="form-label">Mensagem Personalizada</label>
-            <textarea class="form-control" id="set-wpp-template" rows="7" style="font-family: inherit; font-size: 0.88rem;">${settings.whatsappTemplate || ''}</textarea>
+            <label class="form-label" id="wpp-stage-label">Mensagem do Estágio: 2. Vence Hoje</label>
+            <textarea class="form-control" id="set-wpp-template" rows="7" style="font-family: inherit; font-size: 0.88rem;">${escapeHtml(stageTemplates[activeStage] || '')}</textarea>
           </div>
 
           <div style="background: var(--bg-3); border: 1px solid var(--border-soft); padding: 12px; border-radius: var(--r-sm); font-size: 0.78rem; color: var(--text-300); margin-bottom: 16px;">
             <strong>Variáveis dinâmicas disponíveis:</strong><br>
-            <code>{cliente}</code> • <code>{parcela_num}</code> • <code>{valor_parcela}</code> • <code>{data_vencimento}</code> • <code>{chave_pix}</code> • <code>{titular_pix}</code>
+            <code>{cliente}</code> • <code>{parcela_num}</code> • <code>{valor_parcela}</code> • <code>{data_vencimento}</code> • <code>{dias_atraso}</code> • <code>{chave_pix}</code> • <code>{titular_pix}</code>
           </div>
 
-          <button type="submit" class="btn btn-primary">
-            Atualizar Modelo
-          </button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary">
+              ${icon('save', 14)} Salvar Régua WhatsApp
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-reset-wpp-stage">
+              Restaurar Estágio Padrão
+            </button>
+          </div>
         </form>
       </div>
 
       <!-- Card: Segurança & PIN de Acesso -->
+      ${adminAllowed ? `
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">Segurança & PIN de Acesso</h3>
-            <p class="card-subtitle">Controle de acesso por código de 4 dígitos</p>
+            <h3 class="card-title">Segurança & PIN Mestre (Admin)</h3>
+            <p class="card-subtitle">Controle de acesso principal por código de 4 dígitos</p>
           </div>
         </div>
 
@@ -131,7 +172,7 @@ export function renderSettings() {
             <span style="font-weight: 600; font-size: 0.9rem;">Exigir PIN ao abrir o aplicativo</span>
           </label>
           <p style="font-size: 0.75rem; color: var(--text-400); margin-top: 4px; margin-left: 28px;">
-            Se desmarcado, o sistema abre diretamente no Dashboard sem pedir senha.
+            Se desmarcado, o sistema abre diretamente no Dashboard sem pedir senha (exceto se houver múltiplos operadores ativos).
           </p>
         </div>
 
@@ -158,11 +199,75 @@ export function renderSettings() {
               Salvar Novo PIN
             </button>
             <button type="button" class="btn btn-secondary" id="btn-lock-session">
-              Bloquear Agora
+              Bloquear / Trocar Operador
             </button>
           </div>
         </form>
       </div>
+
+      <!-- Card: Equipe / Operadores & Permissões -->
+      <div class="card" id="card-operators">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">${icon('userCheck', 17)} Equipe / Operadores & Permissões</h3>
+            <p class="card-subtitle">Cobradores possuem PIN próprio e não podem excluir contratos ou zerar dados</p>
+          </div>
+          <span class="badge badge-pending">${operators.length} operador(es)</span>
+        </div>
+
+        <form id="form-add-operator" style="margin-bottom: 16px; background: var(--bg-3); padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--border-soft);">
+          <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Nome do Operador *</label>
+              <input type="text" class="form-control" id="op-name" placeholder="Ex: João Cobrador" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Perfil / Permissão</label>
+              <select class="form-control" id="op-role">
+                <option value="collector">Cobrador (Restrito)</option>
+                <option value="admin">Administrador (Total)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">PIN (4 dígitos) *</label>
+              <input type="password" inputmode="numeric" maxlength="4" class="form-control" id="op-pin" placeholder="1234" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 10px;">
+            ${icon('plus', 14)} Adicionar Operador
+          </button>
+        </form>
+
+        <div id="operators-list-wrap" style="display: flex; flex-direction: column; gap: 8px;">
+          ${operators.length === 0 ? `
+            <p style="font-size: 0.82rem; color: var(--text-400); text-align: center; padding: 10px 0;">
+              Nenhum operador extra cadastrado. Apenas o Administrador Mestre acessa o sistema.
+            </p>
+          ` : operators.map(op => `
+            <div class="operator-row-card">
+              <div>
+                <div style="font-weight: 700; color: #fff;">
+                  ${escapeHtml(op.name)}
+                  <span class="badge ${op.role === 'admin' ? 'badge-paid' : 'badge-pending'}" style="margin-left: 6px; font-size: 0.68rem;">
+                    ${op.role === 'admin' ? 'Admin' : 'Cobrador'}
+                  </span>
+                  ${op.active === false ? '<span class="badge badge-overdue" style="margin-left: 4px; font-size: 0.68rem;">Inativo</span>' : ''}
+                </div>
+                <div style="font-size: 0.74rem; color: var(--text-400);">PIN configurado • Acesso individual no login</div>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-secondary btn-sm btn-toggle-op" data-op-id="${op.id}">
+                  ${op.active === false ? 'Reativar' : 'Desativar'}
+                </button>
+                <button type="button" class="btn btn-danger btn-sm btn-del-op" data-op-id="${op.id}">
+                  Remover
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
 
       <!-- Card: Backup e Gestão de Dados -->
       <div class="card">
@@ -182,10 +287,12 @@ export function renderSettings() {
             ${icon('download', 15)} Baixar Cópia de Segurança (JSON)
           </button>
 
+          ${adminAllowed ? `
           <label class="btn btn-secondary" style="cursor: pointer; margin-bottom: 0; justify-content: flex-start;">
             ${icon('upload', 15)} Restaurar Cópia de Backup
             <input type="file" id="input-import-backup" accept=".json" style="display: none;">
           </label>
+          ` : ''}
 
           <div style="border-top: 1px solid var(--border-soft); padding-top: 14px; margin-top: 6px;">
             <p style="font-size: 0.75rem; color: var(--text-400); margin-bottom: 10px;">Ações Críticas do Sistema:</p>
@@ -193,9 +300,11 @@ export function renderSettings() {
               <button type="button" class="btn btn-secondary" id="btn-force-update-cache" style="color: var(--cyan); border-color: rgba(6,182,212,0.3); justify-content: flex-start;">
                 ${icon('refresh', 14)} Sincronizar Versão Mais Recente (Limpar Cache)
               </button>
+              ${adminAllowed ? `
               <button class="btn btn-danger" id="btn-wipe-all" style="justify-content: flex-start;">
                 ${icon('trash', 14)} Zerar Todos os Dados
               </button>
+              ` : ''}
             </div>
           </div>
         </div>
@@ -228,6 +337,7 @@ export function renderSettings() {
       </div>
 
       <!-- Card: Inteligência Artificial (Google Gemini Vision) -->
+      ${adminAllowed ? `
       <div class="card" id="card-gemini-ai">
         <div class="card-header">
           <div>
@@ -249,7 +359,7 @@ export function renderSettings() {
               </a>
             </label>
             <div style="position: relative;">
-              <input type="password" class="form-control" id="set-gemini-key" placeholder="AIzaSy..." value="${geminiKey || ''}" autocomplete="off" style="font-family: monospace; padding-right: 40px;">
+              <input type="password" class="form-control" id="set-gemini-key" placeholder="AIzaSy..." value="${escapeHtml(geminiKey || '')}" autocomplete="off" style="font-family: monospace; padding-right: 40px;">
               <button type="button" class="btn btn-sm" id="btn-toggle-gemini-key" title="Ver/Ocultar Chave" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 0.95rem; cursor: pointer; color: var(--text-300);">${icon('eye', 16)}</button>
             </div>
           </div>
@@ -264,6 +374,57 @@ export function renderSettings() {
           </div>
         </form>
       </div>
+      ` : ''}
+
+      <!-- Card: Log de Auditoria -->
+      ${adminAllowed ? `
+      <div class="card" id="card-audit-log" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">${icon('history', 17)} Log de Auditoria (Trilha de Segurança)</h3>
+            <p class="card-subtitle">Registro cronológico das últimas operações realizadas por operador</p>
+          </div>
+          <span class="badge badge-pending">${auditLogs.length} registro(s)</span>
+        </div>
+
+        ${auditLogs.length === 0 ? `
+          <div class="empty-state-box" style="padding: 20px;">
+            <p>Nenhuma atividade registrada na trilha de auditoria ainda.</p>
+          </div>
+        ` : `
+          <div class="table-responsive" style="max-height: 290px; overflow-y: auto;">
+            <table class="table table-mobile-card-view">
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Operador</th>
+                  <th>Evento</th>
+                  <th>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${auditLogs.map(log => `
+                  <tr>
+                    <td data-label="Data/Hora" style="white-space: nowrap; font-size: 0.78rem; color: var(--text-300);">
+                      <div class="td-cell-val">${new Date(log.timestamp).toLocaleString('pt-BR')}</div>
+                    </td>
+                    <td data-label="Operador" style="font-size: 0.82rem; font-weight: 700;">
+                      <div class="td-cell-val">${escapeHtml(log.operator || 'Administrador')}</div>
+                    </td>
+                    <td data-label="Evento">
+                      <div class="td-cell-val"><span class="badge badge-pending" style="font-size: 0.68rem;">${escapeHtml(log.action)}</span></div>
+                    </td>
+                    <td data-label="Detalhes" style="font-size: 0.82rem; color: var(--text-200);">
+                      <div class="td-cell-val">${escapeHtml(log.details)}</div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+      ` : ''}
 
     </div>
   `;
@@ -285,12 +446,79 @@ export function renderSettings() {
       window.updateBrandDisplay();
     });
 
+    container.querySelector('#btn-switch-op-banner')?.addEventListener('click', () => {
+      openOperatorSwitch();
+    });
+
+    // Régua de WhatsApp em 5 estágios
+    const wppTextarea = container.querySelector('#set-wpp-template');
+    const wppStageLabel = container.querySelector('#wpp-stage-label');
+    container.querySelectorAll('#wpp-stage-tabs [data-wpp-stage]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        if (wppTextarea) stageTemplates[activeStage] = wppTextarea.value;
+        activeStage = tab.dataset.wppStage;
+        container.querySelectorAll('#wpp-stage-tabs [data-wpp-stage]').forEach(t => t.classList.toggle('active', t === tab));
+        const meta = WPP_STAGE_META.find(m => m.id === activeStage);
+        if (wppStageLabel && meta) wppStageLabel.textContent = `Mensagem do Estágio: ${meta.label}`;
+        if (wppTextarea) wppTextarea.value = stageTemplates[activeStage] || '';
+      });
+    });
+
+    container.querySelector('#btn-reset-wpp-stage')?.addEventListener('click', () => {
+      stageTemplates[activeStage] = DEFAULT_WHATSAPP_STAGE_TEMPLATES[activeStage] || '';
+      if (wppTextarea) wppTextarea.value = stageTemplates[activeStage];
+      showToast('Texto padrão restaurado no editor. Clique em Salvar para aplicar.', 'info');
+    });
+
     container.querySelector('#form-settings-wpp')?.addEventListener('submit', (e) => {
       e.preventDefault();
+      if (wppTextarea) stageTemplates[activeStage] = wppTextarea.value;
       state.saveSettings({
-        whatsappTemplate: container.querySelector('#set-wpp-template').value
+        whatsappTemplates: { ...stageTemplates },
+        whatsappTemplate: stageTemplates.dueToday || settings.whatsappTemplate
       });
-      showToast('Modelo de mensagem do WhatsApp atualizado!');
+      state.logAudit('UPDATE_WHATSAPP_RULES', 'Régua de cobrança WhatsApp (5 estágios) atualizada', 'settings', 'whatsapp');
+      showToast('Régua de cobrança WhatsApp atualizada com sucesso!');
+    });
+
+    // Gestão de Operadores & Permissões
+    container.querySelector('#form-add-operator')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = container.querySelector('#op-name')?.value?.trim();
+      const role = container.querySelector('#op-role')?.value || 'collector';
+      const pin = container.querySelector('#op-pin')?.value?.trim();
+      if (!name) {
+        showToast('Informe o nome do operador.', 'error');
+        return;
+      }
+      try {
+        state.saveOperator({ name, role, pin, active: true });
+        setPinEnabled(true);
+        showToast(`Operador ${name} adicionado! Tela de PIN ativada automaticamente.`, 'success');
+        window.refreshCurrentTab();
+      } catch (err) {
+        showToast(err.message || 'Erro ao adicionar operador', 'error');
+      }
+    });
+
+    container.querySelectorAll('.btn-toggle-op').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const op = state.getOperators().find(o => o.id === btn.dataset.opId);
+        if (!op) return;
+        state.saveOperator({ ...op, active: op.active === false });
+        showToast(`Operador ${op.name} ${op.active === false ? 'reativado' : 'desativado'}.`);
+        window.refreshCurrentTab();
+      });
+    });
+
+    container.querySelectorAll('.btn-del-op').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (confirm('Deseja remover este operador?')) {
+          state.deleteOperator(btn.dataset.opId);
+          showToast('Operador removido.');
+          window.refreshCurrentTab();
+        }
+      });
     });
 
     container.querySelector('#btn-export-backup')?.addEventListener('click', () => {

@@ -48,6 +48,14 @@ export function renderReports() {
   const loans = state.getLoans();
   const installments = state.getInstallments();
   const todayStr = formatDateForInput(new Date());
+  const proj = state.getReceivablesProjection();
+
+  const scoreDist = { A: 0, B: 0, C: 0, D: 0 };
+  clients.forEach(c => {
+    const s = state.getClientScore(c.id);
+    if (scoreDist[s.grade] !== undefined) scoreDist[s.grade]++;
+  });
+  const totalScored = clients.length || 1;
 
   // 1. Cálculos de Indicadores Globais para os Cards de Topo
   let totalRecebidoHistorico = 0;
@@ -166,6 +174,72 @@ export function renderReports() {
         <div class="kpi-value">${loans.filter(l => l.status === 'active').length}</div>
         <div class="kpi-footer">
           <span>De um total de ${loans.length} empréstimo(s)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Previsão de Recebíveis & Qualidade de Score -->
+    <div class="dashboard-columns-grid" style="margin-bottom: 20px;">
+      <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">${icon('trendingUp', 17)} Previsão de Recebíveis (Fluxo Futuro)</h3>
+            <p class="card-subtitle">Entradas programadas em 7, 15 e 30 dias + retorno de capital</p>
+          </div>
+        </div>
+        <div class="proj-grid">
+          <div class="proj-box">
+            <span class="proj-label">Próximos 7 dias</span>
+            <strong class="proj-val text-yellow">${formatBRL(proj.next7Days)}</strong>
+          </div>
+          <div class="proj-box">
+            <span class="proj-label">Próximos 15 dias</span>
+            <strong class="proj-val text-green">${formatBRL(proj.next15Days)}</strong>
+          </div>
+          <div class="proj-box">
+            <span class="proj-label">Próximos 30 dias</span>
+            <strong class="proj-val text-green">${formatBRL(proj.next30Days)}</strong>
+            <span class="proj-sub">Cap: ${formatBRL(proj.next30Principal)} | Jur: ${formatBRL(proj.next30Interest)}</span>
+          </div>
+          <div class="proj-box">
+            <span class="proj-label">Vencido em Aberto</span>
+            <strong class="proj-val text-danger">${formatBRL(proj.overdueTotal)}</strong>
+          </div>
+        </div>
+        <div class="proj-summary-bar">
+          <span>Capital Total Liberado: <strong>${formatBRL(proj.totalPrincipalDisbursed)}</strong></span>
+          <span>Saldo Global a Receber: <strong class="text-green">${formatBRL(proj.totalOpenBalance)}</strong></span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">${icon('award', 17)} Distribuição de Score da Carteira</h3>
+            <p class="card-subtitle">Classificação automática A/B/C/D (${clients.length} cliente(s))</p>
+          </div>
+        </div>
+        <div class="score-dist-list">
+          ${[
+            { key: 'A', name: 'Classe A (Ótimo)', color: 'var(--green)' },
+            { key: 'B', name: 'Classe B (Regular)', color: 'var(--yellow)' },
+            { key: 'C', name: 'Classe C (Atenção)', color: 'var(--amber)' },
+            { key: 'D', name: 'Classe D (Alto Risco)', color: 'var(--red)' }
+          ].map(tier => {
+            const count = scoreDist[tier.key] || 0;
+            const pct = Math.round((count / totalScored) * 100);
+            return `
+              <div class="score-dist-row">
+                <div class="score-dist-head">
+                  <span style="color: ${tier.color}; font-weight: 700;">${tier.name}</span>
+                  <span><strong>${count}</strong> cliente(s) (${pct}%)</span>
+                </div>
+                <div class="score-dist-bar">
+                  <div class="score-dist-fill" style="width: ${pct}%; background: ${tier.color};"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     </div>
