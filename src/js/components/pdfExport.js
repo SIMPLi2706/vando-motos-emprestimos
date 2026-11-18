@@ -3,7 +3,8 @@
 // Implementação em Vanilla JS puro via Iframe Imprimível (sem bibliotecas externas)
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, formatDateForInput, getDaysDiff, showToast } from '../utils.js';
+import { formatBRL, formatDate, formatDateForInput, getDaysDiff, showToast, escapeHtml, maskCPF } from '../utils.js';
+import { calculateLateCharges } from '../finance.js';
 import { icon } from '../icons.js';
 
 const MESES = [
@@ -185,6 +186,76 @@ function getPrintStyles() {
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
       margin-bottom: 18px;
+    }
+    .stats-grid-6 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .filter-pills-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .filter-pill {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 7.5pt;
+      font-weight: 500;
+      color: #334155;
+    }
+    .filter-pill strong {
+      color: #0f172a;
+    }
+    .score-tag {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 999px;
+      font-size: 6.5pt;
+      font-weight: 800;
+    }
+    .score-tag-a { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .score-tag-b { background: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
+    .score-tag-c { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .score-tag-d { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .compliance-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #0f172a;
+      padding: 10px 14px;
+      font-size: 7.5pt;
+      color: #475569;
+      margin-top: 22px;
+      line-height: 1.45;
+    }
+    .compliance-box strong {
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .signatures-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 32px;
+      padding-top: 8px;
+    }
+    .signature-card {
+      text-align: center;
+      font-size: 8pt;
+      color: #475569;
+    }
+    .signature-card-line {
+      border-top: 1.5px solid #0f172a;
+      margin-bottom: 5px;
+    }
+    .signature-card strong {
+      color: #0f172a;
+      font-size: 8.5pt;
+      display: block;
     }
     .stat-card {
       border: 1px solid #cbd5e1;
@@ -402,11 +473,702 @@ function parseDateParts(dateInput) {
 }
 
 /**
- * 1. RELATÓRIO MENSAL EM PDF
- * Exporta generateMonthlyReportPDF(month, year)
- * 
- * @param {number|string} month - Mês de referência (1 a 12)
- * @param {number|string} year - Ano de referência (ex: 2026)
+ * 1. RELATÓRIO EXECUTIVO COMPLETO EM PDF
+ * Exporta generateExecutiveReportPDF(options)
+ * Permite múltiplos filtros (datas, cliente, status, meio) e seções configuráveis.
+ */
+export function generateExecutiveReportPDF(options = {}) {
+  const now = new Date();
+  const settings = state.getSettings();
+  const clients = state.getClients();
+  const loans = state.getLoans();
+  const installments = state.getInstallments();
+  const cashFlows = state.getCashFlows ? state.getCashFlows() : (state.data.cashFlows || []);
+  const todayStr = formatDateForInput(now);
+
+  const startDate = options.startDate || null;
+  const endDate = options.endDate || null;
+  const clientId = options.clientId || 'all';
+  const statusFilter = options.status || 'all';
+  const methodFilter = options.method || 'all';
+
+  const includeKPIs = options.includeKPIs !== false;
+  const includeLoans = options.includeLoans !== false;
+  const includePayments = options.includePayments !== false;
+  const includeOverdue = options.includeOverdue !== false;
+  const includeUpcoming = options.includeUpcoming !== false;
+  const includeCashFlow = options.includeCashFlow !== false;
+  const includeSignatures = options.includeSignatures !== false;
+
+  const targetClient = clientId !== 'all' ? clients.find(c => c.id === clientId) : null;
+
+  let periodTitle = options.periodTitle || '';
+  if (!periodTitle) {
+    if (startDate && endDate) {
+      if (startDate === endDate) {
+        periodTitle = `Data: ${formatDate(startDate)}`;
+      } else {
+        periodTitle = `Período: ${formatDate(startDate)} até ${formatDate(endDate)}`;
+      }
+    } else if (startDate) {
+      periodTitle = `A partir de: ${formatDate(startDate)}`;
+    } else if (endDate) {
+      periodTitle = `Até: ${formatDate(endDate)}`;
+    } else {
+      periodTitle = 'Histórico Geral Consolidado';
+    }
+  }
+
+  // 1. Filtrar Novos Empréstimos (Concessões de Crédito / Saídas)
+  const filteredLoans = [];
+  loans.forEach(loan => {
+    if (clientId !== 'all' && loan.clientId !== clientId) return;
+    const loanDate = String(loan.startDate || loan.createdAt || '').split('T')[0];
+    if (startDate && loanDate < startDate) return;
+    if (endDate && loanDate > endDate) return;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'paid' && loan.status !== 'paid') return;
+      if (statusFilter === 'active' && loan.status !== 'active') return;
+    }
+    if (methodFilter !== 'all') {
+      const m = String(loan.disbursementMethod || '').toUpperCase();
+      if (!m.includes(methodFilter.toUpperCase())) return;
+    }
+
+    const client = clients.find(c => c.id === loan.clientId) || { name: 'Cliente', cpf: '', phone: '' };
+    filteredLoans.push({
+      ...loan,
+      clientName: client.name,
+      clientCpf: client.cpf,
+      clientPhone: client.phone,
+      formattedDate: formatDate(loanDate),
+      rawDate: loanDate
+    });
+  });
+  filteredLoans.sort((a, b) => (b.rawDate > a.rawDate ? 1 : -1));
+
+  // 2. Filtrar Pagamentos Recebidos (Entradas de Parcelas e Juros)
+  const filteredPayments = [];
+  installments.forEach(inst => {
+    if (clientId !== 'all' && inst.clientId !== clientId) return;
+    const client = clients.find(c => c.id === inst.clientId) || { name: 'Cliente', phone: '' };
+    const loan = loans.find(l => l.id === inst.loanId) || { installmentsCount: 1 };
+
+    if (inst.paymentHistory && inst.paymentHistory.length > 0) {
+      inst.paymentHistory.forEach(rec => {
+        const payDate = String(rec.date || inst.paidDate || '').split('T')[0];
+        if (startDate && payDate < startDate) return;
+        if (endDate && payDate > endDate) return;
+        if (methodFilter !== 'all') {
+          const m = String(rec.method || inst.paidMethod || '').toUpperCase();
+          if (!m.includes(methodFilter.toUpperCase())) return;
+        }
+
+        const amt = Number(rec.amount || 0);
+        const amort = Number(inst.amortizationAmount || 0);
+        const interest = Math.max(0, amt - amort);
+        const late = Number(rec.lateChargesPaid || 0);
+        const desc = Number(rec.discount || 0);
+
+        filteredPayments.push({
+          date: payDate,
+          formattedDate: formatDate(payDate),
+          clientName: client.name,
+          clientPhone: client.phone,
+          installmentNumber: inst.number,
+          totalInstallments: loan.installmentsCount || 1,
+          method: rec.method || inst.paidMethod || 'PIX',
+          principal: amort,
+          interest: interest,
+          lateCharges: late,
+          discount: desc,
+          total: amt,
+          loanId: inst.loanId,
+          operatorName: rec.operatorName || ''
+        });
+      });
+    } else if (inst.status === 'paid' && inst.paidDate) {
+      const payDate = String(inst.paidDate).split('T')[0];
+      if (startDate && payDate < startDate) return;
+      if (endDate && payDate > endDate) return;
+      if (methodFilter !== 'all') {
+        const m = String(inst.paidMethod || '').toUpperCase();
+        if (!m.includes(methodFilter.toUpperCase())) return;
+      }
+
+      const amt = Number(inst.paidAmount || inst.installmentAmount || 0);
+      const amort = Number(inst.amortizationAmount || amt);
+      const interest = Math.max(0, amt - amort);
+
+      filteredPayments.push({
+        date: payDate,
+        formattedDate: formatDate(payDate),
+        clientName: client.name,
+        clientPhone: client.phone,
+        installmentNumber: inst.number,
+        totalInstallments: loan.installmentsCount || 1,
+        method: inst.paidMethod || 'PIX',
+        principal: amort,
+        interest: interest,
+        lateCharges: 0,
+        discount: 0,
+        total: amt,
+        loanId: inst.loanId,
+        operatorName: ''
+      });
+    }
+  });
+  filteredPayments.sort((a, b) => (b.date > a.date ? 1 : -1));
+
+  // 3. Filtrar Inadimplência / Parcelas em Atraso
+  const filteredOverdue = [];
+  installments.forEach(inst => {
+    if (inst.status === 'paid' || inst.status === 'renegotiated') return;
+    if (clientId !== 'all' && inst.clientId !== clientId) return;
+
+    const dueNorm = String(inst.dueDate || '').split('T')[0];
+    const isOverdue = dueNorm < todayStr;
+    if (!isOverdue) return;
+
+    if (startDate && dueNorm < startDate) return;
+    if (endDate && dueNorm > endDate) return;
+
+    const client = clients.find(c => c.id === inst.clientId) || { name: 'Cliente', phone: '' };
+    const loan = loans.find(l => l.id === inst.loanId) || { installmentsCount: 1, penaltyRate: 2, dailyInterestRate: 0.1 };
+    const score = state.getClientScore(client.id);
+
+    const pendingVal = Number(inst.installmentAmount || 0) - Number(inst.paidAmount || 0);
+    let totalUpdated = pendingVal;
+    let daysLate = Math.max(1, getDaysDiff(dueNorm, todayStr));
+    let penaltyVal = 0;
+    let dailyVal = 0;
+
+    try {
+      const charges = calculateLateCharges(
+        inst,
+        now,
+        loan.penaltyRate || settings.defaultPenaltyRate || 2,
+        loan.dailyInterestRate || settings.defaultDailyRate || 0.1
+      );
+      totalUpdated = charges.totalUpdatedAmount;
+      daysLate = charges.daysOverdue;
+      penaltyVal = charges.penaltyAmount;
+      dailyVal = charges.dailyInterestAmount;
+    } catch (e) {
+      totalUpdated = pendingVal;
+    }
+
+    filteredOverdue.push({
+      clientName: client.name,
+      clientPhone: client.phone,
+      clientScore: score.grade,
+      loanId: inst.loanId,
+      installmentNumber: inst.number,
+      totalInstallments: loan.installmentsCount || 1,
+      dueDate: dueNorm,
+      formattedDueDate: formatDate(dueNorm),
+      originalAmount: pendingVal,
+      penalty: penaltyVal,
+      dailyInterest: dailyVal,
+      totalUpdated: totalUpdated,
+      daysLate: daysLate,
+      promisedDate: inst.promisedDate ? formatDate(inst.promisedDate) : null,
+      notes: inst.promiseNote || inst.notes || ''
+    });
+  });
+  filteredOverdue.sort((a, b) => b.daysLate - a.daysLate);
+
+  // 4. Filtrar Parcelas a Vencer (Previsão Futura)
+  const filteredUpcoming = [];
+  installments.forEach(inst => {
+    if (inst.status === 'paid' || inst.status === 'renegotiated') return;
+    if (clientId !== 'all' && inst.clientId !== clientId) return;
+
+    const dueNorm = String(inst.dueDate || '').split('T')[0];
+    const isUpcoming = dueNorm >= todayStr;
+    if (!isUpcoming) return;
+
+    if (startDate && dueNorm < startDate) return;
+    if (endDate && dueNorm > endDate) return;
+
+    const client = clients.find(c => c.id === inst.clientId) || { name: 'Cliente', phone: '' };
+    const loan = loans.find(l => l.id === inst.loanId) || { installmentsCount: 1 };
+    const pendingVal = Number(inst.installmentAmount || 0) - Number(inst.paidAmount || 0);
+    const amort = Number(inst.amortizationAmount || pendingVal);
+    const interest = Number(inst.interestAmount || 0);
+    const daysUntil = Math.max(0, getDaysDiff(todayStr, dueNorm));
+
+    filteredUpcoming.push({
+      clientName: client.name,
+      clientPhone: client.phone,
+      loanId: inst.loanId,
+      installmentNumber: inst.number,
+      totalInstallments: loan.installmentsCount || 1,
+      dueDate: dueNorm,
+      formattedDueDate: formatDate(dueNorm),
+      principal: amort,
+      interest: interest,
+      total: pendingVal,
+      daysUntil: daysUntil
+    });
+  });
+  filteredUpcoming.sort((a, b) => (a.dueDate > b.dueDate ? 1 : -1));
+
+  // 5. Filtrar Movimentações Manuais de Caixa
+  const filteredCash = [];
+  cashFlows.forEach(cf => {
+    const cfDate = String(cf.date || cf.createdAt || '').split('T')[0];
+    if (startDate && cfDate < startDate) return;
+    if (endDate && cfDate > endDate) return;
+    filteredCash.push({
+      ...cf,
+      formattedDate: formatDate(cfDate)
+    });
+  });
+  filteredCash.sort((a, b) => (b.date > a.date ? 1 : -1));
+
+  // Totais
+  const totalLoansDisbursed = filteredLoans.reduce((acc, l) => acc + Number(l.principal || 0), 0);
+  const totalLoansContracted = filteredLoans.reduce((acc, l) => acc + Number(l.totalPayable || 0), 0);
+
+  const totalPaymentsReceived = filteredPayments.reduce((acc, p) => acc + p.total, 0);
+  const totalPrincipalAmortized = filteredPayments.reduce((acc, p) => acc + p.principal, 0);
+  const totalInterestProfit = filteredPayments.reduce((acc, p) => acc + (p.interest + p.lateCharges), 0);
+
+  const totalOverdueBalance = filteredOverdue.reduce((acc, o) => acc + o.totalUpdated, 0);
+  const totalOverdueOriginal = filteredOverdue.reduce((acc, o) => acc + o.originalAmount, 0);
+
+  const totalUpcomingBalance = filteredUpcoming.reduce((acc, u) => acc + u.total, 0);
+
+  const totalCashIn = filteredCash.filter(c => c.type === 'inflow').reduce((acc, c) => acc + Number(c.amount || 0), 0);
+  const totalCashOut = filteredCash.filter(c => c.type === 'outflow').reduce((acc, c) => acc + Number(c.amount || 0), 0);
+
+  const grandTotalIn = totalPaymentsReceived + totalCashIn;
+  const grandTotalOut = totalLoansDisbursed + totalCashOut;
+  const netOperatingResult = grandTotalIn - grandTotalOut;
+
+  const totalActiveInsts = filteredPayments.length + filteredOverdue.length;
+  const inadimplenciaRate = totalActiveInsts > 0 ? ((filteredOverdue.length / totalActiveInsts) * 100).toFixed(1) : '0.0';
+
+  const generationTimestamp = now.toLocaleString('pt-BR');
+  const reportCode = `VM-${Math.random().toString(36).substring(2, 7).toUpperCase()}-${now.getTime().toString(36).toUpperCase()}`;
+  const origin = window.location.origin || '';
+  const logoUrl = `${origin}/logo-vandomotos.png`;
+
+  let statusLabel = 'Todas as Situações';
+  if (statusFilter === 'paid') statusLabel = 'Somente Pagas / Baixadas';
+  else if (statusFilter === 'overdue') statusLabel = 'Somente em Atraso (Cobrança)';
+  else if (statusFilter === 'pending') statusLabel = 'Somente a Vencer / No Prazo';
+
+  let methodLabel = methodFilter === 'all' ? 'Todos os Meios' : methodFilter;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Relatório Financeiro Oficial — ${escapeHtml(settings.businessName || 'Vando Motos')}</title>
+      <style>${getPrintStyles()}</style>
+    </head>
+    <body>
+      <div class="report-wrap">
+
+        <!-- CABEÇALHO CORPORATIVO -->
+        <header class="report-header">
+          <div class="header-brand">
+            <img src="${logoUrl}" class="header-logo" alt="Vando Motos" onerror="this.style.display='none'; document.getElementById('logo-fallback-exec').style.display='block';">
+            <div id="logo-fallback-exec" style="display:none; font-weight: 800; font-size: 16pt; color: #0f172a; border: 2px solid #ca8a04; padding: 4px 10px; border-radius: 4px; background: #fefce8;">VM</div>
+            <div class="header-text">
+              <h1>${escapeHtml(settings.businessName || 'VANDO MOTOS LOCADORA LTDA')}</h1>
+              <p>CNPJ: <strong>${escapeHtml(settings.creditorCpfCnpj || '28.623.431-0001-23')}</strong> • ${escapeHtml(settings.creditorCity || 'PORTO VELHO - RO')}</p>
+            </div>
+          </div>
+          <div class="header-meta">
+            <div><strong>DEMONSTRATIVO FINANCEIRO OFICIAL</strong></div>
+            <div>Código: <code>${reportCode}</code></div>
+            <div>Emitido em: <strong>${generationTimestamp}</strong></div>
+          </div>
+        </header>
+
+        <!-- BANNER DE TÍTULO & ESCOPO -->
+        <div class="title-banner">
+          <div>
+            <h2>RELATÓRIO FINANCEIRO CONSOLIDADO & GESTÃO DE CARTEIRA</h2>
+            <div class="period-tag">${escapeHtml(periodTitle)}</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 7.5pt; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 4px;">AUDITADO</span>
+          </div>
+        </div>
+
+        <!-- TAGS DE FILTROS APLICADOS -->
+        <div class="filter-pills-row">
+          <div class="filter-pill">Período: <strong>${escapeHtml(periodTitle)}</strong></div>
+          <div class="filter-pill">Cliente: <strong>${targetClient ? escapeHtml(targetClient.name) : 'Todos os Clientes'}</strong></div>
+          <div class="filter-pill">Situação: <strong>${escapeHtml(statusLabel)}</strong></div>
+          <div class="filter-pill">Meio de Pagamento: <strong>${escapeHtml(methodLabel)}</strong></div>
+        </div>
+
+        <!-- RESUMO EXECUTIVO (KPIS) -->
+        ${includeKPIs ? `
+        <div class="stats-grid-6 avoid-break">
+          <div class="stat-card">
+            <div class="stat-label">Total Recebido (Entradas)</div>
+            <div class="stat-val val-green">${formatBRL(grandTotalIn)}</div>
+            <div class="stat-sub">${filteredPayments.length} parcela(s) quitada(s)</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Capital Emprestado (Saídas)</div>
+            <div class="stat-val" style="color: #ca8a04;">${formatBRL(grandTotalOut)}</div>
+            <div class="stat-sub">${filteredLoans.length} contrato(s) concedido(s)</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Lucro / Juros Realizados</div>
+            <div class="stat-val val-green">${formatBRL(totalInterestProfit)}</div>
+            <div class="stat-sub">Juros e encargos pagos</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Inadimplência em Aberto</div>
+            <div class="stat-val val-red">${formatBRL(totalOverdueBalance)}</div>
+            <div class="stat-sub">${filteredOverdue.length} parcela(s) em atraso (${inadimplenciaRate}%)</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Carteira a Vencer (Fluxo)</div>
+            <div class="stat-val val-blue">${formatBRL(totalUpcomingBalance)}</div>
+            <div class="stat-sub">${filteredUpcoming.length} parcela(s) no prazo</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Resultado Operacional</div>
+            <div class="stat-val ${netOperatingResult >= 0 ? 'val-green' : 'val-red'}">${formatBRL(netOperatingResult)}</div>
+            <div class="stat-sub">${netOperatingResult >= 0 ? 'Superávit líquido no período' : 'Defasagem operacional'}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- SEÇÃO 1: NOVOS EMPRÉSTIMOS CONCEDIDOS (SAÍDAS DE CAPITAL) -->
+        ${includeLoans ? `
+        <div class="section-block avoid-break" style="margin-top: 14px;">
+          <div class="section-title">
+            <span>1. Novos Empréstimos & Contratos Concedidos (Saídas de Capital)</span>
+            <span class="section-count">${filteredLoans.length} contrato(s)</span>
+          </div>
+          <table class="table-report">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Data</th>
+                <th style="width: 12%;">Contrato</th>
+                <th style="width: 25%;">Cliente</th>
+                <th style="width: 13%;">Telefone</th>
+                <th style="width: 12%; text-align: right;">Principal Liberado</th>
+                <th style="width: 10%; text-align: center;">Taxa / Parc.</th>
+                <th style="width: 12%; text-align: right;">Total Contratado</th>
+                <th style="width: 6%;">Meio</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredLoans.length > 0 ? filteredLoans.map(l => {
+                const shortId = l.id.substring(l.id.length - 8).toUpperCase();
+                return `
+                  <tr>
+                    <td>${l.formattedDate}</td>
+                    <td><strong>#${shortId}</strong></td>
+                    <td>
+                      <strong>${escapeHtml(l.clientName)}</strong>
+                      ${l.clientCpf ? `<div style="font-size: 6.8pt; color: #64748b;">CPF: ${maskCPF(l.clientCpf)}</div>` : ''}
+                    </td>
+                    <td>${escapeHtml(l.clientPhone || '-')}</td>
+                    <td class="text-right" style="font-weight: 700; color: #0f172a;">${formatBRL(l.principal)}</td>
+                    <td class="text-center">${l.interestRate}% (${l.installmentsCount}x)</td>
+                    <td class="text-right" style="font-weight: 700; color: #047857;">${formatBRL(l.totalPayable)}</td>
+                    <td>${escapeHtml(l.disbursementMethod || 'PIX')}</td>
+                  </tr>
+                `;
+              }).join('') : `
+                <tr>
+                  <td colspan="8" class="empty-row">Nenhum novo empréstimo concedido no período selecionado.</td>
+                </tr>
+              `}
+            </tbody>
+            ${filteredLoans.length > 0 ? `
+              <tfoot>
+                <tr>
+                  <td colspan="4" class="text-right">SUBTOTAL CONCEDIDO NO PERÍODO:</td>
+                  <td class="text-right">${formatBRL(totalLoansDisbursed)}</td>
+                  <td></td>
+                  <td class="text-right">${formatBRL(totalLoansContracted)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            ` : ''}
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- SEÇÃO 2: RECEBIMENTOS E BAIXAS DE PARCELAS (ENTRADAS DE CAPITAL E JUROS) -->
+        ${includePayments ? `
+        <div class="section-block avoid-break" style="margin-top: 14px;">
+          <div class="section-title">
+            <span>2. Recebimentos, Baixas de Parcelas & Juros Lucrados (Entradas)</span>
+            <span class="section-count">${filteredPayments.length} baixa(s) efetuada(s)</span>
+          </div>
+          <table class="table-report">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Data</th>
+                <th style="width: 25%;">Cliente</th>
+                <th style="width: 13%;">Contrato / Parc.</th>
+                <th style="width: 10%;">Forma</th>
+                <th style="width: 12%; text-align: right;">Principal Amortizado</th>
+                <th style="width: 12%; text-align: right;">Juros / Multas Lucrados</th>
+                <th style="width: 12%; text-align: right;">Total Recebido</th>
+                <th style="width: 6%;">Op.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredPayments.length > 0 ? filteredPayments.map(p => {
+                const shortId = p.loanId ? p.loanId.substring(p.loanId.length - 8).toUpperCase() : '-';
+                const totalInterest = p.interest + p.lateCharges;
+                return `
+                  <tr>
+                    <td>${p.formattedDate}</td>
+                    <td>
+                      <strong>${escapeHtml(p.clientName)}</strong>
+                      ${p.clientPhone ? `<span style="font-size: 6.8pt; color: #64748b; margin-left: 4px;">(${escapeHtml(p.clientPhone)})</span>` : ''}
+                    </td>
+                    <td>#${shortId} (${p.installmentNumber}/${p.totalInstallments})</td>
+                    <td>${escapeHtml(p.method)}</td>
+                    <td class="text-right">${formatBRL(p.principal)}</td>
+                    <td class="text-right" style="color: #b45309; font-weight: 600;">+${formatBRL(totalInterest)}</td>
+                    <td class="text-right" style="font-weight: 800; color: #047857;">${formatBRL(p.total)}</td>
+                    <td>${escapeHtml(p.operatorName ? p.operatorName.substring(0, 8) : 'Admin')}</td>
+                  </tr>
+                `;
+              }).join('') : `
+                <tr>
+                  <td colspan="8" class="empty-row">Nenhum pagamento registrado no período selecionado.</td>
+                </tr>
+              `}
+            </tbody>
+            ${filteredPayments.length > 0 ? `
+              <tfoot>
+                <tr>
+                  <td colspan="4" class="text-right">SUBTOTAL RECEBIDO NO PERÍODO:</td>
+                  <td class="text-right">${formatBRL(totalPrincipalAmortized)}</td>
+                  <td class="text-right" style="color: #b45309;">${formatBRL(totalInterestProfit)}</td>
+                  <td class="text-right" style="color: #047857;">${formatBRL(totalPaymentsReceived)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            ` : ''}
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- SEÇÃO 3: PARCELAS EM ATRASO & INADIMPLÊNCIA -->
+        ${includeOverdue ? `
+        <div class="section-block avoid-break" style="margin-top: 14px;">
+          <div class="section-title">
+            <span>3. Dossiê de Inadimplência & Parcelas em Atraso (Cobrança Ativa)</span>
+            <span class="section-count" style="color: #b91c1c;">${filteredOverdue.length} inadimplência(s)</span>
+          </div>
+          <table class="table-report">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Cliente</th>
+                <th style="width: 12%;">Telefone</th>
+                <th style="width: 12%;">Contrato / Parc.</th>
+                <th style="width: 10%;">Vencimento</th>
+                <th style="width: 9%; text-align: center;">Dias Atraso</th>
+                <th style="width: 10%; text-align: right;">Valor Original</th>
+                <th style="width: 10%; text-align: right;">Encargos / Mora</th>
+                <th style="width: 12%; text-align: right;">Saldo Atualizado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredOverdue.length > 0 ? filteredOverdue.map(o => {
+                const shortId = o.loanId ? o.loanId.substring(o.loanId.length - 8).toUpperCase() : '-';
+                const totalEncargos = o.penalty + o.dailyInterest;
+                return `
+                  <tr>
+                    <td>
+                      <strong>${escapeHtml(o.clientName)}</strong>
+                      <span class="score-tag score-tag-${o.clientScore ? o.clientScore.toLowerCase() : 'b'}">Score ${o.clientScore || 'B'}</span>
+                    </td>
+                    <td>${escapeHtml(o.clientPhone || '-')}</td>
+                    <td>#${shortId} (${o.installmentNumber}/${o.totalInstallments})</td>
+                    <td>${o.formattedDueDate}</td>
+                    <td class="text-center"><span class="badge badge-overdue">${o.daysLate}d</span></td>
+                    <td class="text-right">${formatBRL(o.originalAmount)}</td>
+                    <td class="text-right" style="color: #b45309;">+${formatBRL(totalEncargos)}</td>
+                    <td class="text-right" style="font-weight: 800; color: #b91c1c;">${formatBRL(o.totalUpdated)}</td>
+                  </tr>
+                `;
+              }).join('') : `
+                <tr>
+                  <td colspan="8" class="empty-row" style="color: #047857;">Nenhuma parcela em atraso registrada para este critério. Carteira 100% adimplente!</td>
+                </tr>
+              `}
+            </tbody>
+            ${filteredOverdue.length > 0 ? `
+              <tfoot>
+                <tr>
+                  <td colspan="5" class="text-right">TOTAL INADIMPLENTE ATUALIZADO:</td>
+                  <td class="text-right">${formatBRL(totalOverdueOriginal)}</td>
+                  <td class="text-right" style="color: #b45309;">+${formatBRL(filteredOverdue.reduce((acc, o) => acc + (o.penalty + o.dailyInterest), 0))}</td>
+                  <td class="text-right" style="color: #b91c1c;">${formatBRL(totalOverdueBalance)}</td>
+                </tr>
+              </tfoot>
+            ` : ''}
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- SEÇÃO 4: PREVISÃO DE RECEBÍVEIS (A VENCER) -->
+        ${includeUpcoming ? `
+        <div class="section-block avoid-break" style="margin-top: 14px;">
+          <div class="section-title">
+            <span>4. Previsão de Recebíveis & Parcelas a Vencer (Fluxo Futuro)</span>
+            <span class="section-count">${filteredUpcoming.length} parcela(s) no prazo</span>
+          </div>
+          <table class="table-report">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Vencimento</th>
+                <th style="width: 25%;">Cliente</th>
+                <th style="width: 13%;">Telefone</th>
+                <th style="width: 14%;">Contrato / Parc.</th>
+                <th style="width: 12%; text-align: right;">Principal</th>
+                <th style="width: 12%; text-align: right;">Juros Projetados</th>
+                <th style="width: 14%; text-align: right;">Valor da Parcela</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredUpcoming.length > 0 ? filteredUpcoming.map(u => {
+                const shortId = u.loanId ? u.loanId.substring(u.loanId.length - 8).toUpperCase() : '-';
+                return `
+                  <tr>
+                    <td>${u.formattedDueDate}</td>
+                    <td><strong>${escapeHtml(u.clientName)}</strong></td>
+                    <td>${escapeHtml(u.clientPhone || '-')}</td>
+                    <td>#${shortId} (${u.installmentNumber}/${u.totalInstallments})</td>
+                    <td class="text-right">${formatBRL(u.principal)}</td>
+                    <td class="text-right" style="color: #b45309;">${formatBRL(u.interest)}</td>
+                    <td class="text-right" style="font-weight: 700; color: #1d4ed8;">${formatBRL(u.total)}</td>
+                  </tr>
+                `;
+              }).join('') : `
+                <tr>
+                  <td colspan="7" class="empty-row">Nenhuma parcela futura a vencer no período selecionado.</td>
+                </tr>
+              `}
+            </tbody>
+            ${filteredUpcoming.length > 0 ? `
+              <tfoot>
+                <tr>
+                  <td colspan="6" class="text-right">TOTAL PREVISTO A RECEBER:</td>
+                  <td class="text-right" style="color: #1d4ed8;">${formatBRL(totalUpcomingBalance)}</td>
+                </tr>
+              </tfoot>
+            ` : ''}
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- SEÇÃO 5: MOVIMENTAÇÕES DE CAIXA & DESPESAS (SE HOUVER) -->
+        ${includeCashFlow && filteredCash.length > 0 ? `
+        <div class="section-block avoid-break" style="margin-top: 14px;">
+          <div class="section-title">
+            <span>5. Movimentações de Caixa & Despesas Operacionais</span>
+            <span class="section-count">${filteredCash.length} lançamento(s)</span>
+          </div>
+          <table class="table-report">
+            <thead>
+              <tr>
+                <th style="width: 12%;">Data</th>
+                <th style="width: 38%;">Descrição / Categoria</th>
+                <th style="width: 12%; text-align: center;">Tipo</th>
+                <th style="width: 14%;">Meio</th>
+                <th style="width: 14%; text-align: right;">Valor</th>
+                <th style="width: 10%;">Operador</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredCash.map(c => `
+                <tr>
+                  <td>${c.formattedDate}</td>
+                  <td><strong>${escapeHtml(c.category || c.description || 'Lançamento')}</strong></td>
+                  <td class="text-center">
+                    <span class="badge ${c.type === 'inflow' ? 'badge-paid' : 'badge-overdue'}">
+                      ${c.type === 'inflow' ? 'Entrada (+)' : 'Saída (-)'}
+                    </span>
+                  </td>
+                  <td>${escapeHtml(c.method || 'Dinheiro')}</td>
+                  <td class="text-right" style="font-weight: 700; color: ${c.type === 'inflow' ? '#047857' : '#b91c1c'};">
+                    ${c.type === 'inflow' ? '+' : '-'}${formatBRL(c.amount)}
+                  </td>
+                  <td>${escapeHtml(c.operatorName ? c.operatorName.substring(0, 8) : 'Admin')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-right">TOTAIS DE CAIXA: Entradas: ${formatBRL(totalCashIn)} | Saídas: ${formatBRL(totalCashOut)} | SALDO LÍQUIDO:</td>
+                <td class="text-right" style="color: ${totalCashIn >= totalCashOut ? '#047857' : '#b91c1c'};">
+                  ${formatBRL(totalCashIn - totalCashOut)}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- DECLARAÇÃO DE CONFORMIDADE FINANCEIRA & ASSINATURA -->
+        ${includeSignatures ? `
+        <div class="compliance-box avoid-break">
+          <strong>Declaração de Conformidade e Autenticidade Contábil</strong><br>
+          Certifico para os devidos fins legais e gerenciais que o presente Demonstrativo Financeiro foi consolidado eletronicamente a partir dos registros de operações de crédito, recebimentos, baixas e contratos da <strong>${escapeHtml(settings.businessName || 'Vando motos locadora LTDA')}</strong>. As métricas e saldos apresentados espelham fielmente a situação contábil da carteira no período auditado.
+        </div>
+
+        <div class="signatures-grid avoid-break">
+          <div class="signature-card">
+            <div class="signature-card-line"></div>
+            <strong>${escapeHtml(settings.businessName || 'VANDO MOTOS LOCADORA LTDA')}</strong>
+            <div>Responsável Financeiro / Administrador</div>
+            <div>CNPJ: ${escapeHtml(settings.creditorCpfCnpj || '28.623.431-0001-23')}</div>
+          </div>
+          <div class="signature-card">
+            <div class="signature-card-line"></div>
+            <strong>CONFERÊNCIA INTERNA & AUDITORIA</strong>
+            <div>Controle de Crédito e Cobrança</div>
+            <div>Praça: ${escapeHtml(settings.creditorCity || 'PORTO VELHO - RO')}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- RODAPÉ INSTITUCIONAL -->
+        <footer class="report-footer avoid-break">
+          <div class="footer-stamp">${escapeHtml(settings.businessName || 'Vando motos locadora LTDA')} • CNPJ: ${escapeHtml(settings.creditorCpfCnpj || '28.623.431-0001-23')} • Praça: ${escapeHtml(settings.creditorCity || 'Porto Velho - RO')}</div>
+          <div>Autenticação: <code>${reportCode}</code> • Emitido em ${generationTimestamp}</div>
+        </footer>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  showToast(`Gerando Relatório Executivo em PDF...`, 'info');
+  printIframe(html);
+}
+
+/**
+ * 2. COMPATIBILIDADE: RELATÓRIO MENSAL EM PDF
+ * Exporta generateMonthlyReportPDF(month, year) direcionando para o motor executivo completo
  */
 export function generateMonthlyReportPDF(month, year) {
   const now = new Date();
@@ -415,287 +1177,16 @@ export function generateMonthlyReportPDF(month, year) {
   if (isNaN(targetMonth) || targetMonth < 1 || targetMonth > 12) {
     targetMonth = now.getMonth() + 1;
   }
-
-  const monthName = MESES[targetMonth - 1] || `Mês ${targetMonth}`;
-  const reportTitle = `Relatório Mensal — ${monthName}/${targetYear}`;
-  const settings = state.getSettings();
-  const loans = state.getLoans();
-  const installments = state.getInstallments();
-
-  // Datas de referência
-  const todayStr = formatDateForInput(now);
   const lastDayDate = new Date(targetYear, targetMonth, 0);
-  const lastDayNum = lastDayDate.getDate();
-  const lastDayStr = formatDateForInput(lastDayDate);
+  const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+  const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
+  const monthName = MESES[targetMonth - 1] || `Mês ${targetMonth}`;
 
-  // 1. Total Recebido no mês & Lista de pagamentos recebidos
-  let totalReceived = 0;
-  const receivedPayments = [];
-
-  installments.forEach(inst => {
-    const client = state.getClientById(inst.clientId) || { name: 'Cliente Removido', phone: '' };
-
-    if (inst.paymentHistory && inst.paymentHistory.length > 0) {
-      inst.paymentHistory.forEach(rec => {
-        const parts = parseDateParts(rec.date);
-        if (parts && parts.year === targetYear && parts.month === targetMonth) {
-          const amt = Number(rec.amount || 0);
-          totalReceived += amt;
-          receivedPayments.push({
-            date: rec.date,
-            clientName: client.name,
-            clientPhone: client.phone,
-            amount: amt,
-            installmentNumber: inst.number,
-            method: rec.method || 'PIX',
-            loanId: inst.loanId,
-            receiptId: rec.id
-          });
-        }
-      });
-    } else if (inst.status === 'paid' && inst.paidDate) {
-      // Fallback para parcelas marcadas como pagas sem array paymentHistory
-      const parts = parseDateParts(inst.paidDate);
-      if (parts && parts.year === targetYear && parts.month === targetMonth) {
-        const amt = Number(inst.paidAmount || inst.installmentAmount || 0);
-        totalReceived += amt;
-        receivedPayments.push({
-          date: inst.paidDate,
-          clientName: client.name,
-          clientPhone: client.phone,
-          amount: amt,
-          installmentNumber: inst.number,
-          method: 'PIX',
-          loanId: inst.loanId,
-          receiptId: inst.id
-        });
-      }
-    }
+  return generateExecutiveReportPDF({
+    startDate,
+    endDate,
+    periodTitle: `Relatório Mensal — ${monthName}/${targetYear}`
   });
-
-  // Ordena pagamentos por data (crescente)
-  receivedPayments.sort((a, b) => (String(a.date) > String(b.date) ? 1 : -1));
-
-  // 2. Total Pendente do mês
-  // Parcelas com vencimento no mês selecionado que ainda não foram totalmente pagas
-  let totalPending = 0;
-  installments.forEach(inst => {
-    if (inst.status !== 'paid' && inst.status !== 'renegotiated') {
-      const parts = parseDateParts(inst.dueDate);
-      if (parts && parts.year === targetYear && parts.month === targetMonth) {
-        const unpaidBalance = Math.max(0, Number(inst.installmentAmount || 0) - Number(inst.paidAmount || 0));
-        totalPending += unpaidBalance;
-      }
-    }
-  });
-
-  // 3. Total em Atraso & Tabela de Parcelas Vencidas
-  // Parcelas com vencimento anterior à data de corte que permanecem em aberto
-  const isCurrentOrFuture = (targetYear > now.getFullYear()) ||
-    (targetYear === now.getFullYear() && targetMonth >= (now.getMonth() + 1));
-  const cutoffDateStr = isCurrentOrFuture ? todayStr : lastDayStr;
-
-  let totalOverdue = 0;
-  const overdueInstallments = [];
-
-  installments.forEach(inst => {
-    if (inst.status !== 'paid' && inst.status !== 'renegotiated') {
-      if (inst.dueDate < cutoffDateStr) {
-        const unpaidBalance = Math.max(0, Number(inst.installmentAmount || 0) - Number(inst.paidAmount || 0));
-        if (unpaidBalance > 0) {
-          const daysLate = Math.max(1, getDaysDiff(inst.dueDate, cutoffDateStr));
-          totalOverdue += unpaidBalance;
-          const client = state.getClientById(inst.clientId) || { name: 'Cliente Removido', phone: '' };
-
-          overdueInstallments.push({
-            clientName: client.name,
-            clientPhone: client.phone,
-            loanId: inst.loanId,
-            installmentNumber: inst.number,
-            dueDate: inst.dueDate,
-            amount: unpaidBalance,
-            daysLate
-          });
-        }
-      }
-    }
-  });
-
-  // Ordena parcelas em atraso pelas mais atrasadas primeiro
-  overdueInstallments.sort((a, b) => b.daysLate - a.daysLate);
-
-  // 4. Número de empréstimos ativos
-  const activeLoansCount = loans.filter(l => l.status === 'active').length;
-
-  const generationTimestamp = new Date().toLocaleString('pt-BR');
-  const origin = window.location.origin || '';
-  const logoUrl = `${origin}/logo-vandomotos.png`;
-
-  const html = `
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8">
-      <title>${reportTitle} — ${settings.businessName}</title>
-      <style>${getPrintStyles()}</style>
-    </head>
-    <body>
-      <div class="report-wrap">
-
-        <!-- CABEÇALHO -->
-        <header class="report-header">
-          <div class="header-brand">
-            <img src="${logoUrl}" class="header-logo" alt="Vando Motos" onerror="this.style.display='none'; document.getElementById('logo-fallback-m').style.display='block';">
-            <div id="logo-fallback-m" style="display:none; font-weight: 800; font-size: 16pt; color: #0f172a; border: 2px solid #0f172a; padding: 3px 8px; border-radius: 4px;">VM</div>
-            <div class="header-text">
-              <h1>${settings.businessName || 'Vando motos locadora LTDA'}</h1>
-              <p>CNPJ: <strong>${settings.creditorCpfCnpj || '28.623.431-0001-23'}</strong> • ${settings.creditorCity || 'PORTO VELHO RONDONIA'}</p>
-            </div>
-          </div>
-          <div class="header-meta">
-            <div>Documento Oficial</div>
-            <div>Emitido em: <strong>${generationTimestamp}</strong></div>
-          </div>
-        </header>
-
-        <!-- BANNER DE TÍTULO -->
-        <div class="title-banner">
-          <h2>${reportTitle}</h2>
-          <div class="period-tag">Período: 01/${String(targetMonth).padStart(2, '0')}/${targetYear} até ${lastDayNum}/${String(targetMonth).padStart(2, '0')}/${targetYear}</div>
-        </div>
-
-        <!-- RESUMO FINANCEIRO (KPIs) -->
-        <div class="stats-grid avoid-break">
-          <div class="stat-card">
-            <div class="stat-label">Total Recebido</div>
-            <div class="stat-val val-green">${formatBRL(totalReceived)}</div>
-            <div class="stat-sub">${receivedPayments.length} baixa(s) efetuada(s)</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-label">Total Pendente (Mês)</div>
-            <div class="stat-val val-blue">${formatBRL(totalPending)}</div>
-            <div class="stat-sub">Vencimentos neste mês</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-label">Total em Atraso</div>
-            <div class="stat-val val-red">${formatBRL(totalOverdue)}</div>
-            <div class="stat-sub">${overdueInstallments.length} parcela(s) vencida(s)</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-label">Empréstimos Ativos</div>
-            <div class="stat-val">${activeLoansCount}</div>
-            <div class="stat-sub">Contratos em andamento</div>
-          </div>
-        </div>
-
-        <!-- TABELA 1: PAGAMENTOS RECEBIDOS NO MÊS -->
-        <div class="section-block avoid-break">
-          <div class="section-title">
-            <span>Pagamentos Recebidos no Mês</span>
-            <span class="section-count">${receivedPayments.length} lançamento(s)</span>
-          </div>
-          <table class="table-report">
-            <thead>
-              <tr>
-                <th style="width: 15%;">Data</th>
-                <th style="width: 40%;">Cliente</th>
-                <th style="width: 15%; text-align: center;">Parcela</th>
-                <th style="width: 15%;">Forma</th>
-                <th style="width: 15%; text-align: right;">Valor Recebido</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${receivedPayments.length > 0 ? receivedPayments.map(p => `
-                <tr>
-                  <td>${formatDate(p.date)}</td>
-                  <td>
-                    <strong>${p.clientName}</strong>
-                    ${p.clientPhone ? `<span style="color: #64748b; font-size: 7pt; margin-left: 4px;">(${p.clientPhone})</span>` : ''}
-                  </td>
-                  <td class="text-center">Parc. ${p.installmentNumber}</td>
-                  <td>${p.method || 'PIX'}</td>
-                  <td class="text-right" style="font-weight: 700; color: #047857;">${formatBRL(p.amount)}</td>
-                </tr>
-              `).join('') : `
-                <tr>
-                  <td colspan="5" class="empty-row">Nenhum pagamento registrado no mês de ${monthName}/${targetYear}.</td>
-                </tr>
-              `}
-            </tbody>
-            ${receivedPayments.length > 0 ? `
-              <tfoot>
-                <tr>
-                  <td colspan="4" class="text-right">SUBTOTAL RECEBIDO NO MÊS:</td>
-                  <td class="text-right" style="color: #047857;">${formatBRL(totalReceived)}</td>
-                </tr>
-              </tfoot>
-            ` : ''}
-          </table>
-        </div>
-
-        <!-- TABELA 2: PARCELAS EM ATRASO -->
-        <div class="section-block avoid-break" style="margin-top: 20px;">
-          <div class="section-title">
-            <span>Parcelas Vencidas / Em Atraso</span>
-            <span class="section-count">${overdueInstallments.length} inadimplência(s)</span>
-          </div>
-          <table class="table-report">
-            <thead>
-              <tr>
-                <th style="width: 40%;">Cliente</th>
-                <th style="width: 15%; text-align: center;">Parcela</th>
-                <th style="width: 15%;">Vencimento</th>
-                <th style="width: 15%; text-align: center;">Dias de Atraso</th>
-                <th style="width: 15%; text-align: right;">Valor em Aberto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${overdueInstallments.length > 0 ? overdueInstallments.map(o => `
-                <tr>
-                  <td>
-                    <strong>${o.clientName}</strong>
-                    ${o.clientPhone ? `<span style="color: #64748b; font-size: 7pt; margin-left: 4px;">(${o.clientPhone})</span>` : ''}
-                  </td>
-                  <td class="text-center">Parc. ${o.installmentNumber}</td>
-                  <td>${formatDate(o.dueDate)}</td>
-                  <td class="text-center">
-                    <span class="badge badge-overdue">${o.daysLate} dia(s)</span>
-                  </td>
-                  <td class="text-right" style="font-weight: 700; color: #b91c1c;">${formatBRL(o.amount)}</td>
-                </tr>
-              `).join('') : `
-                <tr>
-                  <td colspan="5" class="empty-row" style="color: #047857;">Nenhuma parcela em atraso registrada até o momento. Situação regularizada!</td>
-                </tr>
-              `}
-            </tbody>
-            ${overdueInstallments.length > 0 ? `
-              <tfoot>
-                <tr>
-                  <td colspan="4" class="text-right">TOTAL INADIMPLENTE EM ABERTO:</td>
-                  <td class="text-right" style="color: #b91c1c;">${formatBRL(totalOverdue)}</td>
-                </tr>
-              </tfoot>
-            ` : ''}
-          </table>
-        </div>
-
-        <!-- RODAPÉ -->
-        <footer class="report-footer avoid-break">
-          <div class="footer-stamp">${settings.businessName || 'Vando motos locadora LTDA'} • CNPJ: ${settings.creditorCpfCnpj || '28.623.431-0001-23'}</div>
-          <div>Gerado em ${generationTimestamp} • Página 1/1</div>
-        </footer>
-
-      </div>
-    </body>
-    </html>
-  `;
-
-  showToast(`Gerando ${reportTitle} em PDF...`, 'info');
-  printIframe(html);
 }
 
 /**
@@ -1085,102 +1576,252 @@ export function generateClientReportPDF(clientId) {
 }
 
 /**
- * 3. MODAL DE SELEÇÃO DE MÊS / ANO PARA O RELATÓRIO MENSAL
- * Cria e exibe um modal padrão para o usuário escolher o mês desejado
+ * 3. MODAL AVANÇADO DE CONFIGURAÇÃO DO RELATÓRIO EXECUTIVO EM PDF
+ * Cria e exibe um modal completo com múltiplos filtros (período, datas, cliente, status, meio)
+ * e seleção de quais seções incluir no documento final.
  */
-export function openMonthlyReportModal() {
-  let modal = document.getElementById('modal-monthly-report-picker');
+export function openAdvancedReportPdfModal(presetFilters = {}) {
+  let modal = document.getElementById('modal-advanced-pdf-picker');
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const defaultVal = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStr = formatDateForInput(now);
+  const firstDayStr = formatDateForInput(firstDay);
 
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'modal-monthly-report-picker';
+  const initStart = presetFilters.startDate || firstDayStr;
+  const initEnd = presetFilters.endDate || todayStr;
+  const initClient = presetFilters.clientId || 'all';
+  const initStatus = presetFilters.status || 'all';
+  const initMethod = presetFilters.method || 'all';
+  const clients = state.getClients();
 
-    modal.innerHTML = `
-      <div class="modal-card" style="max-width: 440px;">
-        <div class="modal-header">
-          <h3 class="modal-title">${icon('fileText', 18)} Relatório Mensal em PDF</h3>
-          <button class="modal-close-btn" id="btn-close-month-modal">${icon('x', 16)}</button>
-        </div>
-
-        <div class="modal-body">
-          <p style="font-size: 0.88rem; color: var(--text-dim); margin-bottom: 16px;">
-            Selecione o mês e o ano para gerar o demonstrativo financeiro consolidado de recebimentos e parcelas em atraso da <strong>Vando Motos Locadora LTDA</strong>.
-          </p>
-
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" for="report-month-select">Mês de Referência</label>
-            <input type="month" class="form-control" id="report-month-select" value="${defaultVal}" style="font-size: 1rem; font-weight: 600;">
-          </div>
-
-          <!-- Atalhos rápidos -->
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-cur-month" style="flex: 1;">
-              Mês Atual
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-prev-month" style="flex: 1;">
-              Mês Anterior
-            </button>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-month-modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btn-generate-month-pdf">
-            ${icon('print', 14)} Gerar Relatório PDF
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    const closeBtn = modal.querySelector('#btn-close-month-modal');
-    const cancelBtn = modal.querySelector('#btn-cancel-month-modal');
-    const generateBtn = modal.querySelector('#btn-generate-month-pdf');
-    const monthInput = modal.querySelector('#report-month-select');
-    const quickCurBtn = modal.querySelector('#btn-quick-cur-month');
-    const quickPrevBtn = modal.querySelector('#btn-quick-prev-month');
-
-    function closeModal() {
-      modal.classList.remove('active');
-    }
-
-    closeBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    quickCurBtn.addEventListener('click', () => {
-      const d = new Date();
-      monthInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    });
-
-    quickPrevBtn.addEventListener('click', () => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - 1);
-      monthInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    });
-
-    generateBtn.addEventListener('click', () => {
-      const val = monthInput.value;
-      if (!val) {
-        showToast('Selecione um mês e ano válidos.', 'error');
-        return;
-      }
-      const [y, m] = val.split('-');
-      closeModal();
-      generateMonthlyReportPDF(parseInt(m, 10), parseInt(y, 10));
-    });
+  if (modal) {
+    modal.remove();
   }
 
-  // Define valor inicial e abre modal
-  const input = modal.querySelector('#report-month-select');
-  if (input) input.value = defaultVal;
+  modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'modal-advanced-pdf-picker';
+
+  modal.innerHTML = `
+    <div class="modal-card" style="max-width: 620px; max-height: 94vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-soft); padding: 16px 20px;">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+            ${icon('fileText', 18)} Emissão de Relatório Executivo em PDF
+          </h3>
+          <p class="modal-subtitle">Configure o período, filtros e seções detalhadas do documento oficial</p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-adv-pdf-modal">${icon('x', 16)}</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Atalhos rápidos de período -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Atalhos Rápidos de Período</label>
+          <div class="filter-periods-wrap" style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="today">Hoje</button>
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="yesterday">Ontem</button>
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="7d">7 dias</button>
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="15d">15 dias</button>
+            <button type="button" class="btn btn-primary btn-sm adv-pdf-chip active" data-period="month">Este Mês</button>
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="lastMonth">Mês Passado</button>
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="year">Ano Atual</button>
+            <button type="button" class="btn btn-secondary btn-sm adv-pdf-chip" data-period="all">Todo o Histórico</button>
+          </div>
+        </div>
+
+        <!-- Intervalo de Datas -->
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Data Inicial</label>
+            <input type="date" class="form-control" id="adv-pdf-start" value="${initStart}">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Data Final</label>
+            <input type="date" class="form-control" id="adv-pdf-end" value="${initEnd}">
+          </div>
+        </div>
+
+        <!-- Filtros de Cliente, Status e Meio -->
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Cliente</label>
+            <select class="form-control" id="adv-pdf-client">
+              <option value="all">Todos os Clientes (${clients.length})</option>
+              ${clients.map(c => `
+                <option value="${c.id}" ${c.id === initClient ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+              `).join('')}
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Situação / Status</label>
+            <select class="form-control" id="adv-pdf-status">
+              <option value="all" ${initStatus === 'all' ? 'selected' : ''}>Todas as Situações</option>
+              <option value="paid" ${initStatus === 'paid' ? 'selected' : ''}>Somente Pagos / Baixados</option>
+              <option value="overdue" ${initStatus === 'overdue' ? 'selected' : ''}>Somente em Atraso (Cobrança)</option>
+              <option value="pending" ${initStatus === 'pending' ? 'selected' : ''}>Somente a Vencer / No Prazo</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Meio de Pagamento</label>
+            <select class="form-control" id="adv-pdf-method">
+              <option value="all" ${initMethod === 'all' ? 'selected' : ''}>Todos os Meios</option>
+              <option value="PIX" ${initMethod === 'PIX' ? 'selected' : ''}>PIX</option>
+              <option value="Dinheiro" ${initMethod === 'Dinheiro' ? 'selected' : ''}>Dinheiro / Espécie</option>
+              <option value="Transferência" ${initMethod === 'Transferência' ? 'selected' : ''}>Transferência / TED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Seções a Incluir -->
+        <div style="background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: var(--r-sm); padding: 12px 14px;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            ${icon('checkCircle', 14)} Seções a Incluir no Documento PDF
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; font-size: 0.82rem;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="chk-pdf-kpis" checked style="accent-color: var(--yellow);">
+              <span>Resumo Executivo & KPIs</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="chk-pdf-loans" checked style="accent-color: var(--yellow);">
+              <span>Novos Contratos Concedidos (Saídas)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="chk-pdf-payments" checked style="accent-color: var(--yellow);">
+              <span>Recebimentos & Lucro em Juros (Entradas)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="chk-pdf-overdue" checked style="accent-color: var(--yellow);">
+              <span>Inadimplência & Cobrança (Atrasos)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="chk-pdf-upcoming" checked style="accent-color: var(--yellow);">
+              <span>Carteira a Vencer (Fluxo Futuro)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="chk-pdf-cash" checked style="accent-color: var(--yellow);">
+              <span>Movimentações de Caixa & Despesas</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; grid-column: span 2;">
+              <input type="checkbox" id="chk-pdf-signatures" checked style="accent-color: var(--yellow);">
+              <span>Declaração de Conformidade & Assinaturas</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 20px; border-top: 1px solid var(--border-soft); display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-adv-pdf">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-generate-adv-pdf" style="font-weight: 700;">
+          ${icon('print', 15)} Gerar & Imprimir Relatório PDF
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const closeBtn = modal.querySelector('#btn-close-adv-pdf-modal');
+  const cancelBtn = modal.querySelector('#btn-cancel-adv-pdf');
+  const generateBtn = modal.querySelector('#btn-generate-adv-pdf');
+  const startInput = modal.querySelector('#adv-pdf-start');
+  const endInput = modal.querySelector('#adv-pdf-end');
+  const clientSelect = modal.querySelector('#adv-pdf-client');
+  const statusSelect = modal.querySelector('#adv-pdf-status');
+  const methodSelect = modal.querySelector('#adv-pdf-method');
+
+  function closeModal() {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 250);
+  }
+
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Chips de atalho de período
+  modal.querySelectorAll('.adv-pdf-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modal.querySelectorAll('.adv-pdf-chip').forEach(b => {
+        b.className = 'btn btn-secondary btn-sm adv-pdf-chip';
+      });
+      btn.className = 'btn btn-primary btn-sm adv-pdf-chip active';
+      const p = btn.dataset.period;
+      const curr = new Date();
+
+      if (p === 'today') {
+        startInput.value = todayStr;
+        endInput.value = todayStr;
+      } else if (p === 'yesterday') {
+        const y = new Date(curr);
+        y.setDate(y.getDate() - 1);
+        startInput.value = formatDateForInput(y);
+        endInput.value = formatDateForInput(y);
+      } else if (p === '7d') {
+        const d7 = new Date(curr);
+        d7.setDate(d7.getDate() - 7);
+        startInput.value = formatDateForInput(d7);
+        endInput.value = todayStr;
+      } else if (p === '15d') {
+        const d15 = new Date(curr);
+        d15.setDate(d15.getDate() - 15);
+        startInput.value = formatDateForInput(d15);
+        endInput.value = todayStr;
+      } else if (p === 'month') {
+        const f = new Date(curr.getFullYear(), curr.getMonth(), 1);
+        startInput.value = formatDateForInput(f);
+        endInput.value = todayStr;
+      } else if (p === 'lastMonth') {
+        const f = new Date(curr.getFullYear(), curr.getMonth() - 1, 1);
+        const l = new Date(curr.getFullYear(), curr.getMonth(), 0);
+        startInput.value = formatDateForInput(f);
+        endInput.value = formatDateForInput(l);
+      } else if (p === 'year') {
+        startInput.value = `${curr.getFullYear()}-01-01`;
+        endInput.value = todayStr;
+      } else if (p === 'all') {
+        startInput.value = '';
+        endInput.value = '';
+      }
+    });
+  });
+
+  // Ação de Gerar PDF
+  generateBtn.addEventListener('click', () => {
+    const sDate = startInput.value || null;
+    const eDate = endInput.value || null;
+
+    closeModal();
+
+    generateExecutiveReportPDF({
+      startDate: sDate,
+      endDate: eDate,
+      clientId: clientSelect.value,
+      status: statusSelect.value,
+      method: methodSelect.value,
+      includeKPIs: modal.querySelector('#chk-pdf-kpis').checked,
+      includeLoans: modal.querySelector('#chk-pdf-loans').checked,
+      includePayments: modal.querySelector('#chk-pdf-payments').checked,
+      includeOverdue: modal.querySelector('#chk-pdf-overdue').checked,
+      includeUpcoming: modal.querySelector('#chk-pdf-upcoming').checked,
+      includeCashFlow: modal.querySelector('#chk-pdf-cash').checked,
+      includeSignatures: modal.querySelector('#chk-pdf-signatures').checked
+    });
+  });
+
   modal.classList.add('active');
+}
+
+/**
+ * 4. ALIAS DE COMPATIBILIDADE PARA O MODAL DE RELATÓRIO MENSAL
+ */
+export function openMonthlyReportModal(presetFilters = {}) {
+  return openAdvancedReportPdfModal(presetFilters);
 }

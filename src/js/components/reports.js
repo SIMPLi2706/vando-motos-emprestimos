@@ -7,7 +7,7 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateForInput, escapeHtml } from '../utils.js';
 import { calculateLateCharges } from '../finance.js';
-import { openMonthlyReportModal } from './pdfExport.js';
+import { openMonthlyReportModal, openAdvancedReportPdfModal, generateExecutiveReportPDF } from './pdfExport.js';
 import { icon } from '../icons.js';
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -1091,9 +1091,15 @@ export function renderReports() {
       window.print();
     });
 
-    // 10. Modal PDF Oficial
+    // 10. Modal PDF Oficial com filtros atuais
     container.querySelector('#btn-generate-pdf-report')?.addEventListener('click', () => {
-      openMonthlyReportModal();
+      openAdvancedReportPdfModal({
+        startDate: filterStartDate,
+        endDate: filterEndDate,
+        clientId: filterClientId,
+        status: filterStatus,
+        method: filterMethod
+      });
     });
   }
 
@@ -1827,9 +1833,9 @@ function attachReportActions(container) {
     window.print();
   });
 
-  // Gerar Relatório Oficial em PDF (abre modal de seleção do mês)
+  // Gerar Relatório Oficial em PDF (abre modal de seleção com filtros)
   container.querySelector('#btn-generate-pdf-report')?.addEventListener('click', () => {
-    openMonthlyReportModal();
+    openAdvancedReportPdfModal();
   });
 }
 

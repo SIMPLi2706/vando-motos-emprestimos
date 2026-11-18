@@ -20,7 +20,7 @@ import { createSearchOverlay, openSearch, closeSearch } from './js/components/se
 import { createClientStatementModal } from './js/components/clientStatementModal.js';
 import { createLoanManageModals } from './js/components/loanManageModal.js';
 import { formatDateForInput } from './js/utils.js';
-import { generateMonthlyReportPDF, generateClientReportPDF, openMonthlyReportModal } from './js/components/pdfExport.js';
+import { generateMonthlyReportPDF, generateClientReportPDF, openMonthlyReportModal, openAdvancedReportPdfModal, generateExecutiveReportPDF } from './js/components/pdfExport.js';
 import { decodePromissorySigningToken, renderPublicSigningPortal } from './js/components/publicSignPortal.js';
 
 // Desativa restauração automática de rolagem do navegador para que a página sempre inicie no topo
@@ -451,6 +451,8 @@ window.closeSearch = closeSearch;
 window.generateMonthlyReportPDF = generateMonthlyReportPDF;
 window.generateClientReportPDF = generateClientReportPDF;
 window.openMonthlyReportModal = openMonthlyReportModal;
+window.openAdvancedReportPdfModal = openAdvancedReportPdfModal;
+window.generateExecutiveReportPDF = generateExecutiveReportPDF;
 
 // Observa mudanças de estado para atualizar badges
 state.subscribe(() => {
