@@ -49,7 +49,7 @@ export function renderClients(options = {}) {
 
       <!-- Lista / Tabela de Clientes -->
       <div class="table-responsive">
-        <table class="table table-mobile-card-view" id="table-clients">
+        <table class="table table-clean-mobile" id="table-clients">
           <thead>
             <tr>
               <th>Cliente</th>
@@ -112,9 +112,17 @@ export function renderClients(options = {}) {
         statusBadge = `<span class="badge badge-pending">Sem Dívida</span>`;
       }
 
+      const initials = (c.name || 'C')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(w => w[0].toUpperCase())
+        .join('') || 'CL';
+
       return `
         <tr>
-          <td data-label="Cliente">
+          <!-- Visualização em Tabela para Computador / Telas Grandes -->
+          <td class="desktop-table-cell" data-label="Cliente">
             <div class="td-cell-val">
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">${escapeHtml(c.name)}</span>
@@ -126,7 +134,7 @@ export function renderClients(options = {}) {
               </div>
             </div>
           </td>
-          <td data-label="Telefone">
+          <td class="desktop-table-cell" data-label="Telefone">
             <div class="td-cell-val">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span>${escapeHtml(c.phone || '-')}</span>
@@ -138,20 +146,20 @@ export function renderClients(options = {}) {
               </div>
             </div>
           </td>
-          <td data-label="Limite">
+          <td class="desktop-table-cell" data-label="Limite">
             <div class="td-cell-val">
               <span style="font-weight: 700; color: var(--yellow);">${formatBRL(c.creditLimit || 0)}</span>
             </div>
           </td>
-          <td data-label="Contratos">
+          <td class="desktop-table-cell" data-label="Contratos">
             <div class="td-cell-val">
               <span style="font-weight: 700;">${activeLoans.length}</span> contrato(s)
             </div>
           </td>
-          <td data-label="Status">
+          <td class="desktop-table-cell" data-label="Status">
             <div class="td-cell-val">${statusBadge}</div>
           </td>
-          <td class="td-actions" data-label="Ações">
+          <td class="desktop-table-cell td-actions" data-label="Ações">
             <div class="client-actions-wrap">
               <button class="btn btn-secondary btn-sm btn-statement-client" data-id="${c.id}" title="Ver Extrato da Conta Corrente e Histórico de Juros" style="color: var(--yellow); border-color: rgba(245, 197, 24, 0.35);">
                 ${icon('fileText', 14)} Extrato
@@ -172,9 +180,102 @@ export function renderClients(options = {}) {
               ` : ''}
             </div>
           </td>
+
+          <!-- Card Limpo, Organizado e Nativo para Celular -->
+          <td class="mobile-card-cell" colspan="6">
+            <div class="mobile-card-item">
+              <div class="mcard-top">
+                <div class="mcard-profile">
+                  <div class="mcard-avatar">${initials}</div>
+                  <div class="mcard-info">
+                    <div class="mcard-name">${escapeHtml(c.name)}</div>
+                    <div class="mcard-sub">
+                      ${c.phone ? `${escapeHtml(c.phone)} • ` : ''}CPF: ${escapeHtml(c.cpf || 'Não informado')}
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+                  ${statusBadge}
+                  <span class="score-pill-sm" style="border-color: ${scoreInfo.color}; color: ${scoreInfo.color}; font-size: 0.68rem; padding: 1px 6px;">Score ${scoreInfo.grade}</span>
+                </div>
+              </div>
+
+              <div class="mcard-body-metrics">
+                <div>
+                  <span style="color: var(--text-400); font-size: 0.72rem;">Limite:</span>
+                  <strong style="color: var(--yellow);">${formatBRL(c.creditLimit || 0)}</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-400); font-size: 0.72rem;">Contratos:</span>
+                  <strong>${activeLoans.length} ativo${activeLoans.length !== 1 ? 's' : ''}</strong>
+                </div>
+                ${c.referredBy ? `
+                  <div style="font-size: 0.72rem; color: var(--text-400);">
+                    Ind: <strong>${escapeHtml(c.referredBy)}</strong>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="mcard-actions-row">
+                ${c.phone ? `
+                  <a href="${createWhatsAppUrl(c.phone, `Olá, ${c.name}!`)}" target="_blank" class="btn btn-whatsapp btn-sm" title="Conversar no WhatsApp">
+                    ${icon('whatsapp', 13)} WhatsApp
+                  </a>
+                ` : ''}
+                <button class="btn btn-secondary btn-sm btn-statement-client" data-id="${c.id}" title="Ver Extrato e Juros">
+                  ${icon('fileText', 13)} Extrato
+                </button>
+                <button class="btn btn-secondary btn-sm btn-edit-client" data-id="${c.id}" title="Editar Dados">
+                  ${icon('edit', 13)} Editar
+                </button>
+                <button type="button" class="btn-more-options btn-client-more" data-id="${c.id}" data-name="${escapeHtml(c.name)}" title="Mais opções">
+                  •••
+                </button>
+              </div>
+            </div>
+          </td>
         </tr>
       `;
     }).join('');
+
+    // Listener para o Menu de Mais Opções no Celular
+    tbody.querySelectorAll('.btn-client-more').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const clientId = btn.dataset.id;
+        const clientName = btn.dataset.name;
+        const c = clients.find(item => item.id === clientId);
+        if (window.openActionSheet) {
+          window.openActionSheet({
+            title: clientName || 'Opções do Cliente',
+            subtitle: `CPF: ${c?.cpf || 'Não informado'} • Limite: ${formatBRL(c?.creditLimit || 0)}`,
+            items: [
+              {
+                icon: icon('fileText', 18),
+                label: 'Dossiê do Cliente em PDF',
+                description: 'Relatório completo para impressão e envio',
+                onClick: () => generateClientReportPDF(clientId)
+              },
+              {
+                icon: icon('refresh', 18),
+                label: 'Renegociar Dívidas',
+                description: 'Criar acordo ou refinanciamento das parcelas',
+                onClick: () => window.navigateToTab('renegotiation', { clientId })
+              },
+              ...(adminAllowed ? [{
+                icon: icon('trash', 18),
+                label: 'Excluir Cliente',
+                description: 'Remover cadastro e dados vinculados',
+                danger: true,
+                onClick: () => {
+                  const delBtn = tbody.querySelector(`.btn-del-client[data-id="${clientId}"]`);
+                  if (delBtn) delBtn.click();
+                }
+              }] : [])
+            ]
+          });
+        }
+      });
+    });
 
     tbody.querySelectorAll('.btn-statement-client').forEach(btn => {
       btn.addEventListener('click', () => {

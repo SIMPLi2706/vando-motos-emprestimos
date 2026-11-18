@@ -564,8 +564,8 @@ export function renderLoans(options = {}) {
                 </div>
               </div>
 
-              <!-- Ações do Empréstimo -->
-              <div class="loan-card-actions">
+              <!-- Ações do Empréstimo no Desktop -->
+              <div class="loan-card-actions desktop-table-cell">
                 <button class="btn btn-secondary btn-sm btn-print-promissoria" data-loan-id="${loan.id}">
                   ${icon('fileText', 13)} Docs / Contrato
                 </button>
@@ -591,6 +591,22 @@ export function renderLoans(options = {}) {
                     Excluir
                   </button>
                 ` : ''}
+              </div>
+
+              <!-- Ações do Empréstimo Limpas no Celular (Mobile) -->
+              <div class="mcard-actions-row mobile-card-cell" style="margin-top: 8px;">
+                <button class="btn btn-secondary btn-sm btn-ver-parcelas-loan" data-loan-id="${loan.id}">
+                  ${icon('calendar', 12)} Parcelas
+                </button>
+                <button class="btn btn-whatsapp btn-sm btn-wpp-promissoria" data-loan-id="${loan.id}" title="Enviar Contrato via WhatsApp">
+                  ${icon('whatsapp', 12)} WhatsApp
+                </button>
+                <button class="btn btn-secondary btn-sm btn-print-promissoria" data-loan-id="${loan.id}">
+                  ${icon('fileText', 12)} Docs
+                </button>
+                <button type="button" class="btn-more-options btn-loan-more" data-loan-id="${loan.id}" title="Mais opções">
+                  •••
+                </button>
               </div>
             </div>
           `;
@@ -671,6 +687,54 @@ export function renderLoans(options = {}) {
           showToast('Empréstimo excluído com sucesso.', 'success');
           window.refreshCurrentTab();
         }
+      });
+    });
+
+    listWrap.querySelectorAll('.btn-loan-more').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const loanId = btn.dataset.loanId;
+        const loan = state.getLoanById(loanId);
+        if (!loan || !window.openActionSheet) return;
+        const client = state.getClientById(loan.clientId) || { name: 'Cliente' };
+
+        window.openActionSheet({
+          title: `Contrato • ${client.name}`,
+          subtitle: `Total: ${formatBRL(loan.totalPayable)} • ${Number(loan.installmentsCount) === 1 ? 'Única (Seu Vando)' : loan.installmentsCount + ' parcelas'}`,
+          items: [
+            {
+              icon: icon('sliders', 18),
+              label: 'Editar Dados do Contrato',
+              description: 'Ajustar garantias, avalista ou observações',
+              onClick: () => window.openLoanEditModal(loanId)
+            },
+            {
+              icon: icon('paperclip', 18),
+              label: 'Anexos e Documentos',
+              description: 'Fotos da CNH, garantias e comprovantes',
+              onClick: () => window.openLoanAttachmentsModal(loanId)
+            },
+            ...(loan.status !== 'paid' ? [{
+              icon: icon('checkCircle', 18),
+              label: 'Quitar Tudo com Desconto',
+              description: 'Baixa total antecipada do contrato',
+              primary: true,
+              onClick: () => window.openSettleLoanModal(loanId)
+            }] : []),
+            ...(adminAllowed ? [{
+              icon: icon('trash', 18),
+              label: 'Excluir Contrato',
+              description: 'Remover o empréstimo e todas as parcelas',
+              danger: true,
+              onClick: () => {
+                if (confirm('Deseja realmente excluir este empréstimo e todas as parcelas vinculadas?')) {
+                  state.deleteLoan(loanId);
+                  showToast('Empréstimo excluído com sucesso.');
+                  window.refreshCurrentTab();
+                }
+              }
+            }] : [])
+          ]
+        });
       });
     });
   }

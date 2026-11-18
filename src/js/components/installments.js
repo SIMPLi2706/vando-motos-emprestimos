@@ -130,7 +130,7 @@ export function renderInstallments(options = {}) {
 
       <!-- Tabela Responsiva de Parcelas -->
       <div class="table-responsive">
-        <table class="table table-mobile-card-view" id="table-parcelas">
+        <table class="table table-clean-mobile" id="table-parcelas">
           <thead>
             <tr>
               <th>Status</th>
@@ -226,13 +226,14 @@ export function renderInstallments(options = {}) {
 
       return `
         <tr>
-          <td data-label="Status">
+          <!-- Visualização em Tabela para Desktop -->
+          <td class="desktop-table-cell" data-label="Status">
             <div class="td-cell-val">${badgeHtml}</div>
           </td>
-          <td data-label="Parcela">
+          <td class="desktop-table-cell" data-label="Parcela">
             <div class="td-cell-val" style="font-weight: 700;">${Number(item.loan?.installmentsCount) === 1 ? 'Única' : `#${item.number}`}</div>
           </td>
-          <td data-label="Cliente">
+          <td class="desktop-table-cell" data-label="Cliente">
             <div class="td-cell-val">
               <div style="font-weight: 700; color: #fff;">${escapeHtml(item.client.name)}</div>
               <div style="font-size: 0.75rem; color: var(--text-400);">${escapeHtml(item.client.phone || item.client.cpf || '')}</div>
@@ -240,19 +241,19 @@ export function renderInstallments(options = {}) {
               ${rolloverChip}
             </div>
           </td>
-          <td data-label="Vencimento">
+          <td class="desktop-table-cell" data-label="Vencimento">
             <div class="td-cell-val">
               <div>${formatDate(item.dueDate)}</div>
               ${item.paidDate ? `<div style="font-size: 0.72rem; color: var(--green);">Pago em ${formatDate(item.paidDate)}</div>` : ''}
             </div>
           </td>
-          <td data-label="Original" class="${!item.isOverdue && item.status !== 'partial' ? 'desktop-only-cell' : ''}">
+          <td class="desktop-table-cell" data-label="Original" class="${!item.isOverdue && item.status !== 'partial' ? 'desktop-only-cell' : ''}">
             <div class="td-cell-val">${formatBRL(item.installmentAmount)}</div>
           </td>
-          <td data-label="${item.isOverdue ? 'Com Atraso' : 'Valor'}">
+          <td class="desktop-table-cell" data-label="${item.isOverdue ? 'Com Atraso' : 'Valor'}">
             <div class="td-cell-val">${amountDisplay}</div>
           </td>
-          <td class="td-actions" data-label="Ações">
+          <td class="desktop-table-cell td-actions" data-label="Ações">
             <div class="installment-actions-wrap">
               ${item.status !== 'paid' ? `
                 <button class="btn btn-warning btn-sm btn-pay-interest" data-id="${item.id}" title="Receber apenas os juros do mês e prorrogar o capital (Modelo Seu Vando)">
@@ -296,6 +297,79 @@ export function renderInstallments(options = {}) {
                   </button>
                 ` : ''}
               `}
+            </div>
+          </td>
+
+          <!-- Card Limpo, Compacto e Nativo para Celular -->
+          <td class="mobile-card-cell" colspan="7">
+            <div class="mobile-card-item">
+              <div class="mcard-top">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  ${badgeHtml}
+                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-300); background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 6px;">
+                    ${Number(item.loan?.installmentsCount) === 1 ? 'Única' : `Parc. #${item.number}`}
+                  </span>
+                </div>
+                <div style="font-size: 0.76rem; font-weight: 700; color: ${item.isOverdue ? 'var(--red)' : item.isToday ? 'var(--yellow)' : 'var(--text-300)'};">
+                  🗓️ ${formatDate(item.dueDate)}
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div style="min-width: 0;">
+                  <div class="mcard-name" style="font-size: 0.94rem;">${escapeHtml(item.client.name)}</div>
+                  <div class="mcard-sub">${escapeHtml(item.client.phone || item.client.cpf || '')}</div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0;">
+                  <div style="font-size: 1.15rem; font-weight: 800; color: ${item.isOverdue ? 'var(--red)' : item.status === 'paid' ? 'var(--green)' : 'var(--yellow)'};">
+                    ${item.isOverdue ? formatBRL(item.lateCharges.totalUpdatedAmount) : formatBRL(item.installmentAmount)}
+                  </div>
+                  ${item.isOverdue ? `<div style="font-size: 0.68rem; color: var(--text-400);">Orig: ${formatBRL(item.installmentAmount)}</div>` : ''}
+                </div>
+              </div>
+
+              ${(promiseChip || rolloverChip) ? `
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: -2px;">
+                  ${promiseChip}
+                  ${rolloverChip}
+                </div>
+              ` : ''}
+
+              <div class="mcard-actions-row">
+                ${item.status !== 'paid' ? `
+                  <button class="btn btn-warning btn-sm btn-pay-interest" data-id="${item.id}" title="Receber só juros e rolar dívida (Seu Vando)">
+                    ${icon('refresh', 12)} Receber Juros
+                  </button>
+                  ${item.client.phone ? `
+                    <button class="btn btn-whatsapp btn-sm btn-wpp" 
+                      data-client="${encodeURIComponent(item.client.name)}"
+                      data-phone="${escapeHtml(item.client.phone || '')}"
+                      data-amount="${item.isOverdue ? item.lateCharges.totalUpdatedAmount : item.installmentAmount}"
+                      data-number="${item.number}"
+                      data-raw-date="${item.dueNorm}"
+                      data-days="${item.isOverdue ? item.lateCharges.daysOverdue : 0}"
+                      title="Cobrar WhatsApp">
+                      ${icon('whatsapp', 13)} Cobrar
+                    </button>
+                  ` : ''}
+                  <button class="btn btn-secondary btn-sm btn-inst-pix" data-id="${item.id}" title="Gerar PIX">
+                    PIX
+                  </button>
+                  <button type="button" class="btn-more-options btn-inst-more" data-id="${item.id}" title="Mais opções">
+                    •••
+                  </button>
+                ` : `
+                  <button class="btn btn-secondary btn-sm btn-receipt" data-id="${item.id}" title="Ver Comprovante / Recibo">
+                    ${icon('fileText', 12)} Comprovante
+                  </button>
+                  <button class="btn btn-secondary btn-sm btn-edit-inst" data-id="${item.id}" title="Editar Parcela">
+                    ${icon('edit', 12)} Editar
+                  </button>
+                  <button type="button" class="btn-more-options btn-inst-more" data-id="${item.id}" title="Mais opções">
+                    •••
+                  </button>
+                `}
+              </div>
             </div>
           </td>
         </tr>
@@ -382,6 +456,81 @@ export function renderInstallments(options = {}) {
           showToast('Pagamento estornado com sucesso.');
           window.refreshCurrentTab();
         }
+      });
+    });
+
+    tbody.querySelectorAll('.btn-inst-more').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const instId = btn.dataset.id;
+        const item = enrichedList.find(i => i.id === instId);
+        if (!item || !window.openActionSheet) return;
+
+        const items = [];
+        if (item.status !== 'paid') {
+          items.push({
+            icon: icon('check', 18),
+            label: 'Quitar Empréstimo Total',
+            description: 'Baixa integral do capital e juros quitados',
+            primary: true,
+            onClick: () => window.openPaymentModal(instId, { mode: 'standard' })
+          });
+          items.push({
+            icon: icon('edit', 18),
+            label: 'Editar Parcela & Vencimento',
+            description: 'Alterar valor original, data ou observações',
+            onClick: () => {
+              if (window.openInstallmentEditModal) window.openInstallmentEditModal(instId);
+            }
+          });
+          items.push({
+            icon: icon('bell', 18),
+            label: item.promisedDate ? 'Alterar Promessa de Pagamento' : 'Registrar Promessa de Pagamento',
+            description: 'Definir nova data acordada com o devedor',
+            onClick: () => window.openPromiseModal(instId)
+          });
+          items.push({
+            icon: icon('fileText', 18),
+            label: 'Nota Promissória',
+            description: 'Emitir promissória formal vinculada',
+            onClick: () => window.openPromissoryModal(item.loanId, item.number)
+          });
+        } else {
+          items.push({
+            icon: icon('fileText', 18),
+            label: 'Ver Comprovante / Recibo',
+            description: 'Visualizar ou imprimir comprovante da baixa',
+            onClick: () => window.openReceiptModal(instId)
+          });
+          items.push({
+            icon: icon('edit', 18),
+            label: 'Editar Parcela',
+            description: 'Alterar dados de registro',
+            onClick: () => {
+              if (window.openInstallmentEditModal) window.openInstallmentEditModal(instId);
+            }
+          });
+          if (adminAllowed) {
+            items.push({
+              icon: icon('refresh', 18),
+              label: 'Estornar Baixa',
+              description: 'Cancelar o recebimento e reabrir a parcela',
+              danger: true,
+              onClick: () => {
+                if (confirm('Deseja realmente estornar o pagamento desta parcela?')) {
+                  state.revertPayment(instId);
+                  showToast('Pagamento estornado.');
+                  window.refreshCurrentTab();
+                }
+              }
+            });
+          }
+        }
+
+        window.openActionSheet({
+          title: `Parcela ${Number(item.loan?.installmentsCount) === 1 ? 'Única' : '#' + item.number} • ${item.client.name}`,
+          subtitle: `Vencimento: ${formatDate(item.dueDate)} • Valor: ${formatBRL(item.installmentAmount)}`,
+          items
+        });
       });
     });
   }

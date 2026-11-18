@@ -354,4 +354,78 @@ export function buildWhatsAppCollectionMessage({
     .replace(/\{empresa\}/g, settings.businessName || 'Vando motos locadora LTDA');
 }
 
+/**
+ * Menu / Bottom Sheet Nativo Mobile para Ações Secundárias (Clean UI)
+ * @param {Object} options
+ * @param {string} options.title - Título do menu
+ * @param {string} [options.subtitle] - Subtítulo / contexto
+ * @param {Array<{icon?: string, label: string, description?: string, danger?: boolean, primary?: boolean, onClick: Function}>} options.items
+ */
+export function openActionSheet({ title = 'Opções', subtitle = '', items = [] }) {
+  const existing = document.getElementById('action-sheet-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'action-sheet-overlay';
+  overlay.className = 'action-sheet-overlay animate-fade-in';
+
+  overlay.innerHTML = `
+    <div class="action-sheet-backdrop"></div>
+    <div class="action-sheet-card animate-slide-up">
+      <div class="action-sheet-drag-handle"></div>
+      <div class="action-sheet-header">
+        <h4 class="action-sheet-title">${escapeHtml(title)}</h4>
+        ${subtitle ? `<p class="action-sheet-subtitle">${escapeHtml(subtitle)}</p>` : ''}
+      </div>
+      <div class="action-sheet-items">
+        ${items.map((it, idx) => `
+          <button type="button" class="action-sheet-item ${it.danger ? 'action-sheet-item--danger' : ''} ${it.primary ? 'action-sheet-item--primary' : ''}" data-idx="${idx}">
+            ${it.icon ? `<span class="action-sheet-icon">${it.icon}</span>` : ''}
+            <div class="action-sheet-item-text">
+              <span class="action-sheet-item-label">${escapeHtml(it.label)}</span>
+              ${it.description ? `<span class="action-sheet-item-desc">${escapeHtml(it.description)}</span>` : ''}
+            </div>
+            <span class="action-sheet-item-arrow">›</span>
+          </button>
+        `).join('')}
+      </div>
+      <button type="button" class="action-sheet-cancel-btn">Cancelar</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('modal-open');
+
+  function close() {
+    overlay.classList.remove('active');
+    setTimeout(() => {
+      overlay.remove();
+      if (!document.querySelector('.modal-overlay.active')) {
+        document.body.classList.remove('modal-open');
+      }
+    }, 200);
+  }
+
+  overlay.querySelector('.action-sheet-backdrop').addEventListener('click', close);
+  overlay.querySelector('.action-sheet-cancel-btn').addEventListener('click', close);
+
+  overlay.querySelectorAll('.action-sheet-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.idx);
+      const item = items[idx];
+      close();
+      if (item && item.onClick) {
+        item.onClick();
+      }
+    });
+  });
+
+  requestAnimationFrame(() => overlay.classList.add('active'));
+}
+
+if (typeof window !== 'undefined') {
+  window.openActionSheet = openActionSheet;
+}
+
+
 

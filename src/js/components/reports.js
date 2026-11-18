@@ -366,23 +366,34 @@ export function renderReports() {
 
     <!-- PAINEL MULTICRITÉRIO DE FILTROS AVANÇADOS -->
     <div class="card reports-filter-card" style="margin-bottom: 20px; background: linear-gradient(180deg, rgba(26, 30, 42, 0.85) 0%, rgba(17, 20, 28, 0.95) 100%);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer;" id="rep-mobile-filter-toggle">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="color: var(--yellow);">${icon('filter', 16)}</span>
-          <strong style="font-size: 0.92rem; color: #fff;">Filtros & Seleção de Período</strong>
+          <div>
+            <strong style="font-size: 0.92rem; color: #fff;">Filtros & Seleção de Período</strong>
+            <div style="font-size: 0.72rem; color: var(--yellow);" id="rep-filter-summary-badge">Período: Este Mês • Todos os Clientes</div>
+          </div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" id="rep-btn-reset-filters" style="font-size: 0.76rem; padding: 4px 10px;">
-          ${icon('refresh', 12)} Limpar Filtros
-        </button>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="rep-btn-reset-filters" style="font-size: 0.74rem; padding: 4px 8px; min-height: 28px;">
+            ${icon('refresh', 11)} Limpar
+          </button>
+          <span id="rep-filter-arrow" style="font-size: 0.85rem; color: var(--text-400); transition: transform 0.2s;">▾</span>
+        </div>
       </div>
 
-      <!-- Linha 1: Atalhos Rápidos de Período -->
-      <div class="filter-periods-wrap" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;">
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="today">Hoje</button>
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="yesterday">Ontem</button>
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="7d">Últimos 7 dias</button>
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="15d">15 dias</button>
-        <button type="button" class="btn btn-primary btn-sm rep-period-chip active" data-period="month">Este Mês</button>
+      <div id="rep-filters-collapsible">
+        <!-- Linha 1: Atalhos Rápidos de Período -->
+        <div class="filter-periods-wrap" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;">
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="today">Hoje</button>
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="yesterday">Ontem</button>
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="7d">Últimos 7 dias</button>
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="15d">15 dias</button>
+          <button type="button" class="btn btn-primary btn-sm rep-period-chip active" data-period="month">Este Mês</button>
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="lastMonth">Mês Passado</button>
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="year">Ano Atual</button>
+          <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="all">Todo o Período</button>
+        </div>
         <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="lastMonth">Mês Passado</button>
         <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="year">Ano Atual</button>
         <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="all">Todo o Período</button>
@@ -459,6 +470,7 @@ export function renderReports() {
           <input type="text" class="form-control" id="rep-filter-search" placeholder="Nome, contrato, anotação...">
         </div>
       </div>
+      </div> <!-- Fecha #rep-filters-collapsible -->
     </div>
 
     <!-- GRADE DE KPIS DINÂMICOS DO FILTRO -->
@@ -652,6 +664,18 @@ export function renderReports() {
     const allRecords = compileAllRecords();
     const filtered = filterRecordsList(allRecords);
     lastFilteredRecords = filtered;
+
+    // Atualiza badge de resumo dos filtros no cabeçalho mobile
+    const badgeEl = container.querySelector('#rep-filter-summary-badge');
+    if (badgeEl) {
+      const periodLabelMap = {
+        today: 'Hoje', yesterday: 'Ontem', '7d': '7 dias', '15d': '15 dias',
+        month: 'Este Mês', lastMonth: 'Mês Passado', year: 'Ano Atual', all: 'Todo o Período', custom: 'Personalizado'
+      };
+      const pLabel = periodLabelMap[activePeriod] || 'Personalizado';
+      const cLabel = filterClientId === 'all' ? 'Todos os Clientes' : (clients.find(c => c.id === filterClientId)?.name || 'Cliente');
+      badgeEl.textContent = `Período: ${pLabel} • ${cLabel} (${filtered.length} reg.)`;
+    }
 
     // Atualiza contadores das abas da tabela
     const countAll = allRecords.length;
@@ -1054,6 +1078,25 @@ export function renderReports() {
       });
 
       updateView();
+    });
+
+    // Toggle retrátil dos filtros no mobile para interface limpa
+    const mFilterToggle = container.querySelector('#rep-mobile-filter-toggle');
+    const mFilterCollapsible = container.querySelector('#rep-filters-collapsible');
+    const mFilterArrow = container.querySelector('#rep-filter-arrow');
+
+    if (window.innerWidth <= 768 && mFilterCollapsible) {
+      mFilterCollapsible.style.display = 'none';
+      if (mFilterArrow) mFilterArrow.style.transform = 'rotate(-90deg)';
+    }
+
+    mFilterToggle?.addEventListener('click', (e) => {
+      if (e.target.closest('#rep-btn-reset-filters')) return;
+      if (mFilterCollapsible) {
+        const isHidden = getComputedStyle(mFilterCollapsible).display === 'none';
+        mFilterCollapsible.style.display = isHidden ? 'block' : 'none';
+        if (mFilterArrow) mFilterArrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+      }
     });
 
     // 6. Abas da Tabela

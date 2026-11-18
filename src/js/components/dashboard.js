@@ -90,27 +90,138 @@ export function renderDashboard() {
   upcomingList.sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
 
   container.innerHTML = `
-    <!-- Banner de Alerta para Parcelas em Atraso -->
-    ${atrasadasQtd > 0 ? `
-      <div class="alert-overdue">
-        <div class="alert-icon-box">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
+    <!-- VISÃO LIMPA E ORGANIZADA PARA CELULAR (FINTECH MOBILE) -->
+    <div class="mobile-dash-view">
+      <!-- 1. Hero Card: Capital na Rua e Indicadores Chave -->
+      <div class="dash-hero-fintech">
+        <div class="dhf-top">
+          <span class="dhf-label">Capital Alocado (Na Rua)</span>
+          <span class="dhf-badge">Padrão 20%</span>
         </div>
-        <div class="alert-content">
-          <div class="alert-title">${atrasadasQtd} parcela${atrasadasQtd > 1 ? 's' : ''} em atraso</div>
-          <div class="alert-body">
-            Total atualizado com juros e multa: <strong class="text-danger">${formatBRL(atrasadasTotal)}</strong>
+        <div class="dhf-value text-yellow">${formatBRL(capitalNaRua)}</div>
+        <div class="dhf-stats-grid">
+          <div class="dhf-stat-item">
+            <span class="dhf-stat-label">Lucro Previsto</span>
+            <span class="dhf-stat-val text-indigo">+${formatBRL(lucroPrevisto)}</span>
+          </div>
+          <div class="dhf-stat-item">
+            <span class="dhf-stat-label">Recebido Mês</span>
+            <span class="dhf-stat-val text-green">${formatBRL(recebidoNoMes)}</span>
+          </div>
+          <div class="dhf-stat-item">
+            <span class="dhf-stat-label">Em Atraso</span>
+            <span class="dhf-stat-val ${atrasadasQtd > 0 ? 'text-danger' : ''}">${formatBRL(atrasadasTotal)}</span>
           </div>
         </div>
-        <button class="btn btn-danger btn-sm" id="btn-ver-atrasadas">
-          Cobrar Inadimplentes
-        </button>
       </div>
-    ` : ''}
+
+      <!-- 2. Ações Rápidas em Estilo App Nativo (4 Ícones Arredondados) -->
+      <div class="quick-actions-bar-mobile">
+        <div class="qab-item" id="m-btn-novo-emp">
+          <div class="qab-icon qab-icon--primary">${icon('plus', 16)}</div>
+          <span class="qab-label">Novo</span>
+        </div>
+        <div class="qab-item" id="m-btn-caixa">
+          <div class="qab-icon">${icon('dollar', 16)}</div>
+          <span class="qab-label">Caixa</span>
+        </div>
+        <div class="qab-item" id="m-btn-reneg">
+          <div class="qab-icon">${icon('refresh', 16)}</div>
+          <span class="qab-label">Acordo</span>
+        </div>
+        <div class="qab-item" id="m-btn-clientes">
+          <div class="qab-icon">${icon('users', 16)}</div>
+          <span class="qab-label">Clientes</span>
+        </div>
+      </div>
+
+      <!-- 3. Alerta Direto de Inadimplência (se houver atraso) -->
+      ${atrasadasQtd > 0 ? `
+        <div class="alert-overdue" style="margin-bottom: 14px; padding: 10px 12px; border-radius: 14px;">
+          <div class="alert-content" style="font-size: 0.82rem;">
+            <strong style="color: var(--red);">${atrasadasQtd} parcela${atrasadasQtd > 1 ? 's' : ''} em atraso</strong> (${formatBRL(atrasadasTotal)})
+          </div>
+          <button class="btn btn-danger btn-sm" id="m-btn-ver-atrasadas" style="padding: 6px 12px; font-size: 0.76rem; min-height: 32px; border-radius: 8px;">
+            Cobrar
+          </button>
+        </div>
+      ` : ''}
+
+      <!-- 4. Lucro & Rentabilidade Retrátil (Toque para Ver Indicadores) -->
+      <div class="card" style="margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(245, 197, 24, 0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="m-btn-toggle-juros">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: var(--yellow);">${icon('trendingUp', 16)}</span>
+            <div>
+              <strong style="font-size: 0.85rem; color: #fff;">Lucro & Rentabilidade Seu Vando</strong>
+              <div style="font-size: 0.72rem; color: var(--emerald-400);">+${interestStats.rentabilidadeRealMensal.toFixed(2)}% a.m. • ${formatBRL(interestStats.jurosRecebidosMes)} no mês</div>
+            </div>
+          </div>
+          <span id="m-arrow-juros" style="font-size: 0.9rem; color: var(--text-400); transition: transform 0.2s;">▾</span>
+        </div>
+        <div id="m-content-juros" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div style="background: var(--bg-1); padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+              <div style="font-size: 0.65rem; color: var(--text-400); text-transform: uppercase;">Juros do Mês</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: var(--green); margin-top: 2px;">${formatBRL(interestStats.jurosRecebidosMes)}</div>
+            </div>
+            <div style="background: var(--bg-1); padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+              <div style="font-size: 0.65rem; color: var(--text-400); text-transform: uppercase;">Projeção (30d)</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-top: 2px;">${formatBRL(interestStats.jurosProjetados30Dias)}</div>
+            </div>
+            <div style="background: var(--bg-1); padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+              <div style="font-size: 0.65rem; color: var(--text-400); text-transform: uppercase;">Amortizado (Mês)</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: var(--emerald-400); margin-top: 2px;">${formatBRL(interestStats.principalRecebidoMes)}</div>
+            </div>
+            <div style="background: var(--bg-1); padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+              <div style="font-size: 0.65rem; color: var(--text-400); text-transform: uppercase;">Rentabilidade</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: var(--yellow); margin-top: 2px;">${interestStats.rentabilidadeRealMensal.toFixed(2)}% <span style="font-size: 0.7rem; font-weight: 600;">a.m.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Operacional do Dia com Abas Segmentadas (Sem Rolagem Infinita) -->
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.74rem; font-weight: 800; text-transform: uppercase; color: var(--text-400); letter-spacing: 0.05em;">Operacional do Dia</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="m-btn-ver-todas-parcelas" style="font-size: 0.72rem; padding: 2px 8px; min-height: 24px;">Ver Todas</button>
+        </div>
+        <div class="dash-segmented-bar" id="m-dash-segments">
+          <button type="button" class="dash-seg-btn ${overdueList.length > 0 ? '' : 'active'}" data-seg="today">Hoje (${todayDueList.length})</button>
+          <button type="button" class="dash-seg-btn ${overdueList.length > 0 ? 'active' : ''}" data-seg="overdue">Atrasadas (${overdueList.length})</button>
+          <button type="button" class="dash-seg-btn" data-seg="promises">Promessas (${promiseList.length})</button>
+          <button type="button" class="dash-seg-btn" data-seg="upcoming">Em Breve (${upcomingList.length})</button>
+        </div>
+        <div id="m-dash-segment-content">
+          <!-- Renderizado via script -->
+        </div>
+      </div>
+    </div>
+
+    <!-- VISÃO ORIGINAL PARA COMPUTADOR / TELAS GRANDES -->
+    <div class="desktop-dash-view">
+      <!-- Banner de Alerta para Parcelas em Atraso -->
+      ${atrasadasQtd > 0 ? `
+        <div class="alert-overdue">
+          <div class="alert-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="alert-content">
+            <div class="alert-title">${atrasadasQtd} parcela${atrasadasQtd > 1 ? 's' : ''} em atraso</div>
+            <div class="alert-body">
+              Total atualizado com juros e multa: <strong class="text-danger">${formatBRL(atrasadasTotal)}</strong>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" id="btn-ver-atrasadas">
+            Cobrar Inadimplentes
+          </button>
+        </div>
+      ` : ''}
 
     <!-- Atalhos Rápidos Operacionais -->
     <div class="quick-actions-bar">
@@ -513,9 +624,263 @@ export function renderDashboard() {
         </div>
       `}
     </div>
+    </div> <!-- Fecha .desktop-dash-view -->
   `;
 
   setTimeout(() => {
+    // --- LÓGICA DO DASHBOARD MOBILE LIMPO ---
+    const mSegContainer = container.querySelector('#m-dash-segment-content');
+    const mSegButtons = container.querySelectorAll('.dash-seg-btn');
+
+    function renderMobileSegment(seg) {
+      if (!mSegContainer) return;
+      let html = '';
+
+      if (seg === 'today') {
+        if (todayDueList.length === 0) {
+          html = '<div class="empty-state-box" style="padding: 18px;"><p style="font-size: 0.85rem;">Nenhuma parcela vence hoje.</p></div>';
+        } else {
+          html = todayDueList.map(item => `
+            <div class="mobile-card-item" style="margin-bottom: 8px;">
+              <div class="mcard-top">
+                <div style="min-width: 0;">
+                  <div class="mcard-name">${escapeHtml(item.client.name)}</div>
+                  <div class="mcard-sub">${escapeHtml(item.client.phone || '')} • Parc. #${item.number}</div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0;">
+                  <div style="font-size: 1.15rem; font-weight: 800; color: var(--yellow);">${formatBRL(item.installmentAmount)}</div>
+                  <span class="badge badge-today" style="font-size: 0.65rem; padding: 2px 6px;">Vence Hoje</span>
+                </div>
+              </div>
+              <div class="mcard-actions-row">
+                <button class="btn btn-warning btn-sm btn-action-pay-interest" data-id="${item.id}">
+                  ${icon('refresh', 12)} Receber Juros
+                </button>
+                ${item.client.phone ? `
+                  <button class="btn btn-whatsapp btn-sm btn-action-whatsapp"
+                    data-client="${encodeURIComponent(item.client.name)}"
+                    data-phone="${escapeHtml(item.client.phone || '')}"
+                    data-amount="${item.installmentAmount}"
+                    data-number="${item.number}"
+                    data-raw-date="${String(item.dueDate || '').split('T')[0]}">
+                    ${icon('whatsapp', 13)} WhatsApp
+                  </button>
+                ` : ''}
+                <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}">PIX</button>
+                <button class="btn btn-secondary btn-sm btn-dash-edit-inst" data-id="${item.id}">${icon('edit', 12)}</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } else if (seg === 'overdue') {
+        if (overdueList.length === 0) {
+          html = '<div class="empty-state-box" style="padding: 18px;"><p class="text-green" style="font-size: 0.85rem;">Tudo em dia! Nenhuma parcela atrasada.</p></div>';
+        } else {
+          html = overdueList.map(item => `
+            <div class="mobile-card-item" style="margin-bottom: 8px; border-color: rgba(244, 63, 94, 0.35);">
+              <div class="mcard-top">
+                <div style="min-width: 0;">
+                  <div class="mcard-name">${escapeHtml(item.client.name)}</div>
+                  <div class="mcard-sub" style="color: var(--red); font-weight: 700;">${item.charges.daysOverdue} dias de atraso • Parc. #${item.number}</div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0;">
+                  <div style="font-size: 1.15rem; font-weight: 800; color: var(--red);">${formatBRL(item.charges.totalUpdatedAmount)}</div>
+                  <div style="font-size: 0.68rem; color: var(--text-400);">Orig: ${formatBRL(item.installmentAmount)}</div>
+                </div>
+              </div>
+              <div class="mcard-actions-row">
+                <button class="btn btn-warning btn-sm btn-action-pay-interest" data-id="${item.id}">
+                  ${icon('refresh', 12)} Receber Juros
+                </button>
+                ${item.client.phone ? `
+                  <button class="btn btn-whatsapp btn-sm btn-action-whatsapp-overdue"
+                    data-client="${encodeURIComponent(item.client.name)}"
+                    data-phone="${escapeHtml(item.client.phone || '')}"
+                    data-amount="${item.charges.totalUpdatedAmount}"
+                    data-number="${item.number}"
+                    data-raw-date="${String(item.dueDate || '').split('T')[0]}"
+                    data-days="${item.charges.daysOverdue}">
+                    ${icon('whatsapp', 13)} Cobrar
+                  </button>
+                ` : ''}
+                <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}">PIX</button>
+                <button class="btn btn-secondary btn-sm btn-dash-edit-inst" data-id="${item.id}">${icon('edit', 12)}</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } else if (seg === 'promises') {
+        if (promiseList.length === 0) {
+          html = '<div class="empty-state-box" style="padding: 18px;"><p style="font-size: 0.85rem;">Nenhuma promessa de pagamento agendada.</p></div>';
+        } else {
+          html = promiseList.map(item => `
+            <div class="mobile-card-item" style="margin-bottom: 8px;">
+              <div class="mcard-top">
+                <div style="min-width: 0;">
+                  <div class="mcard-name">${escapeHtml(item.client.name)}</div>
+                  <div class="mcard-sub">Parc. #${item.number}${item.promiseNote ? ` • "${escapeHtml(item.promiseNote)}"` : ''}</div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0;">
+                  <div style="font-size: 1.05rem; font-weight: 800; color: var(--yellow);">${formatBRL(item.installmentAmount)}</div>
+                  <span class="badge" style="font-size: 0.65rem; background: rgba(245, 197, 24, 0.15); color: var(--yellow);">🗓️ ${formatDate(item.promisedDate)}</span>
+                </div>
+              </div>
+              <div class="mcard-actions-row">
+                <button class="btn btn-secondary btn-sm btn-dash-promise" data-id="${item.id}">Editar Promessa</button>
+                <button class="btn btn-primary btn-sm btn-action-pay" data-id="${item.id}">Baixar</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } else if (seg === 'upcoming') {
+        if (upcomingList.length === 0) {
+          html = '<div class="empty-state-box" style="padding: 18px;"><p style="font-size: 0.85rem;">Nenhum vencimento nos próximos 3 dias.</p></div>';
+        } else {
+          html = upcomingList.map(item => `
+            <div class="mobile-card-item" style="margin-bottom: 8px;">
+              <div class="mcard-top">
+                <div style="min-width: 0;">
+                  <div class="mcard-name">${escapeHtml(item.client.name)}</div>
+                  <div class="mcard-sub">Parc. #${item.number} • Vence ${formatDate(item.dueDate)}</div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0;">
+                  <div style="font-size: 1.05rem; font-weight: 800; color: var(--yellow);">${formatBRL(item.installmentAmount)}</div>
+                </div>
+              </div>
+              <div class="mcard-actions-row">
+                ${item.client.phone ? `
+                  <button class="btn btn-whatsapp btn-sm btn-action-whatsapp"
+                    data-client="${encodeURIComponent(item.client.name)}"
+                    data-phone="${escapeHtml(item.client.phone || '')}"
+                    data-amount="${item.installmentAmount}"
+                    data-number="${item.number}"
+                    data-raw-date="${String(item.dueDate || '').split('T')[0]}"
+                    data-stage="upcoming">
+                    ${icon('whatsapp', 13)} Lembrar
+                  </button>
+                ` : ''}
+                <button class="btn btn-secondary btn-sm btn-dash-promise" data-id="${item.id}">Promessa</button>
+                <button class="btn btn-secondary btn-sm btn-dash-edit-inst" data-id="${item.id}">${icon('edit', 12)}</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      mSegContainer.innerHTML = html;
+      bindActionEvents(mSegContainer);
+    }
+
+    mSegButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        mSegButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderMobileSegment(btn.dataset.seg);
+      });
+    });
+
+    // Inicia com a aba mais relevante (Atrasadas se houver, ou Hoje)
+    renderMobileSegment(overdueList.length > 0 ? 'overdue' : 'today');
+
+    // Toggle de juros retrátil no mobile
+    const toggleJurosBtn = container.querySelector('#m-btn-toggle-juros');
+    const contentJuros = container.querySelector('#m-content-juros');
+    const arrowJuros = container.querySelector('#m-arrow-juros');
+    toggleJurosBtn?.addEventListener('click', () => {
+      if (contentJuros) {
+        const isHidden = contentJuros.style.display === 'none';
+        contentJuros.style.display = isHidden ? 'block' : 'none';
+        if (arrowJuros) arrowJuros.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+      }
+    });
+
+    // Atalhos do dashboard mobile
+    container.querySelector('#m-btn-novo-emp')?.addEventListener('click', () => window.navigateToTab('loans'));
+    container.querySelector('#m-btn-caixa')?.addEventListener('click', () => window.openCashRegisterModal && window.openCashRegisterModal());
+    container.querySelector('#m-btn-reneg')?.addEventListener('click', () => window.navigateToTab('renegotiation'));
+    container.querySelector('#m-btn-clientes')?.addEventListener('click', () => window.navigateToTab('clients'));
+    container.querySelector('#m-btn-ver-atrasadas')?.addEventListener('click', () => window.navigateToTab('installments', { filter: 'overdue' }));
+    container.querySelector('#m-btn-ver-todas-parcelas')?.addEventListener('click', () => window.navigateToTab('installments'));
+
+    function bindActionEvents(scope) {
+      scope.querySelectorAll('.btn-action-pay-interest').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.openPaymentModal(btn.dataset.id, { mode: 'rollover' });
+        });
+      });
+
+      scope.querySelectorAll('.btn-action-pay').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.openPaymentModal(btn.dataset.id);
+        });
+      });
+
+      scope.querySelectorAll('.btn-action-pix').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (window.openPixModal) window.openPixModal(btn.dataset.id);
+        });
+      });
+
+      scope.querySelectorAll('.btn-dash-edit-inst').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (window.openInstallmentEditModal) window.openInstallmentEditModal(btn.dataset.id);
+        });
+      });
+
+      scope.querySelectorAll('.btn-dash-promise').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.openPromiseModal(btn.dataset.id);
+        });
+      });
+
+      scope.querySelectorAll('.btn-action-whatsapp').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const clientName = decodeURIComponent(btn.dataset.client);
+          const phone = btn.dataset.phone;
+          const amount = Number(btn.dataset.amount || 0);
+          const installmentNumber = btn.dataset.number;
+          const rawDueDate = btn.dataset.rawDate;
+          const stageOverride = btn.dataset.stage || null;
+
+          const msg = buildWhatsAppCollectionMessage({
+            clientName,
+            installmentNumber,
+            amount,
+            dueDate: rawDueDate,
+            daysOverdue: 0,
+            settings: state.getSettings(),
+            stageOverride
+          });
+          const url = createWhatsAppUrl(phone, msg);
+          if (url) window.open(url, '_blank');
+        });
+      });
+
+      scope.querySelectorAll('.btn-action-whatsapp-overdue').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const clientName = decodeURIComponent(btn.dataset.client);
+          const phone = btn.dataset.phone;
+          const amount = Number(btn.dataset.amount || 0);
+          const installmentNumber = btn.dataset.number;
+          const rawDueDate = btn.dataset.rawDate;
+          const daysOverdue = Number(btn.dataset.days || 1);
+
+          const msg = buildWhatsAppCollectionMessage({
+            clientName,
+            installmentNumber,
+            amount,
+            dueDate: rawDueDate,
+            daysOverdue,
+            settings: state.getSettings()
+          });
+          const url = createWhatsAppUrl(phone, msg);
+          if (url) window.open(url, '_blank');
+        });
+      });
+    }
+
+    // --- EVENTOS DESKTOP ---
+    bindActionEvents(container.querySelector('.desktop-dash-view') || container);
     container.querySelector('#btn-ver-atrasadas')?.addEventListener('click', () => {
       window.navigateToTab('installments', { filter: 'overdue' });
     });
