@@ -102,6 +102,24 @@ export function renderSettings() {
 
           <div class="form-grid">
             <div class="form-group">
+              <label class="form-label">Taxa Padrão de Juros (%) *</label>
+              <input type="number" class="form-control" id="set-interest-rate" value="${settings.defaultInterestRate || 20.0}" step="0.5" required>
+              <small style="color: var(--yellow); font-size: 0.72rem; margin-top: 3px; display: block;">Padrão Seu Vando: 20% ao mês</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Modelo Padrão de Cobrança</label>
+              <select class="form-control" id="set-interest-type">
+                <option value="interest_only" ${(settings.defaultInterestType === 'interest_only' || !settings.defaultInterestType) ? 'selected' : ''}>Padrão Seu Vando - Só Juros (Rolagem Mensal)</option>
+                <option value="price" ${settings.defaultInterestType === 'price' ? 'selected' : ''}>Tabela Price (Parcelas Fixas)</option>
+                <option value="simple" ${settings.defaultInterestType === 'simple' ? 'selected' : ''}>Juros Simples (Taxa Fixa)</option>
+                <option value="sac" ${settings.defaultInterestType === 'sac' ? 'selected' : ''}>Tabela SAC (Amortização Constante)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
               <label class="form-label">Multa por Atraso (%)</label>
               <input type="number" class="form-control" id="set-penalty-rate" value="${settings.defaultPenaltyRate || 2.0}" step="0.1" required>
             </div>
@@ -439,6 +457,8 @@ export function renderSettings() {
         pixType: container.querySelector('#set-pix-type').value,
         pixKey: container.querySelector('#set-pix-key').value,
         pixHolder: container.querySelector('#set-pix-holder').value,
+        defaultInterestRate: Number(container.querySelector('#set-interest-rate')?.value || 20),
+        defaultInterestType: container.querySelector('#set-interest-type')?.value || 'interest_only',
         defaultPenaltyRate: Number(container.querySelector('#set-penalty-rate').value),
         defaultDailyRate: Number(container.querySelector('#set-daily-rate').value)
       });

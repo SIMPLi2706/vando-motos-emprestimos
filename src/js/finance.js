@@ -141,8 +141,8 @@ export function calculateAmortizationSchedule(params) {
       });
     }
 
-  } else if (type === 'interest_only') {
-    // Só Juros: Durante os períodos paga-se apenas o juro. No último, devolve o principal.
+  } else if (type === 'interest_only' || type === 'vando_rollover') {
+    // Modelo Seu Vando / Só Juros: Durante os períodos cobra-se 20% de juros. No final, devolve o principal. Se renovar, rola os juros para o próximo mês.
     const interestPerPeriod = PV * i;
 
     for (let k = 1; k <= n; k++) {

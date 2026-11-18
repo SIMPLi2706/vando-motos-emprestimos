@@ -13,83 +13,147 @@ const MESES = [
 ];
 
 /**
- * Utilitário de Impressão via Iframe Invisível
- * Escreve HTML estilizado dentro do iframe e aciona window.print() sem interferir na UI principal
+ * Utilitário Universal de Impressão, Prévia e Compartilhamento de Relatórios
+ * 100% compatível com iOS (AirPrint no iPhone 14 Pro Max / Safari / PWA), Android e Desktop
  */
-function printIframe(htmlContent) {
-  // Remove eventuais iframes anteriores
-  const existingFrame = document.getElementById('pdf-export-hidden-frame');
-  if (existingFrame) existingFrame.remove();
+export function openReportPreviewAndPrintModal(htmlContent, reportTitle = 'Relatório Oficial') {
+  let modal = document.getElementById('modal-report-preview-system');
+  if (modal) modal.remove();
 
-  const iframe = document.createElement('iframe');
-  iframe.id = 'pdf-export-hidden-frame';
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.style.visibility = 'hidden';
-  iframe.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(iframe);
+  modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.id = 'modal-report-preview-system';
+  modal.style.zIndex = '9999';
 
-  const doc = iframe.contentWindow.document;
-  doc.open();
-  doc.write(htmlContent);
-  doc.close();
+  modal.innerHTML = `
+    <div class="modal-card" style="width: 95vw; max-width: 1000px; height: 94dvh; max-height: 94dvh; display: flex; flex-direction: column; background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.8);">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--border-soft); background: var(--bg-2); flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <span style="color: var(--yellow);">${icon('fileText', 20)}</span>
+          <div>
+            <h3 class="modal-title" style="font-size: 1.05rem; margin: 0; color: #fff; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(reportTitle)}</h3>
+            <div style="font-size: 0.74rem; color: var(--text-400);">Vando Motos Locadora • Prévia & Impressão</div>
+          </div>
+        </div>
 
-  const triggerPrint = () => {
-    try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    } catch (err) {
-      console.error('Falha ao acionar impressão no iframe:', err);
-      // Fallback seguro em nova janela caso o iframe seja bloqueado
-      const printWin = window.open('', '_blank');
-      if (printWin) {
-        printWin.document.open();
-        printWin.document.write(htmlContent);
-        printWin.document.close();
-        printWin.focus();
-        printWin.print();
-      } else {
-        showToast('Permita popups ou impressão no navegador.', 'error');
-      }
-    } finally {
-      // Remove o iframe após a conclusão da fila de impressão
-      setTimeout(() => {
-        if (iframe.parentNode) {
-          iframe.parentNode.removeChild(iframe);
-        }
-      }, 6000);
-    }
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-report-action-print" style="font-weight: 800; font-size: 0.82rem; padding: 7px 12px; border-radius: 6px;">
+            ${icon('print', 15)} Imprimir / PDF
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-report-action-share" style="font-weight: 700; font-size: 0.82rem; padding: 7px 12px; border-radius: 6px; color: var(--green); border-color: rgba(16, 185, 129, 0.4);">
+            ${icon('share', 15)} Compartilhar
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-report-action-download" style="font-weight: 700; font-size: 0.82rem; padding: 7px 10px; border-radius: 6px;">
+            ${icon('download', 14)} Baixar
+          </button>
+          <button class="modal-close-btn" id="btn-report-preview-close" style="width: 32px; height: 32px; border-radius: 6px;">${icon('x', 16)}</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="flex: 1 1 auto; min-height: 0; padding: 0; background: #334155; overflow: hidden; display: flex; justify-content: center;">
+        <iframe id="report-preview-iframe" style="width: 100%; height: 100%; border: none; background: #ffffff;"></iframe>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const iframe = modal.querySelector('#report-preview-iframe');
+  const closeBtn = modal.querySelector('#btn-report-preview-close');
+  const printBtn = modal.querySelector('#btn-report-action-print');
+  const shareBtn = modal.querySelector('#btn-report-action-share');
+  const downloadBtn = modal.querySelector('#btn-report-action-download');
+
+  // Carrega o documento no iframe
+  iframe.srcdoc = htmlContent;
+
+  const closeModal = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 200);
   };
 
-  // Aguarda carregamento de imagens para evitar impressão com logos quebrados
-  const images = Array.from(doc.images || []);
-  if (images.length === 0) {
-    setTimeout(triggerPrint, 250);
-  } else {
-    let pending = images.length;
-    let fallbackTimer = setTimeout(triggerPrint, 1500);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
 
-    const checkComplete = () => {
-      pending--;
-      if (pending <= 0) {
-        clearTimeout(fallbackTimer);
-        setTimeout(triggerPrint, 200);
-      }
-    };
+  // Função nativa de disparo do AirPrint / Impressão no iOS e Desktop
+  const triggerPrint = () => {
+    let mount = document.getElementById('report-print-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'report-print-mount';
+      document.body.appendChild(mount);
+    }
+    mount.innerHTML = htmlContent;
+    document.body.classList.add('report-printing-active');
 
-    images.forEach(img => {
-      if (img.complete) {
-        checkComplete();
-      } else {
-        img.addEventListener('load', checkComplete);
-        img.addEventListener('error', checkComplete);
+    setTimeout(() => {
+      window.focus();
+      try {
+        window.print();
+      } catch (err) {
+        console.warn('Erro ao chamar window.print():', err);
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }
       }
-    });
-  }
+      setTimeout(() => {
+        document.body.classList.remove('report-printing-active');
+        if (mount) mount.innerHTML = '';
+      }, 2000);
+    }, 150);
+  };
+
+  printBtn.addEventListener('click', triggerPrint);
+
+  shareBtn.addEventListener('click', async () => {
+    if (navigator.share) {
+      try {
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const file = new File([blob], `${reportTitle.toLowerCase().replace(/\s+/g, '_')}_${formatDateForInput()}.html`, { type: 'text/html' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: reportTitle,
+            text: `Relatório oficial emitido por Vando Motos Locadora LTDA.`
+          });
+          return;
+        }
+        await navigator.share({
+          title: reportTitle,
+          text: `Relatório oficial emitido por Vando Motos Locadora LTDA.`,
+          url: window.location.href
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          downloadReport();
+        }
+      }
+    } else {
+      downloadReport();
+    }
+  });
+
+  const downloadReport = () => {
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportTitle.toLowerCase().replace(/\s+/g, '_')}_${formatDateForInput()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Download do relatório concluído com sucesso!', 'success');
+  };
+
+  downloadBtn.addEventListener('click', downloadReport);
+}
+
+function printIframe(htmlContent, reportTitle = 'Relatório Oficial') {
+  openReportPreviewAndPrintModal(htmlContent, reportTitle);
 }
 
 /**
@@ -1162,8 +1226,8 @@ export function generateExecutiveReportPDF(options = {}) {
     </html>
   `;
 
-  showToast(`Gerando Relatório Executivo em PDF...`, 'info');
-  printIframe(html);
+  showToast(`Abrindo Relatório Executivo...`, 'info');
+  printIframe(html, 'Relatório Executivo Oficial');
 }
 
 /**
@@ -1571,8 +1635,8 @@ export function generateClientReportPDF(clientId) {
     </html>
   `;
 
-  showToast(`Gerando Dossiê em PDF de ${client.name}...`, 'info');
-  printIframe(html);
+  showToast(`Abrindo Dossiê de ${client.name}...`, 'info');
+  printIframe(html, `Dossiê Financeiro - ${client.name}`);
 }
 
 /**
@@ -1824,4 +1888,14 @@ export function openAdvancedReportPdfModal(presetFilters = {}) {
  */
 export function openMonthlyReportModal(presetFilters = {}) {
   return openAdvancedReportPdfModal(presetFilters);
+}
+
+// Exportações globais para acesso direto via window
+if (typeof window !== 'undefined') {
+  window.openReportPreviewAndPrintModal = openReportPreviewAndPrintModal;
+  window.generateExecutiveReportPDF = generateExecutiveReportPDF;
+  window.openAdvancedReportPdfModal = openAdvancedReportPdfModal;
+  window.openMonthlyReportModal = openMonthlyReportModal;
+  window.generateMonthlyReportPDF = generateMonthlyReportPDF;
+  window.generateClientReportPDF = generateClientReportPDF;
 }

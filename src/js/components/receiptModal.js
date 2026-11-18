@@ -682,6 +682,9 @@ export function createReceiptModal() {
       ? inst.paymentHistory[inst.paymentHistory.length - 1]
       : { amount: inst.paidAmount || inst.installmentAmount, date: inst.paidDate || new Date(), method: 'PIX' };
 
+    const isRollover = lastPayment.type === 'interest_rollover';
+    const capitalVal = Number(inst.amortizationAmount || (Number(inst.installmentAmount) - Number(inst.interestAmount || 0)));
+
     function renderReceiptDoc() {
       if (currentDocTab === 'thermal58' || currentDocTab === 'thermal80') {
         const widthMM = currentDocTab === 'thermal58' ? 58 : 80;
@@ -701,44 +704,84 @@ export function createReceiptModal() {
           <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
               <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0; color: #0f172a;">${escapeHtml(settings.businessName)}</h2>
-              <div style="font-size: 0.85rem; color: #64748b;">Comprovante de Quitação de Parcela</div>
+              <div style="font-size: 0.85rem; color: #64748b;">${isRollover ? 'Comprovante de Quitação de Juros (Rolagem de Dívida)' : 'Comprovante de Quitação de Parcela'}</div>
             </div>
-            <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: #059669;">
-              RECIBO Nº ${inst.id.substring(inst.id.length - 6).toUpperCase()}
+            <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: ${isRollover ? '#d97706' : '#059669'};">
+              ${isRollover ? 'ROLAGEM' : 'RECIBO'} Nº ${inst.id.substring(inst.id.length - 6).toUpperCase()}
             </div>
           </div>
 
           <div style="font-size: 1rem; line-height: 1.8; color: #334155; margin-bottom: 24px;">
-            Recebemos de <strong>${escapeHtml(client.name)}</strong>${client.cpf ? ` (CPF/CNPJ: ${escapeHtml(client.cpf)})` : ''},
-            a quantia de <strong style="font-size: 1.15rem; color: #0f172a;">${formatBRL(lastPayment.amount)}</strong>,
-            referente à quitação da <strong>Parcela nº ${inst.number}</strong> do contrato de empréstimo realizado em ${formatDate(loan.startDate || inst.dueDate)}.
+            ${isRollover ? `
+              Recebemos de <strong>${escapeHtml(client.name)}</strong>${client.cpf ? ` (CPF/CNPJ: ${escapeHtml(client.cpf)})` : ''},
+              a quantia de <strong style="font-size: 1.15rem; color: #b45309;">${formatBRL(lastPayment.amount)}</strong>,
+              referente aos <strong>juros do ciclo (20%)</strong> sobre o capital de <strong>${formatBRL(capitalVal)}</strong>.
+              O capital de <strong>${formatBRL(capitalVal)}</strong> permanece ativo e a dívida foi prorrogada para vencimento em <strong>${formatDate(inst.dueDate)}</strong>.
+            ` : `
+              Recebemos de <strong>${escapeHtml(client.name)}</strong>${client.cpf ? ` (CPF/CNPJ: ${escapeHtml(client.cpf)})` : ''},
+              a quantia de <strong style="font-size: 1.15rem; color: #0f172a;">${formatBRL(lastPayment.amount)}</strong>,
+              referente à quitação da <strong>Parcela nº ${inst.number}</strong> do contrato de empréstimo realizado em ${formatDate(loan.startDate || inst.dueDate)}.
+            `}
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 0.9rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-              <span>Vencimento Original:</span>
-              <strong>${formatDate(inst.dueDate)}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-              <span>Data da Baixa:</span>
-              <strong>${formatDate(lastPayment.date)}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-              <span>Forma de Pagamento:</span>
-              <strong>${escapeHtml(lastPayment.method || 'PIX')}</strong>
-            </div>
-            ${lastPayment.discount > 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #059669;">
-                <span>Desconto Concedido:</span>
-                <strong>- ${formatBRL(lastPayment.discount)}</strong>
+            ${isRollover ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Capital Mantido em Aberto:</span>
+                <strong style="color: #0f172a;">${formatBRL(capitalVal)}</strong>
               </div>
-            ` : ''}
-            ${lastPayment.lateChargesPaid > 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #dc2626;">
-                <span>Encargos / Mora Pagos:</span>
-                <strong>+ ${formatBRL(lastPayment.lateChargesPaid)}</strong>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Juros Recebidos do Ciclo:</span>
+                <strong style="color: #b45309;">${formatBRL(lastPayment.interestPaid || lastPayment.amount)}</strong>
               </div>
-            ` : ''}
+              ${lastPayment.principalAmortized > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #059669;">
+                  <span>Amortização do Principal:</span>
+                  <strong>- ${formatBRL(lastPayment.principalAmortized)}</strong>
+                </div>
+              ` : ''}
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Novo Vencimento do Capital:</span>
+                <strong style="color: #2563eb;">${formatDate(inst.dueDate)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Ciclos de Juros Quitados:</span>
+                <strong>${inst.rolloverCount || 1}x (${formatBRL(inst.rolloverInterestPaid || lastPayment.amount)} acumulados)</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Data do Recebimento:</span>
+                <strong>${formatDate(lastPayment.date)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Meio de Pagamento:</span>
+                <strong>${escapeHtml(lastPayment.method || 'PIX')}</strong>
+              </div>
+            ` : `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Vencimento Original:</span>
+                <strong>${formatDate(inst.dueDate)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Data da Baixa:</span>
+                <strong>${formatDate(lastPayment.date)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Forma de Pagamento:</span>
+                <strong>${escapeHtml(lastPayment.method || 'PIX')}</strong>
+              </div>
+              ${lastPayment.discount > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #059669;">
+                  <span>Desconto Concedido:</span>
+                  <strong>- ${formatBRL(lastPayment.discount)}</strong>
+                </div>
+              ` : ''}
+              ${lastPayment.lateChargesPaid > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #dc2626;">
+                  <span>Encargos / Mora Pagos:</span>
+                  <strong>+ ${formatBRL(lastPayment.lateChargesPaid)}</strong>
+                </div>
+              ` : ''}
+            `}
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px;">

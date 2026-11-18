@@ -70,6 +70,14 @@ export function renderLoans(options = {}) {
               </div>
             </div>
 
+            <!-- Banner de Regra de Negócio Seu Vando -->
+            <div style="background: rgba(245, 197, 24, 0.08); border: 1px solid rgba(245, 197, 24, 0.28); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 10px;">
+              <span style="color: var(--yellow); flex-shrink: 0; margin-top: 1px;">${icon('zap', 16)}</span>
+              <div style="font-size: 0.82rem; line-height: 1.45; color: var(--text-200);">
+                <strong style="color: var(--yellow);">Modalidade Seu Vando (20% ao Mês / Rolagem):</strong> O empréstimo rende 20% de juros no vencimento. Se o devedor não tiver o valor total para quitação, ele paga <strong>apenas os 20% de juros</strong>, e o valor emprestado renova para o mês seguinte sucessivamente.
+              </div>
+            </div>
+
             <!-- Taxa de Juros (%) - Destaque Principal -->
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -179,10 +187,10 @@ export function renderLoans(options = {}) {
                 <div class="form-group">
                   <label class="form-label">Modelo de Amortização / Cálculo</label>
                   <select class="form-control" id="sim-tipo-juros">
-                    <option value="price" selected>Tabela Price (Parcelas Fixas / Padrão)</option>
+                    <option value="interest_only" selected>Padrão Seu Vando - Só Juros 20% (Rolagem Mensal)</option>
+                    <option value="price">Tabela Price (Parcelas Fixas)</option>
                     <option value="simple">Juros Simples (Taxa Fixa)</option>
                     <option value="sac">Tabela SAC (Amortização Constante)</option>
-                    <option value="interest_only">Só Juros (Amortização no Fim)</option>
                   </select>
                 </div>
 
@@ -498,7 +506,7 @@ export function renderLoans(options = {}) {
           let tipoFormatado = 'Price';
           if (loan.interestType === 'simple') tipoFormatado = 'Simples';
           if (loan.interestType === 'sac') tipoFormatado = 'SAC';
-          if (loan.interestType === 'interest_only') tipoFormatado = 'Só Juros';
+          if (loan.interestType === 'interest_only' || loan.interestType === 'vando_rollover') tipoFormatado = 'Só Juros (20% Rolagem)';
 
           const g = loan.guarantee && (loan.guarantee.description || loan.guarantee.type) ? loan.guarantee : null;
           const av = loan.guarantor && loan.guarantor.name ? loan.guarantor : null;

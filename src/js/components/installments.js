@@ -220,6 +220,10 @@ export function renderInstallments(options = {}) {
         ? `<div class="promise-inline-badge ${item.promisedDate <= todayStr ? 'promise-due' : ''}">${icon('bell', 11)} Promessa: ${formatDate(item.promisedDate)}${item.promiseNote ? ` (${escapeHtml(item.promiseNote)})` : ''}</div>`
         : '';
 
+      const rolloverChip = (item.rolloverCount > 0)
+        ? `<div class="rollover-inline-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; color: var(--yellow); background: rgba(245, 197, 24, 0.12); border: 1px solid rgba(245, 197, 24, 0.35); padding: 2px 7px; border-radius: 999px; margin-top: 3px;">${icon('refresh', 11)} Rolado ${item.rolloverCount}x (${formatBRL(item.rolloverInterestPaid || 0)} juros pagos)</div>`
+        : '';
+
       return `
         <tr>
           <td data-label="Status">
@@ -233,6 +237,7 @@ export function renderInstallments(options = {}) {
               <div style="font-weight: 700; color: #fff;">${escapeHtml(item.client.name)}</div>
               <div style="font-size: 0.75rem; color: var(--text-400);">${escapeHtml(item.client.phone || item.client.cpf || '')}</div>
               ${promiseChip}
+              ${rolloverChip}
             </div>
           </td>
           <td data-label="Vencimento">
@@ -250,8 +255,11 @@ export function renderInstallments(options = {}) {
           <td class="td-actions" data-label="Ações">
             <div class="installment-actions-wrap">
               ${item.status !== 'paid' ? `
-                <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Dar Baixa">
-                  Baixar
+                <button class="btn btn-warning btn-sm btn-pay-interest" data-id="${item.id}" title="Receber apenas os juros do mês e prorrogar o capital (Modelo Seu Vando)">
+                  ${icon('refresh', 12)} Receber Juros
+                </button>
+                <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Quitar valor total do empréstimo">
+                  ${icon('check', 12)} Quitar Total
                 </button>
                 <button class="btn btn-secondary btn-sm btn-edit-inst" data-id="${item.id}" title="Editar Parcela e Vencimento">
                   ${icon('edit', 12)} Editar
@@ -327,9 +335,15 @@ export function renderInstallments(options = {}) {
       });
     });
 
+    tbody.querySelectorAll('.btn-pay-interest').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.openPaymentModal(btn.dataset.id, { mode: 'rollover' });
+      });
+    });
+
     tbody.querySelectorAll('.btn-pay').forEach(btn => {
       btn.addEventListener('click', () => {
-        window.openPaymentModal(btn.dataset.id);
+        window.openPaymentModal(btn.dataset.id, { mode: 'standard' });
       });
     });
 

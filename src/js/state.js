@@ -17,6 +17,8 @@ const DEFAULT_SETTINGS = {
   pixHolder: 'Vando motos locadora LTDA',
   defaultPenaltyRate: 2.0, // 2% multa
   defaultDailyRate: 0.1,   // 0.1% mora ao dia
+  defaultInterestRate: 20.0, // 20% juros padrão Seu Vando
+  defaultInterestType: 'interest_only', // Modalidade Padrão Seu Vando (Só Juros com Rolagem Mensal)
   whatsappTemplate: DEFAULT_WHATSAPP_STAGE_TEMPLATES.dueToday,
   whatsappTemplates: { ...DEFAULT_WHATSAPP_STAGE_TEMPLATES },
   operators: [],
@@ -919,16 +921,18 @@ class StateManager {
   }
 
   /**
-   * Rolagem de Dívida / Renovação Rápida
-   * O devedor quita apenas os juros do período (e encargos de atraso, se houver).
-   * O valor principal permanece em aberto e a data de vencimento da parcela é prorrogada.
+   * Rolagem de Dívida / Renovação Contínua de Juros (Modelo Seu Vando)
+   * O devedor quita os 20% de juros do ciclo (e encargos de mora se houver).
+   * O valor principal permanece em aberto e a data de vencimento é prorrogada para o próximo mês.
+   * Suporta também amortização parcial opcional do principal caso o devedor queira pagar a mais.
    */
   rollOverInstallment(installmentId, {
     amountPaid,
     paymentMethod = 'PIX',
     paymentDate = formatDateForInput(),
     newDueDate,
-    notes = ''
+    notes = '',
+    principalAmortization = 0
   }) {
     const inst = this.getInstallmentById(installmentId);
     if (!inst) throw new Error('Parcela não encontrada.');
@@ -944,14 +948,19 @@ class StateManager {
     const nextDate = typeof rawNext === 'string' ? rawNext : formatDateForInput(rawNext);
     const op = this.getActiveOperatorInfo();
 
+    const pAmort = Math.max(0, Number(principalAmortization || 0));
+    const totalCollected = amount + pAmort;
+
     const rolloverReceipt = {
       id: generateId('rec_roll'),
       date: paymentDate,
-      amount: amount,
+      amount: totalCollected,
+      interestPaid: amount,
+      principalAmortized: pAmort,
       method: paymentMethod,
       operatorName: op.name,
       type: 'interest_rollover',
-      notes: notes || `Rolagem de dívida. Juros do ciclo quitados. Vencimento prorrogado para ${formatDate(nextDate)}.`
+      notes: notes || `Rolagem de dívida. Juros de ${formatBRL(amount)} quitados.${pAmort > 0 ? ` Amortizou ${formatBRL(pAmort)} do capital.` : ''} Próximo vencimento: ${formatDate(nextDate)}.`
     };
 
     inst.paymentHistory = inst.paymentHistory || [];
@@ -967,6 +976,21 @@ class StateManager {
     inst.promiseNote = '';
     inst.updatedAt = new Date().toISOString(); // Marca timestamp para merge inteligente
 
+    // Se houve amortização parcial do principal, reduz o saldo devedor e recalcula juros do próximo ciclo
+    if (pAmort > 0) {
+      const currentPrincipal = Number(inst.amortizationAmount || (Number(inst.installmentAmount) - Number(inst.interestAmount || 0)));
+      const newPrincipal = Math.max(0, currentPrincipal - pAmort);
+      const ratePct = Number(loan.interestRate || 20);
+      const newInterest = Math.round((newPrincipal * (ratePct / 100)) * 100) / 100;
+      inst.amortizationAmount = newPrincipal;
+      inst.interestAmount = newInterest;
+      inst.installmentAmount = newPrincipal + newInterest;
+
+      loan.principal = newPrincipal;
+      loan.totalPayable = newPrincipal + newInterest;
+      loan.totalInterest = newInterest;
+    }
+
     if (loan.status === 'overdue') {
       loan.status = 'active';
     }
@@ -974,7 +998,7 @@ class StateManager {
     const client = this.getClientById(inst.clientId);
     this.logAudit(
       'ROLLOVER_INSTALLMENT',
-      `Rolagem Parcela #${inst.number} (${client ? client.name : inst.clientId}) • Juros ${formatBRL(amount)} -> Novo venc. ${formatDate(nextDate)}`,
+      `Rolagem Parcela #${inst.number} (${client ? client.name : inst.clientId}) • Juros ${formatBRL(amount)} -> Novo venc. ${formatDate(nextDate)}${pAmort > 0 ? ` (Amortizou ${formatBRL(pAmort)} do capital)` : ''}`,
       'installment',
       inst.id
     );
