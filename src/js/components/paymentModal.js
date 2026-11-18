@@ -59,7 +59,7 @@ export function createPaymentModal() {
 
             <!-- Box Dinâmico de Atraso -->
             <div id="pay-overdue-box" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(244, 63, 94, 0.3);">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 4px; font-size: 0.82rem; color: var(--rose-400); font-weight: 600;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 4px; font-size: 0.82rem; color: var(--red); font-weight: 600;">
                 <span id="pay-overdue-days">Atrasado há 0 dias</span>
                 <span id="pay-overdue-charges">+ R$ 0,00 (Multa + Mora)</span>
               </div>
@@ -90,7 +90,7 @@ export function createPaymentModal() {
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <label class="form-label" style="margin-bottom: 0;">Forma de Pagamento *</label>
-                <button type="button" class="btn btn-secondary btn-sm" id="pay-btn-open-pix" style="padding: 2px 8px; font-size: 0.72rem; color: var(--emerald-400);">
+                <button type="button" class="btn btn-secondary btn-sm" id="pay-btn-open-pix" style="padding: 2px 8px; font-size: 0.72rem; color: var(--cyan);">
                   ${icon('zap', 12)} Ver QR Code PIX
                 </button>
               </div>
@@ -118,7 +118,7 @@ export function createPaymentModal() {
 
           <div class="form-group">
             <label class="form-label" id="pay-amount-label">Valor Efetivamente Pago (R$) *</label>
-            <input type="number" inputmode="decimal" class="form-control" id="pay-amount-paid" style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-400);" required step="0.01">
+            <input type="number" inputmode="decimal" class="form-control" id="pay-amount-paid" style="font-size: 1.25rem; font-weight: 800; color: var(--green);" required step="0.01">
             <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;" id="pay-suggested-hint">
               Sugestão para quitação total: R$ 0,00
             </div>
@@ -393,6 +393,7 @@ export function createPaymentModal() {
     modal.querySelector('#pay-notes').value = '';
 
     setMode('standard');
+    recalcSuggested(); // Atualiza o valor sugerido ao abrir o modal
     modal.classList.add('active');
   };
 }

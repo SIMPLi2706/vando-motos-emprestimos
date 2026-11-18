@@ -4760,3 +4760,290 @@ body.modal-open #app {
 
 
 
+
+/* ============================================================
+   MELHORIAS DE LAYOUT MOBILE — CORREÇÕES ABRANGENTES
+   ============================================================ */
+
+/* Evita overflow horizontal global em qualquer tela */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (max-width: 768px) {
+
+  /* ---- HEADER E NAVEGAÇÃO ---- */
+  .top-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* ---- BOTÕES DE AÇÃO (evita overflow) ---- */
+  .btn {
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* ---- KPI GRID: 2 colunas compactas ---- */
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .kpi-card {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .kpi-value {
+    font-size: 1rem !important;
+    word-break: break-all;
+  }
+
+  /* ---- FILTROS DE RELATÓRIOS ---- */
+  .reports-filter-bar,
+  .filter-bar,
+  [class*="filter-row"],
+  [class*="filter-grid"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .period-chips,
+  [class*="chip-row"],
+  [class*="period-row"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* ---- CARDS DE CONTRATOS / EMPRÉSTIMOS ---- */
+  .loan-card,
+  [class*="loan-card"],
+  [class*="contract-card"] {
+    padding: 12px 10px !important;
+  }
+
+  /* ---- AÇÕES EM LINHA: 2 colunas ---- */
+  .installment-actions-wrap,
+  .client-actions-wrap,
+  .loan-card-actions,
+  [class*="actions-wrap"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin-top: 8px;
+  }
+
+  /* ---- MODAIS BOTTOM SHEET ---- */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-card {
+    max-height: 92dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    width: 100% !important;
+  }
+
+  /* ---- FORMULÁRIOS ---- */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .form-control,
+  select.form-control,
+  input.form-control,
+  textarea.form-control {
+    font-size: 16px !important; /* Evita zoom iOS */
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+  }
+
+  /* ---- TABELAS MOBILE CARD VIEW ---- */
+  .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: var(--r-md);
+  }
+
+  /* ---- SEÇÕES DE TEXTO LONGO ---- */
+  .card p,
+  .card-body p,
+  .modal-body p {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* ---- TÍTULOS DE SEÇÃO ---- */
+  .section-title,
+  .card-title,
+  h2, h3 {
+    font-size: 1rem !important;
+    word-break: break-word;
+  }
+
+  /* ---- CHIPS DE PERÍODO ---- */
+  .chip, .period-chip, [class*="chip"] {
+    font-size: 0.75rem !important;
+    padding: 5px 10px !important;
+    white-space: nowrap;
+  }
+
+  /* ---- BARRA DE NAVEGAÇÃO INFERIOR ---- */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bg-1);
+    border-top: 1px solid var(--border-soft);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* ---- CONTEÚDO PRINCIPAL: espaço para a nav inferior ---- */
+  .page-content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 12px)) !important;
+  }
+
+  /* ---- TOAST NOTIFICATIONS ---- */
+  #toast-container {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(80px + env(safe-area-inset-bottom, 10px)) !important;
+    z-index: 9999;
+  }
+
+  .toast {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 0.88rem !important;
+  }
+
+  /* ---- BARRAS DE BUSCA ---- */
+  .search-bar,
+  input[type="search"],
+  [class*="search-input"] {
+    width: 100% !important;
+    font-size: 16px !important;
+  }
+
+  /* ---- BOTÕES PRIMÁRIOS: largura total quando sozinhos ---- */
+  .btn-block-mobile {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* ---- SALDO / RESUMO FINANCEIRO ---- */
+  .balance-row,
+  .summary-row,
+  [class*="summary-grid"] {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  /* ---- TABELA DE PARCELAS: botão "Baixar" mais visível ---- */
+  .btn-baixar,
+  [class*="btn-pay"],
+  [class*="pay-btn"] {
+    min-height: 44px !important;
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+  }
+
+  /* ---- RENEGOCIAÇÃO ---- */
+  .reneg-summary,
+  [class*="reneg-card"] {
+    padding: 12px !important;
+  }
+
+  /* ---- PIX QR CODE ---- */
+  .pix-qr-container,
+  [class*="pix-container"] {
+    max-width: 100% !important;
+    padding: 12px !important;
+  }
+
+  /* ---- GRID DE CONFIGURAÇÕES ---- */
+  .settings-grid,
+  [class*="settings-section"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ---- DASH WIDGETS ---- */
+  .dash-widget,
+  [class*="dashboard-widget"] {
+    padding: 12px 10px !important;
+  }
+
+  /* ---- BOTÕES FLUTUANTES / FAB ---- */
+  .fab-btn,
+  [class*="fab"],
+  .btn-fab {
+    bottom: calc(80px + env(safe-area-inset-bottom, 10px)) !important;
+    right: 16px !important;
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
+
+/* Telas muito pequenas: iPhone SE, Galaxy S8 */
+@media (max-width: 390px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+
+  .kpi-value {
+    font-size: 0.9rem !important;
+  }
+
+  .kpi-label {
+    font-size: 0.65rem !important;
+  }
+
+  .btn {
+    font-size: 0.8rem !important;
+    padding: 8px 10px !important;
+  }
+
+  .installment-actions-wrap,
+  .client-actions-wrap,
+  .loan-card-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-card {
+    max-height: 95dvh !important;
+  }
+
+  .page-content {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .modal-card {
+    max-height: 85dvh !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}

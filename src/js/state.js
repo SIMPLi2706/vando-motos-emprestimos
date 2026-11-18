@@ -68,11 +68,22 @@ class StateManager {
 
   initSupabaseSync() {
     if (isSupabaseConfigured()) {
-      this.syncFromSupabase().catch(err => {
-        console.warn('Sincronização inicial com Supabase:', err.message || err);
-      });
+      // Aguarda 2s antes do sync inicial para não sobrescrever dados locais logo após inicializar
+      this._lastLocalSave = Date.now();
+      setTimeout(() => {
+        this.syncFromSupabase().catch(err => {
+          console.warn('Sincronização inicial com Supabase:', err.message || err);
+        });
+      }, 2000);
 
       setupRealtimeSync(() => {
+        // Debounce: ignora realtime sync por 5s após qualquer save local
+        // para evitar race condition (edit local -> supabase push -> realtime sobrescreve)
+        const timeSinceLastSave = Date.now() - (this._lastLocalSave || 0);
+        if (timeSinceLastSave < 5000) {
+          console.log('Realtime sync ignorado (edição local recente, aguarde...)');
+          return;
+        }
         console.log('Atualização em tempo real recebida do Supabase, sincronizando...');
         this.syncFromSupabase().catch(console.error);
       });
@@ -120,23 +131,57 @@ class StateManager {
         return;
       }
 
-      // Supabase é a autoridade: sincroniza exatamente o que está na nuvem
-      this.data.clients = remote.clients || [];
-      this.data.loans = (remote.loans || []).map(l => {
-        if (!l.signature) {
-          try {
-            const savedSig = localStorage.getItem(`vando_signed_${l.id}`);
-            if (savedSig) {
-              const parsedSig = JSON.parse(savedSig);
-              l.signature = parsedSig;
-              l.signedAt = parsedSig.timestamp;
-              l.signProtocol = parsedSig.protocol;
-            }
-          } catch (e) {}
-        }
-        return l;
-      });
-      this.data.installments = remote.installments || [];
+      // Merge inteligente: para cada registro, mantém o mais recente (local vs remoto) por updatedAt
+      // Isso evita race condition onde o realtime sobrescreve edições locais ainda não propagadas para a nuvem
+
+      // Helper: retorna o mais recente entre dois registros com base em updatedAt
+      const newerRecord = (local, remote) => {
+        if (!local) return remote;
+        if (!remote) return local;
+        const tLocal = new Date(local.updatedAt || local.createdAt || 0).getTime();
+        const tRemote = new Date(remote.updatedAt || remote.createdAt || 0).getTime();
+        return tRemote > tLocal ? remote : local;
+      };
+
+      // Clientes: preferência remota para novos registros, local para edições recentes
+      const localClientMap = Object.fromEntries((this.data.clients || []).map(c => [c.id, c]));
+      const remoteClients = remote.clients || [];
+      this.data.clients = [
+        ...remoteClients.map(rc => newerRecord(localClientMap[rc.id], rc)),
+        ...(this.data.clients || []).filter(lc => !remoteClients.some(rc => rc.id === lc.id))
+      ];
+
+      // Empréstimos: merge por updatedAt
+      const localLoanMap = Object.fromEntries((this.data.loans || []).map(l => [l.id, l]));
+      const remoteLoans = remote.loans || [];
+      this.data.loans = [
+        ...remoteLoans.map(rl => {
+          const merged = newerRecord(localLoanMap[rl.id], rl);
+          // Preserva assinatura do localStorage se não vier da nuvem
+          if (!merged.signature) {
+            try {
+              const savedSig = localStorage.getItem(`vando_signed_${merged.id}`);
+              if (savedSig) {
+                const parsedSig = JSON.parse(savedSig);
+                merged.signature = parsedSig;
+                merged.signedAt = parsedSig.timestamp;
+                merged.signProtocol = parsedSig.protocol;
+              }
+            } catch (e) {}
+          }
+          return merged;
+        }),
+        ...(this.data.loans || []).filter(ll => !remoteLoans.some(rl => rl.id === ll.id))
+      ];
+
+      // Parcelas: merge por updatedAt — crítico para não perder edições locais
+      const localInstMap = Object.fromEntries((this.data.installments || []).map(i => [i.id, i]));
+      const remoteInsts = remote.installments || [];
+      this.data.installments = [
+        ...remoteInsts.map(ri => newerRecord(localInstMap[ri.id], ri)),
+        ...(this.data.installments || []).filter(li => !remoteInsts.some(ri => ri.id === li.id))
+      ];
+
       this.data.cashFlows = remote.cashFlows || this.data.cashFlows || [];
       this.data.auditLogs = remote.auditLogs || this.data.auditLogs || [];
       if (remote.settings) {
@@ -257,6 +302,7 @@ class StateManager {
 
   save() {
     try {
+      this._lastLocalSave = Date.now(); // Marca timestamp do último save local para debounce do realtime
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
       this.notify();
 
@@ -778,15 +824,18 @@ class StateManager {
     inst.paidAmount = newTotalPaid;
     inst.paymentHistory = inst.paymentHistory || [];
     inst.paymentHistory.push(receipt);
+    inst.updatedAt = new Date().toISOString(); // Marca timestamp para merge inteligente no Supabase
 
     // Se o valor pago cobriu o total da parcela (com tolerância de centavos)
     if (newTotalPaid + discount >= Number(inst.installmentAmount) - 0.01) {
       inst.status = 'paid';
       inst.paidDate = paymentDate;
+      inst.paidMethod = paymentMethod; // Salva o método de pagamento na parcela
       inst.promisedDate = null;
       inst.promiseNote = '';
     } else {
       inst.status = 'partial';
+      inst.paidMethod = paymentMethod;
     }
 
     // Verifica se todas as parcelas do empréstimo foram pagas
@@ -916,6 +965,7 @@ class StateManager {
     inst.status = 'pending'; // Parcela renovada e ativa para o novo vencimento
     inst.promisedDate = null;
     inst.promiseNote = '';
+    inst.updatedAt = new Date().toISOString(); // Marca timestamp para merge inteligente
 
     if (loan.status === 'overdue') {
       loan.status = 'active';
