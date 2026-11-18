@@ -5,7 +5,8 @@
 // Gráfico 3: Linha - Capital na rua ao longo do tempo
 
 import { state } from '../state.js';
-import { formatBRL, formatDate, formatDateForInput } from '../utils.js';
+import { formatBRL, formatDate, formatDateForInput, escapeHtml } from '../utils.js';
+import { calculateLateCharges } from '../finance.js';
 import { openMonthlyReportModal } from './pdfExport.js';
 import { icon } from '../icons.js';
 
@@ -1239,7 +1240,7 @@ function renderBarChartReceita(canvas, tooltipEl, summaryEl) {
     summaryEl.innerHTML = `
       <div class="chart-summary-stat">
         <span class="chart-summary-label">Total Realizado no Período:</span>
-        <strong style="color: var(--emerald-400);">${formatBRL(totalPeriodo)}</strong>
+        <strong style="color: var(--green);">${formatBRL(totalPeriodo)}</strong>
       </div>
       <div class="chart-summary-stat">
         <span class="chart-summary-label">Média Mensal:</span>
@@ -1604,7 +1605,7 @@ function renderLineChartCapital(canvas, tooltipEl, summaryEl) {
       </div>
       <div class="chart-summary-stat">
         <span class="chart-summary-label">Variação nos 6 Meses:</span>
-        <strong style="color: ${delta >= 0 ? 'var(--emerald-400)' : 'var(--text-300)'};">
+        <strong style="color: ${delta >= 0 ? 'var(--green)' : 'var(--text-300)'};">
           ${delta >= 0 ? '+' : ''}${formatBRL(delta)}
         </strong>
       </div>
