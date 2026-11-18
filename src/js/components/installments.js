@@ -253,6 +253,9 @@ export function renderInstallments(options = {}) {
                 <button class="btn btn-primary btn-sm btn-pay" data-id="${item.id}" title="Dar Baixa">
                   Baixar
                 </button>
+                <button class="btn btn-secondary btn-sm btn-edit-inst" data-id="${item.id}" title="Editar Parcela e Vencimento">
+                  ${icon('edit', 12)} Editar
+                </button>
                 <button class="btn btn-secondary btn-sm btn-inst-pix" data-id="${item.id}" title="Gerar PIX">
                   PIX
                 </button>
@@ -275,6 +278,9 @@ export function renderInstallments(options = {}) {
               ` : `
                 <button class="btn btn-secondary btn-sm btn-receipt" data-id="${item.id}" title="Ver Recibo">
                   Recibo
+                </button>
+                <button class="btn btn-secondary btn-sm btn-edit-inst" data-id="${item.id}" title="Editar Informações da Parcela">
+                  ${icon('edit', 12)} Editar
                 </button>
                 ${adminAllowed ? `
                   <button class="btn btn-secondary btn-sm btn-revert" data-id="${item.id}" title="Estornar baixa" style="color: var(--red);">
@@ -324,6 +330,14 @@ export function renderInstallments(options = {}) {
     tbody.querySelectorAll('.btn-pay').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openPaymentModal(btn.dataset.id);
+      });
+    });
+
+    tbody.querySelectorAll('.btn-edit-inst').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.openInstallmentEditModal) {
+          window.openInstallmentEditModal(btn.dataset.id);
+        }
       });
     });
 

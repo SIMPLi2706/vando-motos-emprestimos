@@ -73,23 +73,23 @@ export function renderRenegotiation(initialClientId = null) {
           </div>
 
           <!-- Resumo da Dívida Selecionada -->
-          <div class="grid-auto-fit" style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+          <div class="grid-auto-fit" style="background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 16px; margin-bottom: 16px;">
             <div>
-              <div style="font-size: 0.75rem; color: var(--text-dim);">Principal Selecionado:</div>
-              <div style="font-size: 1.1rem; font-weight: 700;" id="reneg-disp-principal">R$ 0,00</div>
+              <div style="font-size: 0.75rem; color: var(--text-400);">Principal Selecionado:</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #fff;" id="reneg-disp-principal">R$ 0,00</div>
             </div>
             <div>
-              <div style="font-size: 0.75rem; color: var(--text-dim);">Encargos por Atraso:</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--rose-400);" id="reneg-disp-charges">R$ 0,00</div>
+              <div style="font-size: 0.75rem; color: var(--text-400);">Encargos por Atraso:</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: var(--red);" id="reneg-disp-charges">R$ 0,00</div>
             </div>
             <div>
-              <div style="font-size: 0.75rem; color: var(--text-dim);">Dívida Bruta Acumulada:</div>
-              <div style="font-size: 1.2rem; font-weight: 800; color: var(--amber-400);" id="reneg-disp-total-raw">R$ 0,00</div>
+              <div style="font-size: 0.75rem; color: var(--text-400);">Dívida Bruta Acumulada:</div>
+              <div style="font-size: 1.25rem; font-weight: 900; color: var(--yellow);" id="reneg-disp-total-raw">R$ 0,00</div>
             </div>
           </div>
         </div>
 
-        <div id="reneg-no-debt-msg" style="display: none; text-align: center; padding: 32px; color: var(--emerald-400);">
+        <div id="reneg-no-debt-msg" style="display: none; text-align: center; padding: 32px; color: var(--green); font-weight: 700;">
           Este cliente não possui débitos pendentes no momento.
         </div>
       </div>
@@ -108,12 +108,12 @@ export function renderRenegotiation(initialClientId = null) {
             <div class="form-group">
               <label class="form-label">Desconto Concedido no Acordo (R$)</label>
               <input type="number" class="form-control" id="reneg-input-discount" value="0.00" step="0.01" min="0">
-              <span style="font-size: 0.72rem; color: var(--text-dim);">Abatimento sobre juros/multas para viabilizar o acordo</span>
+              <span style="font-size: 0.72rem; color: var(--text-400);">Abatimento sobre juros/multas para viabilizar o acordo</span>
             </div>
 
             <div class="form-group">
               <label class="form-label">Novo Saldo Financiado (R$) *</label>
-              <input type="number" class="form-control" id="reneg-input-final-principal" step="0.01" min="1" required>
+              <input type="number" class="form-control" id="reneg-input-final-principal" step="0.01" min="1" required style="font-size: 1.1rem; font-weight: 800; color: var(--yellow);">
             </div>
           </div>
 
@@ -126,7 +126,7 @@ export function renderRenegotiation(initialClientId = null) {
             <div class="form-group">
               <label class="form-label">Taxa de Juros (% ao mês)</label>
               <input type="number" class="form-control" id="reneg-input-rate" value="0.0" step="0.1" min="0" required>
-              <span style="font-size: 0.72rem; color: var(--text-dim);">0% para parcelar a dívida pura sem juros adicionais</span>
+              <span style="font-size: 0.72rem; color: var(--text-400);">0% para parcelar a dívida pura sem juros adicionais</span>
             </div>
           </div>
 
@@ -166,14 +166,14 @@ export function renderRenegotiation(initialClientId = null) {
           </div>
         </div>
 
-        <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+        <div style="background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 16px; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: var(--text-dim);">Total do Novo Acordo:</span>
-            <strong style="color: var(--emerald-400); font-size: 1.2rem;" id="reneg-sim-total-payable">R$ 0,00</strong>
+            <span style="color: var(--text-400);">Total do Novo Acordo:</span>
+            <strong style="color: var(--green); font-size: 1.25rem;" id="reneg-sim-total-payable">R$ 0,00</strong>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-dim);">Valor de Cada Parcela:</span>
-            <strong style="color: #fff; font-size: 1.1rem;" id="reneg-sim-inst-amount">R$ 0,00</strong>
+            <span style="color: var(--text-400);">Valor de Cada Parcela:</span>
+            <strong style="color: #fff; font-size: 1.15rem;" id="reneg-sim-inst-amount">R$ 0,00</strong>
           </div>
         </div>
 

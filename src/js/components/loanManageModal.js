@@ -20,6 +20,7 @@ export function createLoanManageModals() {
   createSettleLoanModal();
   createAttachmentsModal();
   createPromiseModal();
+  createEditInstallmentModal();
 }
 
 /* ============================================================================
@@ -699,6 +700,198 @@ function createPromiseModal() {
     modal.querySelector('#promise-date').value = inst.promisedDate || formatDateForInput();
     modal.querySelector('#promise-note').value = inst.promiseNote || '';
     modal.querySelector('#promise-clear-btn').style.display = inst.promisedDate ? 'inline-flex' : 'none';
+
+    modal.classList.add('active');
+  };
+}
+
+/* ============================================================================
+ * 5. MODAL DE EDIÇÃO DE PARCELA (VENCIMENTO, VALOR, STATUS E ANOTAÇÃO)
+ * ========================================================================== */
+function createEditInstallmentModal() {
+  if (document.getElementById('modal-edit-installment')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'modal-edit-installment';
+
+  modal.innerHTML = `
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+            ${icon('edit', 18)} Editar Parcela
+          </h3>
+          <p class="modal-subtitle" id="edit-inst-subtitle">-</p>
+        </div>
+        <button class="modal-close-btn" id="edit-inst-close">${icon('x', 16)}</button>
+      </div>
+
+      <form id="form-edit-installment" class="modal-card-form" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
+        <input type="hidden" id="edit-inst-id">
+
+        <div class="modal-body" style="overflow-y: auto; padding: 18px 24px; display: flex; flex-direction: column; gap: 14px;">
+          
+          <div style="background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: var(--r-sm); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.72rem; color: var(--text-400); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Parcela</div>
+              <div id="edit-inst-num-label" style="font-size: 0.95rem; font-weight: 800; color: #fff;">Parcela #1</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.72rem; color: var(--text-400); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Status Atual</div>
+              <div id="edit-inst-status-badge" style="font-size: 0.82rem; font-weight: 700; color: var(--yellow);">-</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Data de Vencimento *</label>
+            <input type="date" class="form-control" id="edit-inst-duedate" required style="font-size: 0.95rem; font-weight: 600;">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+              <button type="button" class="btn btn-secondary btn-sm edit-inst-day-chip" data-days="0" style="font-size: 0.72rem; padding: 3px 8px;">Hoje</button>
+              <button type="button" class="btn btn-secondary btn-sm edit-inst-day-chip" data-days="3" style="font-size: 0.72rem; padding: 3px 8px;">+3 dias</button>
+              <button type="button" class="btn btn-secondary btn-sm edit-inst-day-chip" data-days="7" style="font-size: 0.72rem; padding: 3px 8px;">+7 dias</button>
+              <button type="button" class="btn btn-secondary btn-sm edit-inst-day-chip" data-days="15" style="font-size: 0.72rem; padding: 3px 8px;">+15 dias</button>
+              <button type="button" class="btn btn-secondary btn-sm edit-inst-day-chip" data-days="30" style="font-size: 0.72rem; padding: 3px 8px;">+30 dias</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Valor da Parcela (R$) *</label>
+            <input type="number" inputmode="decimal" class="form-control" id="edit-inst-amount" step="0.01" min="0.01" required style="font-size: 1.1rem; font-weight: 700; color: var(--green);">
+            <small style="color: var(--text-400); font-size: 0.74rem; margin-top: 4px; display: block;">Valor da prestação acordado com o cliente</small>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Situação / Status</label>
+            <select class="form-control" id="edit-inst-status-select">
+              <option value="pending">Pendente (Em Aberto)</option>
+              <option value="paid">Paga (Quitada)</option>
+              <option value="partial">Parcialmente Paga</option>
+              <option value="renegotiated">Renegociada</option>
+            </select>
+          </div>
+
+          <div id="edit-inst-paid-box" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--r-sm); padding: 12px; flex-direction: column; gap: 10px;">
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;">Data da Quitação</label>
+                <input type="date" class="form-control" id="edit-inst-paid-date">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;">Meio Utilizado</label>
+                <select class="form-control" id="edit-inst-paid-method">
+                  <option value="PIX">PIX</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Transferência">Transferência</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Anotação / Observações de Cobrança</label>
+            <textarea class="form-control" id="edit-inst-notes" rows="3" placeholder="Ex: Cliente informou que fará o pagamento no próximo dia 20..."></textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer" style="padding: 14px 24px; border-top: 1px solid var(--border-soft); display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" id="edit-inst-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="edit-inst-save-btn">
+            ${icon('save', 14)} Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const closeModal = () => modal.classList.remove('active');
+  modal.querySelector('#edit-inst-close').addEventListener('click', closeModal);
+  modal.querySelector('#edit-inst-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  const statusSelect = modal.querySelector('#edit-inst-status-select');
+  const paidBox = modal.querySelector('#edit-inst-paid-box');
+  statusSelect.addEventListener('change', () => {
+    paidBox.style.display = statusSelect.value === 'paid' ? 'flex' : 'none';
+  });
+
+  modal.querySelectorAll('.edit-inst-day-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const days = parseInt(btn.dataset.days, 10) || 0;
+      modal.querySelector('#edit-inst-duedate').value = formatDateForInput(addDays(new Date(), days));
+    });
+  });
+
+  modal.querySelector('#form-edit-installment').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const instId = modal.querySelector('#edit-inst-id').value;
+    const dueDate = modal.querySelector('#edit-inst-duedate').value;
+    const installmentAmount = parseFloat(modal.querySelector('#edit-inst-amount').value);
+    const status = modal.querySelector('#edit-inst-status-select').value;
+    const notes = modal.querySelector('#edit-inst-notes').value.trim();
+
+    if (isNaN(installmentAmount) || installmentAmount <= 0) {
+      showToast('Informe um valor válido para a parcela.', 'warning');
+      return;
+    }
+
+    try {
+      const updates = {
+        dueDate,
+        installmentAmount,
+        status,
+        notes,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (status === 'paid') {
+        updates.paidDate = modal.querySelector('#edit-inst-paid-date').value || formatDateForInput();
+        updates.paidMethod = modal.querySelector('#edit-inst-paid-method').value || 'PIX';
+        updates.paidAmount = installmentAmount;
+      }
+
+      state.updateInstallment(instId, updates);
+      state.logAudit('EDIT_INSTALLMENT', `Parcela editada manualmente (${instId} • Venc: ${formatDate(dueDate)} • ${formatBRL(installmentAmount)})`, 'installment', instId);
+      showToast('Parcela atualizada com sucesso!', 'success');
+      closeModal();
+      if (window.refreshCurrentTab) window.refreshCurrentTab();
+    } catch (err) {
+      showToast(err.message || 'Erro ao atualizar parcela.', 'error');
+    }
+  });
+
+  window.openInstallmentEditModal = function(installmentId) {
+    const inst = state.getInstallmentById(installmentId);
+    if (!inst) return;
+    const client = state.getClientById(inst.clientId) || { name: 'Cliente' };
+    const loan = state.getLoanById(inst.loanId) || { installmentsCount: 1 };
+
+    modal.querySelector('#edit-inst-id').value = installmentId;
+    modal.querySelector('#edit-inst-subtitle').textContent = `${client.name} • Contrato #${inst.loanId?.substring(0, 8) || ''}`;
+    modal.querySelector('#edit-inst-num-label').textContent = `Parcela #${inst.number} de ${loan.installmentsCount || 1}`;
+    
+    const statusLabels = {
+      pending: 'Pendente',
+      paid: 'Paga',
+      partial: 'Parcial',
+      renegotiated: 'Renegociada'
+    };
+    modal.querySelector('#edit-inst-status-badge').textContent = statusLabels[inst.status] || inst.status;
+    modal.querySelector('#edit-inst-status-badge').style.color = inst.status === 'paid' ? 'var(--green)' : 'var(--yellow)';
+
+    modal.querySelector('#edit-inst-duedate').value = String(inst.dueDate || '').split('T')[0] || formatDateForInput();
+    modal.querySelector('#edit-inst-amount').value = inst.installmentAmount;
+    modal.querySelector('#edit-inst-status-select').value = inst.status || 'pending';
+    modal.querySelector('#edit-inst-notes').value = inst.notes || '';
+
+    paidBox.style.display = inst.status === 'paid' ? 'flex' : 'none';
+    modal.querySelector('#edit-inst-paid-date').value = String(inst.paidDate || '').split('T')[0] || formatDateForInput();
+    modal.querySelector('#edit-inst-paid-method').value = inst.paidMethod || 'PIX';
 
     modal.classList.add('active');
   };

@@ -300,6 +300,9 @@ export function renderDashboard() {
                   Parcela nº ${item.number} • Vence hoje
                 </div>
                 <div class="due-item-actions">
+                  <button class="btn btn-secondary btn-sm btn-dash-edit-inst" data-id="${item.id}" title="Editar Parcela">
+                    ${icon('edit', 12)}
+                  </button>
                   <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}">
                     PIX
                   </button>
@@ -347,6 +350,9 @@ export function renderDashboard() {
                   ${item.charges.daysOverdue} dias de atraso • Original: ${formatBRL(item.installmentAmount)}
                 </div>
                 <div class="due-item-actions">
+                  <button class="btn btn-secondary btn-sm btn-dash-edit-inst" data-id="${item.id}" title="Editar Parcela">
+                    ${icon('edit', 12)}
+                  </button>
                   <button class="btn btn-secondary btn-sm btn-action-pix" data-id="${item.id}">
                     PIX
                   </button>
@@ -432,6 +438,9 @@ export function renderDashboard() {
                   Parcela nº ${item.number} • Vence em <strong>${formatDate(item.dueDate)}</strong>
                 </div>
                 <div class="due-item-actions">
+                  <button class="btn btn-secondary btn-sm btn-dash-edit-inst" data-id="${item.id}" title="Editar Parcela">
+                    ${icon('edit', 12)}
+                  </button>
                   <button class="btn btn-whatsapp btn-sm btn-action-whatsapp"
                     data-client="${encodeURIComponent(item.client.name)}"
                     data-phone="${escapeHtml(item.client.phone || '')}"
@@ -522,6 +531,14 @@ export function renderDashboard() {
     container.querySelectorAll('.btn-dash-promise').forEach(btn => {
       btn.addEventListener('click', () => {
         window.openPromiseModal(btn.dataset.id);
+      });
+    });
+
+    container.querySelectorAll('.btn-dash-edit-inst').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.openInstallmentEditModal) {
+          window.openInstallmentEditModal(btn.dataset.id);
+        }
       });
     });
 

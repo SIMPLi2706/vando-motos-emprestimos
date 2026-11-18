@@ -76,42 +76,47 @@ export function createPixModal() {
   modal.id = 'modal-pix-qrcode';
 
   modal.innerHTML = `
-    <div class="modal-card" style="max-width: 480px; text-align: center;">
-      <div class="modal-header">
-        <h3 class="modal-title">${icon('zap', 18)} Cobrança via PIX</h3>
+    <div class="modal-card" style="max-width: 460px; text-align: center; background: linear-gradient(180deg, rgba(26, 30, 42, 0.95) 0%, rgba(14, 16, 22, 0.98) 100%); border: 1px solid rgba(245, 197, 24, 0.25); box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-soft); padding: 16px 20px;">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; color: #fff;">
+          <span style="color: var(--yellow);">${icon('zap', 18)}</span> Cobrança Instantânea PIX
+        </h3>
         <button class="modal-close-btn" id="pix-modal-close">${icon('x', 16)}</button>
       </div>
 
-      <div class="modal-body" style="padding: 24px;">
-        <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 4px;" id="pix-client-title">Cliente</div>
-        <div style="font-size: 1.6rem; font-weight: 800; color: var(--emerald-400); margin-bottom: 16px;" id="pix-amount-title">R$ 0,00</div>
+      <div class="modal-body" style="padding: 22px 24px;">
+        <div style="font-size: 0.82rem; color: var(--text-400); margin-bottom: 4px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;" id="pix-client-title">Cliente</div>
+        <div style="font-size: 1.85rem; font-weight: 900; color: var(--green); margin-bottom: 16px; letter-spacing: -0.02em;" id="pix-amount-title">R$ 0,00</div>
 
         <!-- Container do QR Code -->
-        <div style="background: #fff; padding: 14px; border-radius: var(--radius-md); display: inline-block; box-shadow: var(--shadow-sm); margin-bottom: 16px;">
-          <canvas id="pix-qrcode-canvas" style="display: block; width: 200px; height: 200px;"></canvas>
+        <div style="background: #ffffff; padding: 14px; border-radius: var(--r-lg); display: inline-block; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); margin-bottom: 16px; border: 3px solid rgba(245, 197, 24, 0.4);">
+          <canvas id="pix-qrcode-canvas" style="display: block; width: 210px; height: 210px;"></canvas>
         </div>
 
-        <div style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 14px;">
-          Aponte a câmera do aplicativo do seu banco para escanear ou copie o código abaixo:
+        <div style="font-size: 0.8rem; color: var(--text-300); margin-bottom: 16px;">
+          Abra o app do seu banco, escolha <strong>Pagar com QR Code</strong> ou use o código Copia e Cola abaixo:
         </div>
 
         <!-- Campo Copia e Cola -->
-        <div class="form-group" style="text-align: left;">
-          <label class="form-label" style="font-size: 0.75rem;">Código PIX Copia e Cola</label>
+        <div class="form-group" style="text-align: left; margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0;">PIX Copia e Cola (EMV BR Code)</label>
+            <span style="font-size: 0.7rem; color: var(--yellow); font-weight: 700;">Oficial BCB</span>
+          </div>
           <div style="position: relative;">
-            <textarea class="form-control" id="pix-copia-cola-text" rows="3" readonly style="font-family: monospace; font-size: 0.75rem; word-break: break-all; resize: none;"></textarea>
+            <textarea class="form-control" id="pix-copia-cola-text" rows="3" readonly style="font-family: monospace; font-size: 0.74rem; word-break: break-all; resize: none; background: #090a0e; border-color: rgba(245, 197, 24, 0.2);"></textarea>
           </div>
         </div>
       </div>
 
-      <div class="modal-footer" style="justify-content: space-between;">
+      <div class="modal-footer" style="justify-content: space-between; border-top: 1px solid var(--border-soft); padding: 14px 20px;">
         <button type="button" class="btn btn-secondary btn-sm" id="pix-modal-close-btn">Fechar</button>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn btn-whatsapp btn-sm" id="pix-modal-wpp-btn">
-            ${icon('whatsapp', 14)} Enviar no WhatsApp
+            ${icon('whatsapp', 14)} WhatsApp
           </button>
           <button type="button" class="btn btn-primary btn-sm" id="pix-modal-copy-btn">
-            ${icon('copy', 14)} Copiar Código PIX
+            ${icon('copy', 14)} Copiar Código
           </button>
         </div>
       </div>

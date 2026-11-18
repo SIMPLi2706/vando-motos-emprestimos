@@ -685,7 +685,7 @@ class StateManager {
     const inst = this.getInstallmentById(id);
     if (!inst) return null;
 
-    Object.assign(inst, updates);
+    Object.assign(inst, updates, { updatedAt: new Date().toISOString() });
     this.save();
 
     if (isSupabaseConfigured()) {
@@ -1249,6 +1249,10 @@ class StateManager {
   }
 
   // --- FLUXO DE CAIXA REAL (ENTRADAS VS SAÍDAS) ---
+  getCashFlows() {
+    return this.data.cashFlows || [];
+  }
+
   addCashFlow({ date = formatDateForInput(), type = 'outflow', category = 'Despesa', method = 'Dinheiro', amount, description = '' }) {
     const val = Number(amount);
     if (!val || val <= 0) throw new Error('Informe um valor maior que zero.');

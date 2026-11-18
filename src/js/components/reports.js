@@ -38,18 +38,24 @@ const THEME = {
 };
 
 /**
- * Renderiza a página completa de Relatórios
+ * Renderiza a página completa de Relatórios Financeiros Analíticos
  */
 export function renderReports() {
   const container = document.createElement('div');
   container.className = 'reports-view animate-fade-in';
 
+  // Carrega dados do state
   const clients = state.getClients();
   const loans = state.getLoans();
   const installments = state.getInstallments();
-  const todayStr = formatDateForInput(new Date());
+  const cashFlows = state.getCashFlows ? state.getCashFlows() : (state.data.cashFlows || []);
+  const operators = state.getOperators ? state.getOperators() : [];
+  const settings = state.getSettings();
+  const todayDate = new Date();
+  const todayStr = formatDateForInput(todayDate);
   const proj = state.getReceivablesProjection();
 
+  // Score distribution inicial
   const scoreDist = { A: 0, B: 0, C: 0, D: 0 };
   clients.forEach(c => {
     const s = state.getClientScore(c.id);
@@ -57,128 +63,407 @@ export function renderReports() {
   });
   const totalScored = clients.length || 1;
 
-  // 1. Cálculos de Indicadores Globais para os Cards de Topo
-  let totalRecebidoHistorico = 0;
-  let capitalNaRua = 0;
-  let lucroTotalContratado = 0;
+  // Estado dos Filtros do Relatório
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  let activePeriod = 'month'; // 'today', 'yesterday', '7d', '15d', 'month', 'lastMonth', 'year', 'all', 'custom'
+  let filterStartDate = formatDateForInput(firstDayOfMonth);
+  let filterEndDate = todayStr;
+  let filterClientId = 'all';
+  let filterStatus = 'all';
+  let filterMethod = 'all';
+  let filterRecordType = 'all';
+  let filterOperator = 'all';
+  let filterSearch = '';
+  let activeTableTab = 'all'; // 'all', 'payments', 'loans', 'overdue', 'cashflow'
+  let currentPage = 1;
+  const pageSize = 20;
 
-  loans.forEach(l => {
-    lucroTotalContratado += Number(l.totalInterest || 0);
-  });
+  // Compila todos os registros em um ledger estruturado
+  function compileAllRecords() {
+    const records = [];
 
-  let countPaid = 0;
-  let countPending = 0;
-  let countOverdue = 0;
-  let totalOverdueAmount = 0;
-  let totalPendingAmount = 0;
+    // 1. Recebimentos de parcelas (histórico de baixas)
+    installments.forEach(inst => {
+      const client = clients.find(c => c.id === inst.clientId) || { name: 'Cliente', phone: '' };
+      const loan = loans.find(l => l.id === inst.loanId) || { installmentsCount: 1, interestRate: 0 };
+      const score = state.getClientScore(client.id);
 
-  installments.forEach(inst => {
-    // Total recebido em histórico
-    if (inst.paymentHistory && inst.paymentHistory.length > 0) {
-      inst.paymentHistory.forEach(rec => {
-        totalRecebidoHistorico += Number(rec.amount || 0);
+      if (inst.paymentHistory && inst.paymentHistory.length > 0) {
+        inst.paymentHistory.forEach((rec, idx) => {
+          const paidDate = String(rec.date || '').split('T')[0] || inst.paidDate || inst.dueDate;
+          const recAmount = Number(rec.amount || 0);
+          const amort = Number(inst.amortizationAmount || 0);
+          const interestPortion = Math.max(0, recAmount - amort);
+          records.push({
+            id: `pay_${inst.id}_${idx}`,
+            date: paidDate,
+            rawDate: rec.date || inst.paidDate || inst.dueDate,
+            type: 'payment',
+            typeLabel: 'Recebimento',
+            typeColor: 'var(--green)',
+            clientId: inst.clientId,
+            clientName: client.name,
+            clientPhone: client.phone || '',
+            clientScore: score.grade,
+            contractId: inst.loanId,
+            installmentNumber: inst.number,
+            totalInstallments: loan.installmentsCount || 1,
+            method: rec.method || inst.paidMethod || 'PIX',
+            principalAmount: amort,
+            interestAmount: interestPortion,
+            lateChargesPaid: Number(rec.lateChargesPaid || 0),
+            discountAmount: Number(rec.discount || 0),
+            totalAmount: recAmount,
+            status: 'paid',
+            statusLabel: 'Pago',
+            notes: rec.notes || inst.notes || '',
+            operatorName: rec.operatorName || '',
+            installmentId: inst.id,
+            loanId: inst.loanId
+          });
+        });
+      } else if (inst.status === 'paid') {
+        const paidDate = String(inst.paidDate || '').split('T')[0] || inst.dueDate;
+        const paidVal = Number(inst.paidAmount || inst.installmentAmount || 0);
+        const amort = Number(inst.amortizationAmount || 0);
+        const interestPortion = Math.max(0, paidVal - amort);
+        records.push({
+          id: `pay_${inst.id}_full`,
+          date: paidDate,
+          rawDate: inst.paidDate || inst.dueDate,
+          type: 'payment',
+          typeLabel: 'Recebimento',
+          typeColor: 'var(--green)',
+          clientId: inst.clientId,
+          clientName: client.name,
+          clientPhone: client.phone || '',
+          clientScore: score.grade,
+          contractId: inst.loanId,
+          installmentNumber: inst.number,
+          totalInstallments: loan.installmentsCount || 1,
+          method: inst.paidMethod || 'PIX',
+          principalAmount: amort,
+          interestAmount: interestPortion,
+          lateChargesPaid: 0,
+          discountAmount: 0,
+          totalAmount: paidVal,
+          status: 'paid',
+          statusLabel: 'Pago',
+          notes: inst.notes || '',
+          operatorName: '',
+          installmentId: inst.id,
+          loanId: inst.loanId
+        });
+      }
+
+      // Parcela em aberto ou em atraso
+      if (inst.status !== 'paid' && inst.status !== 'renegotiated') {
+        const dueNorm = String(inst.dueDate || '').split('T')[0];
+        const isOverdue = dueNorm < todayStr;
+        const pendingVal = Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
+        const amort = Number(inst.amortizationAmount || pendingVal);
+        const interestPortion = Number(inst.interestAmount || 0);
+
+        let finalAmount = pendingVal;
+        let daysOverdue = 0;
+        if (isOverdue) {
+          try {
+            const charges = calculateLateCharges(
+              inst,
+              todayDate,
+              loan.penaltyRate || settings.defaultPenaltyRate,
+              loan.dailyInterestRate || settings.defaultDailyRate
+            );
+            finalAmount = charges.totalUpdatedAmount;
+            daysOverdue = charges.daysOverdue;
+          } catch (e) {
+            finalAmount = pendingVal;
+          }
+        }
+
+        records.push({
+          id: `inst_${inst.id}`,
+          date: dueNorm,
+          rawDate: inst.dueDate,
+          type: isOverdue ? 'overdue' : 'pending',
+          typeLabel: isOverdue ? `Em Atraso (${daysOverdue}d)` : 'A Vencer',
+          typeColor: isOverdue ? 'var(--red)' : 'var(--yellow)',
+          clientId: inst.clientId,
+          clientName: client.name,
+          clientPhone: client.phone || '',
+          clientScore: score.grade,
+          contractId: inst.loanId,
+          installmentNumber: inst.number,
+          totalInstallments: loan.installmentsCount || 1,
+          method: inst.promisedDate ? 'Promessa Agendada' : 'No Prazo',
+          principalAmount: amort,
+          interestAmount: interestPortion,
+          lateChargesPaid: 0,
+          discountAmount: 0,
+          totalAmount: finalAmount,
+          status: isOverdue ? 'overdue' : (inst.promisedDate ? 'promised' : 'pending'),
+          statusLabel: isOverdue ? 'Atrasado' : (inst.promisedDate ? `Promessa ${formatDate(inst.promisedDate)}` : 'Em Aberto'),
+          notes: inst.promiseNote || inst.notes || '',
+          operatorName: '',
+          installmentId: inst.id,
+          loanId: inst.loanId
+        });
+      }
+    });
+
+    // 2. Novos Empréstimos Concedidos (Saídas de Capital)
+    loans.forEach(loan => {
+      const client = clients.find(c => c.id === loan.clientId) || { name: 'Cliente', phone: '' };
+      const score = state.getClientScore(client.id);
+      const loanDate = String(loan.startDate || loan.createdAt || '').split('T')[0] || todayStr;
+      records.push({
+        id: `loan_${loan.id}`,
+        date: loanDate,
+        rawDate: loan.createdAt || loan.startDate,
+        type: 'loan',
+        typeLabel: 'Novo Empréstimo',
+        typeColor: 'var(--yellow)',
+        clientId: loan.clientId,
+        clientName: client.name,
+        clientPhone: client.phone || '',
+        clientScore: score.grade,
+        contractId: loan.id,
+        installmentNumber: '-',
+        totalInstallments: loan.installmentsCount || 1,
+        method: loan.disbursementMethod || 'Dinheiro',
+        principalAmount: Number(loan.principal || 0),
+        interestAmount: Number(loan.totalInterest || 0),
+        lateChargesPaid: 0,
+        discountAmount: 0,
+        totalAmount: Number(loan.totalPayable || loan.principal || 0),
+        status: loan.status === 'paid' ? 'paid' : 'active',
+        statusLabel: loan.status === 'paid' ? 'Quitado' : 'Ativo',
+        notes: loan.notes || (loan.guarantee?.description ? `Garantia: ${loan.guarantee.description}` : ''),
+        operatorName: loan.operatorName || '',
+        loanId: loan.id
       });
-    } else if (inst.status === 'paid') {
-      totalRecebidoHistorico += Number(inst.paidAmount || inst.installmentAmount || 0);
-    }
+    });
 
-    // Status das parcelas
-    if (inst.status === 'paid') {
-      countPaid++;
-    } else if (inst.status === 'renegotiated') {
-      // Ignora para contagem de cobrança ativa ou trata como histórico
-    } else if (inst.dueDate < todayStr) {
-      countOverdue++;
-      totalOverdueAmount += Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
-      capitalNaRua += Number(inst.amortizationAmount || inst.installmentAmount);
-    } else {
-      countPending++;
-      totalPendingAmount += Number(inst.installmentAmount) - Number(inst.paidAmount || 0);
-      capitalNaRua += Number(inst.amortizationAmount || inst.installmentAmount);
-    }
-  });
+    // 3. Movimentações Manuais de Caixa (Despesas, Sangrias, Aportes)
+    cashFlows.forEach(cf => {
+      const cfDate = String(cf.date || cf.createdAt || '').split('T')[0] || todayStr;
+      records.push({
+        id: `cf_${cf.id}`,
+        date: cfDate,
+        rawDate: cf.createdAt || cf.date,
+        type: cf.type === 'outflow' ? 'cash_out' : 'cash_in',
+        typeLabel: cf.type === 'outflow' ? 'Saída de Caixa' : 'Aporte de Caixa',
+        typeColor: cf.type === 'outflow' ? 'var(--red)' : 'var(--green)',
+        clientId: '',
+        clientName: cf.category || (cf.type === 'outflow' ? 'Despesa' : 'Aporte'),
+        clientPhone: '',
+        clientScore: '-',
+        contractId: '-',
+        installmentNumber: '-',
+        totalInstallments: '-',
+        method: cf.method || 'Dinheiro',
+        principalAmount: Number(cf.amount || 0),
+        interestAmount: 0,
+        lateChargesPaid: 0,
+        discountAmount: 0,
+        totalAmount: Number(cf.amount || 0),
+        status: 'completed',
+        statusLabel: cf.type === 'outflow' ? 'Despesa Paga' : 'Entrada em Caixa',
+        notes: cf.description || '',
+        operatorName: cf.operatorName || '',
+        cashFlowId: cf.id
+      });
+    });
 
-  const totalAtivas = countPaid + countPending + countOverdue;
-  const taxaInadimplencia = totalAtivas > 0 ? ((countOverdue / totalAtivas) * 100).toFixed(1) : '0.0';
+    // Ordena por data decrescente
+    records.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    return records;
+  }
 
+  // Aplica todos os filtros
+  function filterRecordsList(records) {
+    const sTerm = filterSearch.toLowerCase().trim();
+
+    return records.filter(r => {
+      // 1. Data início e fim
+      if (filterStartDate && r.date < filterStartDate) return false;
+      if (filterEndDate && r.date > filterEndDate) return false;
+
+      // 2. Cliente
+      if (filterClientId !== 'all' && r.clientId !== filterClientId) return false;
+
+      // 3. Status
+      if (filterStatus !== 'all') {
+        if (filterStatus === 'paid' && r.status !== 'paid') return false;
+        if (filterStatus === 'pending' && r.status !== 'pending') return false;
+        if (filterStatus === 'overdue' && r.status !== 'overdue') return false;
+        if (filterStatus === 'promised' && r.status !== 'promised') return false;
+        if (filterStatus === 'active' && r.status !== 'active') return false;
+      }
+
+      // 4. Meio de pagamento
+      if (filterMethod !== 'all') {
+        const m = String(r.method || '').toUpperCase();
+        if (!m.includes(filterMethod.toUpperCase())) return false;
+      }
+
+      // 5. Tipo de Registro
+      if (filterRecordType !== 'all') {
+        if (filterRecordType === 'payments' && r.type !== 'payment') return false;
+        if (filterRecordType === 'loans' && r.type !== 'loan') return false;
+        if (filterRecordType === 'overdue' && r.type !== 'overdue') return false;
+        if (filterRecordType === 'pending' && r.type !== 'pending') return false;
+        if (filterRecordType === 'cashflow' && r.type !== 'cash_out' && r.type !== 'cash_in') return false;
+      }
+
+      // 6. Sub-aba da tabela
+      if (activeTableTab === 'payments' && r.type !== 'payment') return false;
+      if (activeTableTab === 'loans' && r.type !== 'loan') return false;
+      if (activeTableTab === 'overdue' && r.type !== 'overdue') return false;
+      if (activeTableTab === 'cashflow' && r.type !== 'cash_out' && r.type !== 'cash_in') return false;
+
+      // 7. Operador
+      if (filterOperator !== 'all') {
+        if (r.operatorName && !r.operatorName.toLowerCase().includes(filterOperator.toLowerCase())) return false;
+      }
+
+      // 8. Busca textual
+      if (sTerm) {
+        const fullTxt = `${r.clientName} ${r.clientPhone} ${r.contractId} ${r.notes} ${r.typeLabel} ${r.method} ${formatBRL(r.totalAmount)}`.toLowerCase();
+        if (!fullTxt.includes(sTerm)) return false;
+      }
+
+      return true;
+    });
+  }
+
+  // Gera HTML da estrutura principal
   container.innerHTML = `
     <!-- Topo de Ações do Relatório -->
     <div class="reports-header-bar">
       <div>
-        <h2 class="reports-page-title">Relatórios Financeiros</h2>
+        <h2 class="reports-page-title" style="display: flex; align-items: center; gap: 8px;">
+          ${icon('chart', 20)} Relatórios Financeiros Analíticos
+        </h2>
+        <p style="font-size: 0.8rem; color: var(--text-400); margin-top: 2px;">
+          Visão completa de contratos, recebimentos, juros arrecadados, inadimplência e livro de registros
+        </p>
       </div>
       <div class="reports-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-export-csv" title="Exportar dados em formato CSV">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Exportar CSV
+        <button class="btn btn-secondary btn-sm" id="btn-export-csv" title="Exportar dados filtrados em formato CSV">
+          ${icon('download', 14)} Exportar CSV
         </button>
-        <button class="btn btn-secondary btn-sm" id="btn-print-reports" title="Imprimir Visão Atual">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-          Imprimir
+        <button class="btn btn-secondary btn-sm" id="btn-print-reports" title="Imprimir Relatório Analítico">
+          ${icon('print', 14)} Imprimir
         </button>
         <button class="btn btn-primary btn-sm" id="btn-generate-pdf-report" title="Gerar Relatório Oficial Mensal em PDF">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-          Relatório PDF
+          ${icon('fileText', 14)} Relatório PDF
         </button>
       </div>
     </div>
 
-    <!-- Grade de KPIs Resumidos -->
-    <div class="kpi-grid" style="margin-bottom: 20px;">
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-label">Receita Realizada</span>
-          <div class="kpi-icon-wrap kpi-icon-emerald">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
-          </div>
+    <!-- PAINEL MULTICRITÉRIO DE FILTROS AVANÇADOS -->
+    <div class="card reports-filter-card" style="margin-bottom: 20px; background: linear-gradient(180deg, rgba(26, 30, 42, 0.85) 0%, rgba(17, 20, 28, 0.95) 100%);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--yellow);">${icon('filter', 16)}</span>
+          <strong style="font-size: 0.92rem; color: #fff;">Filtros & Seleção de Período</strong>
         </div>
-        <div class="kpi-value" style="color: var(--green);">${formatBRL(totalRecebidoHistorico)}</div>
-        <div class="kpi-footer">
-          <span>Total acumulado baixado em caixa</span>
-        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="rep-btn-reset-filters" style="font-size: 0.76rem; padding: 4px 10px;">
+          ${icon('refresh', 12)} Limpar Filtros
+        </button>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-label">Capital na Rua</span>
-          <div class="kpi-icon-wrap kpi-icon-amber">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-          </div>
-        </div>
-        <div class="kpi-value text-yellow">${formatBRL(capitalNaRua)}</div>
-        <div class="kpi-footer">
-          <span>Principal ainda não amortizado</span>
-        </div>
+      <!-- Linha 1: Atalhos Rápidos de Período -->
+      <div class="filter-periods-wrap" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;">
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="today">Hoje</button>
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="yesterday">Ontem</button>
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="7d">Últimos 7 dias</button>
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="15d">15 dias</button>
+        <button type="button" class="btn btn-primary btn-sm rep-period-chip active" data-period="month">Este Mês</button>
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="lastMonth">Mês Passado</button>
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="year">Ano Atual</button>
+        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="all">Todo o Período</button>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-label">Inadimplência</span>
-          <div class="kpi-icon-wrap kpi-icon-rose">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-          </div>
+      <!-- Linha 2: Grade de Filtros Selecionáveis -->
+      <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Data Início</label>
+          <input type="date" class="form-control" id="rep-filter-start" value="${filterStartDate}">
         </div>
-        <div class="kpi-value" style="color: ${countOverdue > 0 ? 'var(--red)' : 'var(--green)'};">${taxaInadimplencia}%</div>
-        <div class="kpi-footer">
-          <span>${countOverdue} parcela(s) vencida(s) em aberto</span>
-        </div>
-      </div>
 
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-label">Contratos Ativos</span>
-          <div class="kpi-icon-wrap kpi-icon-indigo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-          </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Data Fim</label>
+          <input type="date" class="form-control" id="rep-filter-end" value="${filterEndDate}">
         </div>
-        <div class="kpi-value">${loans.filter(l => l.status === 'active').length}</div>
-        <div class="kpi-footer">
-          <span>De um total de ${loans.length} empréstimo(s)</span>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Cliente</label>
+          <select class="form-control" id="rep-filter-client">
+            <option value="all">Todos os Clientes</option>
+            ${clients.map(c => `
+              <option value="${c.id}">${escapeHtml(c.name)}</option>
+            `).join('')}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Situação / Status</label>
+          <select class="form-control" id="rep-filter-status">
+            <option value="all">Todas as Situações</option>
+            <option value="paid">Pagas / Quitadas</option>
+            <option value="pending">A Vencer (No Prazo)</option>
+            <option value="overdue">Em Atraso / Vencidas</option>
+            <option value="promised">Com Promessa Agendada</option>
+            <option value="active">Contratos Ativos</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Meio de Pagamento</label>
+          <select class="form-control" id="rep-filter-method">
+            <option value="all">Todos os Meios</option>
+            <option value="PIX">PIX</option>
+            <option value="Dinheiro">Dinheiro / Espécie</option>
+            <option value="Transferência">Transferência / TED</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Tipo de Registro</label>
+          <select class="form-control" id="rep-filter-type">
+            <option value="all">Todos os Registros</option>
+            <option value="payments">Recebimentos de Parcelas</option>
+            <option value="loans">Novos Empréstimos (Saídas)</option>
+            <option value="overdue">Parcelas em Atraso</option>
+            <option value="pending">Parcelas a Vencer</option>
+            <option value="cashflow">Movimentações de Caixa</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Operador / Cobrador</label>
+          <select class="form-control" id="rep-filter-operator">
+            <option value="all">Todos os Operadores</option>
+            ${operators.map(op => `
+              <option value="${escapeHtml(op.name)}">${escapeHtml(op.name)} (${op.role === 'admin' ? 'Admin' : 'Cobrador'})</option>
+            `).join('')}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Busca Rápida</label>
+          <input type="text" class="form-control" id="rep-filter-search" placeholder="Nome, contrato, anotação...">
         </div>
       </div>
     </div>
 
-    <!-- Previsão de Recebíveis & Qualidade de Score -->
+    <!-- GRADE DE KPIS DINÂMICOS DO FILTRO -->
+    <div id="rep-kpis-container"></div>
+
+    <!-- PREVISÃO DE RECEBÍVEIS & DISTRIBUIÇÃO DE SCORE -->
     <div class="dashboard-columns-grid" style="margin-bottom: 20px;">
       <div class="card" style="margin-bottom: 0;">
         <div class="card-header">
@@ -244,7 +529,7 @@ export function renderReports() {
       </div>
     </div>
 
-    <!-- Grade Principal de Gráficos -->
+    <!-- GRADE PRINCIPAL DE GRÁFICOS EM CANVAS -->
     <div class="reports-charts-grid">
       
       <!-- CARD 1: GRÁFICO DE BARRAS - RECEITA MENSAL (ÚLTIMOS 6 MESES) -->
@@ -260,9 +545,7 @@ export function renderReports() {
           <canvas id="canvas-receita-mensal" class="responsive-canvas"></canvas>
           <div class="canvas-tooltip" id="tooltip-receita-mensal"></div>
         </div>
-        <div class="chart-card-footer" id="bar-chart-summary">
-          <!-- Preenchido via script -->
-        </div>
+        <div class="chart-card-footer" id="bar-chart-summary"></div>
       </div>
 
       <!-- CARD 2: GRÁFICO DE DONUT - STATUS DAS PARCELAS -->
@@ -272,15 +555,13 @@ export function renderReports() {
             <h3 class="card-title">${icon('pieChart', 18)} Distribuição das Parcelas</h3>
             <p class="card-subtitle">Proporção de parcelas pagas, pendentes e em atraso</p>
           </div>
-          <span class="chart-badge">${totalAtivas} parcelas</span>
+          <span class="chart-badge" id="donut-total-badge">${installments.length} parcelas</span>
         </div>
         <div class="donut-card-layout" id="donut-chart-container">
           <div class="donut-canvas-box">
             <canvas id="canvas-status-parcelas" class="responsive-canvas"></canvas>
           </div>
-          <div class="donut-chart-legend" id="donut-legend-container">
-            <!-- Legenda com cores e valores -->
-          </div>
+          <div class="donut-chart-legend" id="donut-legend-container"></div>
         </div>
       </div>
 
@@ -297,18 +578,529 @@ export function renderReports() {
           <canvas id="canvas-capital-rua" class="responsive-canvas"></canvas>
           <div class="canvas-tooltip" id="tooltip-capital-rua"></div>
         </div>
-        <div class="chart-card-footer" id="line-chart-summary">
-          <!-- Preenchido via script -->
-        </div>
+        <div class="chart-card-footer" id="line-chart-summary"></div>
       </div>
 
     </div>
+
+    <!-- LIVRO DE REGISTROS & TRANSAÇÕES ANALÍTICAS (TABELA COMPLETA COM FILTROS) -->
+    <div class="card" style="margin-top: 20px;">
+      <div class="card-header" style="align-items: center;">
+        <div>
+          <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+            ${icon('fileText', 18)} Livro de Registros & Transações Analíticas
+          </h3>
+          <p class="card-subtitle" id="rep-records-summary-txt">Carregando registros detalhados...</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" id="btn-export-csv-table">
+            ${icon('download', 13)} Baixar CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Abas Rápidas de Tipo de Registro -->
+      <div class="tabs-bar" id="rep-table-tabs" style="margin-bottom: 12px;">
+        <button class="tab-btn active" data-tab="all">Todos (<span id="count-tab-all">0</span>)</button>
+        <button class="tab-btn" data-tab="payments">Recebimentos (<span id="count-tab-pay">0</span>)</button>
+        <button class="tab-btn" data-tab="loans">Novos Empréstimos (<span id="count-tab-loans">0</span>)</button>
+        <button class="tab-btn" data-tab="overdue">Em Atraso (<span id="count-tab-overdue">0</span>)</button>
+        <button class="tab-btn" data-tab="cashflow">Caixa / Despesas (<span id="count-tab-cf">0</span>)</button>
+      </div>
+
+      <!-- Tabela Analítica -->
+      <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+        <table class="table table-mobile-card-view" id="rep-main-table">
+          <thead>
+            <tr>
+              <th>Data / Venc.</th>
+              <th>Cliente / Razão</th>
+              <th>Tipo de Registro</th>
+              <th>Contrato / Ref</th>
+              <th>Meio</th>
+              <th>Principal</th>
+              <th>Juros / Multa</th>
+              <th>Valor Total</th>
+              <th>Status</th>
+              <th style="text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="rep-table-tbody">
+            <!-- Inserido dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação e Rodapé da Tabela -->
+      <div id="rep-table-pagination" style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; margin-top: 10px; border-top: 1px solid var(--border-soft); flex-wrap: wrap; gap: 10px;">
+        <div style="font-size: 0.8rem; color: var(--text-400);" id="rep-page-info">
+          Mostrando página 1
+        </div>
+        <div style="display: flex; gap: 6px;" id="rep-page-controls">
+          <button class="btn btn-secondary btn-sm" id="rep-prev-page" disabled>Anterior</button>
+          <button class="btn btn-secondary btn-sm" id="rep-next-page">Próximo</button>
+        </div>
+      </div>
+    </div>
   `;
 
-  // Inicializa os gráficos após inserção no DOM
+  // Função para recalcular e atualizar toda a visão filtrada
+  let lastFilteredRecords = [];
+
+  function updateView() {
+    const allRecords = compileAllRecords();
+    const filtered = filterRecordsList(allRecords);
+    lastFilteredRecords = filtered;
+
+    // Atualiza contadores das abas da tabela
+    const countAll = allRecords.length;
+    const countPay = allRecords.filter(r => r.type === 'payment').length;
+    const countLoans = allRecords.filter(r => r.type === 'loan').length;
+    const countOverdue = allRecords.filter(r => r.type === 'overdue').length;
+    const countCf = allRecords.filter(r => r.type === 'cash_out' || r.type === 'cash_in').length;
+
+    const elCountAll = container.querySelector('#count-tab-all');
+    const elCountPay = container.querySelector('#count-tab-pay');
+    const elCountLoans = container.querySelector('#count-tab-loans');
+    const elCountOverdue = container.querySelector('#count-tab-overdue');
+    const elCountCf = container.querySelector('#count-tab-cf');
+
+    if (elCountAll) elCountAll.textContent = countAll;
+    if (elCountPay) elCountPay.textContent = countPay;
+    if (elCountLoans) elCountLoans.textContent = countLoans;
+    if (elCountOverdue) elCountOverdue.textContent = countOverdue;
+    if (elCountCf) elCountCf.textContent = countCf;
+
+    // Métricas dos registros filtrados
+    let sumInflows = 0;
+    let sumOutflows = 0;
+    let sumInterestProfit = 0;
+    let sumDiscounts = 0;
+    let sumOpenReceivables = 0;
+    let sumOverdue = 0;
+    let countOverdueInst = 0;
+    let countPaidInst = 0;
+
+    filtered.forEach(r => {
+      if (r.type === 'payment') {
+        sumInflows += Number(r.totalAmount || 0);
+        sumInterestProfit += Number(r.interestAmount || 0) + Number(r.lateChargesPaid || 0);
+        sumDiscounts += Number(r.discountAmount || 0);
+        countPaidInst++;
+      } else if (r.type === 'loan') {
+        sumOutflows += Number(r.principalAmount || 0);
+      } else if (r.type === 'cash_in') {
+        sumInflows += Number(r.totalAmount || 0);
+      } else if (r.type === 'cash_out') {
+        sumOutflows += Number(r.totalAmount || 0);
+      } else if (r.type === 'pending') {
+        sumOpenReceivables += Number(r.totalAmount || 0);
+      } else if (r.type === 'overdue') {
+        sumOverdue += Number(r.totalAmount || 0);
+        countOverdueInst++;
+      }
+    });
+
+    const activeTotalCount = countPaidInst + countOverdueInst;
+    const filterInadimplenciaRate = activeTotalCount > 0 ? ((countOverdueInst / activeTotalCount) * 100).toFixed(1) : '0.0';
+
+    // Renderiza os Cards de KPIs Atualizados
+    const kpisBox = container.querySelector('#rep-kpis-container');
+    if (kpisBox) {
+      kpisBox.innerHTML = `
+        <div class="kpi-grid" style="margin-bottom: 20px;">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Receita Realizada</span>
+              <div class="kpi-icon-wrap kpi-icon-emerald">
+                ${icon('checkCircle', 16)}
+              </div>
+            </div>
+            <div class="kpi-value text-green">${formatBRL(sumInflows)}</div>
+            <div class="kpi-footer">
+              <span>${countPaidInst} parcela(s) / entradas no filtro</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Capital Emprestado</span>
+              <div class="kpi-icon-wrap kpi-icon-amber">
+                ${icon('dollar', 16)}
+              </div>
+            </div>
+            <div class="kpi-value text-yellow">${formatBRL(sumOutflows)}</div>
+            <div class="kpi-footer">
+              <span>Saídas e concessões no período</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Lucro / Juros Realizados</span>
+              <div class="kpi-icon-wrap kpi-icon-indigo">
+                ${icon('trendingUp', 16)}
+              </div>
+            </div>
+            <div class="kpi-value" style="color: #818cf8;">${formatBRL(sumInterestProfit)}</div>
+            <div class="kpi-footer">
+              <span>Juros e multas recolhidos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Inadimplência / Atrasos</span>
+              <div class="kpi-icon-wrap kpi-icon-rose">
+                ${icon('alert', 16)}
+              </div>
+            </div>
+            <div class="kpi-value" style="color: ${countOverdueInst > 0 ? 'var(--red)' : 'var(--green)'};">
+              ${formatBRL(sumOverdue)}
+            </div>
+            <div class="kpi-footer">
+              <span>${countOverdueInst} parcela(s) vencidas (${filterInadimplenciaRate}%)</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Atualiza resumo textual do livro de registros
+    const summaryTxt = container.querySelector('#rep-records-summary-txt');
+    if (summaryTxt) {
+      summaryTxt.textContent = `Exibindo ${filtered.length} registro(s) filtrado(s) • Entradas: ${formatBRL(sumInflows)} • Saídas: ${formatBRL(sumOutflows)} • Lucro: ${formatBRL(sumInterestProfit)}`;
+    }
+
+    // Paginação da tabela
+    const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageRecords = filtered.slice(startIndex, startIndex + pageSize);
+
+    const tbody = container.querySelector('#rep-table-tbody');
+    if (tbody) {
+      if (pageRecords.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align: center; padding: 40px 16px; color: var(--text-400);">
+              <div style="font-size: 1.2rem; margin-bottom: 6px;">${icon('search', 24)}</div>
+              Nenhum registro encontrado para a combinação de filtros selecionada.
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = pageRecords.map(r => {
+          const scoreClass = r.clientScore ? `score-tag-${r.clientScore.toLowerCase()}` : '';
+          const scoreHtml = r.clientScore && r.clientScore !== '-' 
+            ? `<span class="score-tag ${scoreClass}" style="margin-left: 6px; font-size: 0.68rem; padding: 1px 6px;">Score ${r.clientScore}</span>` 
+            : '';
+
+          let badgeColorClass = 'badge-pending';
+          if (r.status === 'paid' || r.status === 'completed') badgeColorClass = 'badge-paid';
+          else if (r.status === 'overdue') badgeColorClass = 'badge-overdue';
+          else if (r.status === 'promised') badgeColorClass = 'badge-today';
+
+          return `
+            <tr>
+              <td data-label="Data">
+                <div style="font-weight: 700; color: #fff;">${formatDate(r.date)}</div>
+                <div style="font-size: 0.72rem; color: var(--text-400);">${r.date}</div>
+              </td>
+              <td data-label="Cliente / Razão">
+                <div style="font-weight: 700; color: #fff; display: flex; align-items: center; flex-wrap: wrap;">
+                  ${escapeHtml(r.clientName)}
+                  ${scoreHtml}
+                </div>
+                ${r.clientPhone ? `<div style="font-size: 0.75rem; color: var(--text-400);">${escapeHtml(r.clientPhone)}</div>` : ''}
+              </td>
+              <td data-label="Tipo">
+                <span class="badge" style="background: rgba(255,255,255,0.06); color: ${r.typeColor}; border: 1px solid rgba(255,255,255,0.12);">
+                  ${r.typeLabel}
+                </span>
+              </td>
+              <td data-label="Contrato / Ref">
+                <div style="font-family: monospace; font-size: 0.8rem; color: var(--text-300);">
+                  ${r.contractId !== '-' ? `#${r.contractId.substring(0, 8)}` : '-'}
+                </div>
+                ${r.installmentNumber !== '-' ? `<div style="font-size: 0.72rem; color: var(--text-400);">Parc. ${r.installmentNumber}/${r.totalInstallments}</div>` : ''}
+              </td>
+              <td data-label="Meio">
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-200);">${escapeHtml(r.method || '-')}</span>
+              </td>
+              <td data-label="Principal">
+                <span style="font-size: 0.84rem; color: var(--text-300);">${formatBRL(r.principalAmount)}</span>
+              </td>
+              <td data-label="Juros / Multa">
+                <span style="font-size: 0.84rem; color: ${r.interestAmount > 0 ? 'var(--yellow)' : 'var(--text-400)'};">
+                  ${r.interestAmount > 0 ? `+${formatBRL(r.interestAmount)}` : 'R$ 0,00'}
+                </span>
+              </td>
+              <td data-label="Valor Total">
+                <strong style="font-size: 0.95rem; color: ${r.type === 'payment' || r.type === 'cash_in' ? 'var(--green)' : '#fff'};">
+                  ${formatBRL(r.totalAmount)}
+                </strong>
+                ${r.discountAmount > 0 ? `<div style="font-size: 0.7rem; color: var(--amber);">Desc: ${formatBRL(r.discountAmount)}</div>` : ''}
+              </td>
+              <td data-label="Status">
+                <span class="badge ${badgeColorClass}">
+                  ${r.statusLabel}
+                </span>
+              </td>
+              <td data-label="Ações" style="text-align: right;">
+                <div style="display: inline-flex; gap: 4px; justify-content: flex-end;">
+                  ${r.installmentId ? `
+                    <button class="btn btn-secondary btn-sm rep-action-edit-inst" data-inst-id="${r.installmentId}" title="Editar Parcela e Vencimento" style="padding: 4px 8px; font-size: 0.74rem;">
+                      ${icon('edit', 12)}
+                    </button>
+                    ${r.status === 'paid' ? `
+                      <button class="btn btn-secondary btn-sm rep-action-receipt" data-inst-id="${r.installmentId}" title="Ver Recibo" style="padding: 4px 8px; font-size: 0.74rem;">
+                        ${icon('receipt', 12)}
+                      </button>
+                    ` : `
+                      <button class="btn btn-whatsapp btn-sm rep-action-wpp" data-phone="${escapeHtml(r.clientPhone)}" data-client="${encodeURIComponent(r.clientName)}" data-amount="${r.totalAmount}" data-number="${r.installmentNumber}" title="Cobrar WhatsApp" style="padding: 4px 8px; font-size: 0.74rem;">
+                        ${icon('whatsapp', 12)}
+                      </button>
+                    `}
+                  ` : ''}
+                  ${r.loanId ? `
+                    <button class="btn btn-secondary btn-sm rep-action-docs" data-loan-id="${r.loanId}" title="Ver Contrato e Promissória" style="padding: 4px 8px; font-size: 0.74rem;">
+                      ${icon('fileText', 12)}
+                    </button>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Listeners de ações da tabela
+        tbody.querySelectorAll('.rep-action-edit-inst').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (window.openInstallmentEditModal) window.openInstallmentEditModal(btn.dataset.instId);
+          });
+        });
+        tbody.querySelectorAll('.rep-action-receipt').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (window.openReceiptModal) window.openReceiptModal(btn.dataset.instId);
+          });
+        });
+        tbody.querySelectorAll('.rep-action-docs').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (window.openPromissoryModal) window.openPromissoryModal(btn.dataset.loanId);
+          });
+        });
+        tbody.querySelectorAll('.rep-action-wpp').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const phone = btn.dataset.phone;
+            const clientName = decodeURIComponent(btn.dataset.client);
+            const amount = Number(btn.dataset.amount || 0);
+            const instNum = btn.dataset.number;
+            const msg = `Olá, ${clientName}! Lembramos da sua parcela nº ${instNum} no valor de ${formatBRL(amount)}. Entre em contato para alinharmos o recebimento. Obrigado!`;
+            const url = `https://api.whatsapp.com/send?phone=55${phone.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+          });
+        });
+      }
+    }
+
+    // Atualiza controles de paginação
+    const pageInfo = container.querySelector('#rep-page-info');
+    if (pageInfo) {
+      pageInfo.textContent = `Mostrando ${Math.min(filtered.length, startIndex + 1)}–${Math.min(filtered.length, startIndex + pageSize)} de ${filtered.length} registro(s) • Página ${currentPage} de ${totalPages}`;
+    }
+
+    const btnPrev = container.querySelector('#rep-prev-page');
+    const btnNext = container.querySelector('#rep-next-page');
+    if (btnPrev) btnPrev.disabled = currentPage <= 1;
+    if (btnNext) btnNext.disabled = currentPage >= totalPages;
+  }
+
+  // Configura Listeners de Filtro
+  function attachFilterEvents() {
+    // 1. Chips de Período
+    container.querySelectorAll('.rep-period-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.rep-period-chip').forEach(b => {
+          b.className = 'btn btn-secondary btn-sm rep-period-chip';
+        });
+        btn.className = 'btn btn-primary btn-sm rep-period-chip active';
+        activePeriod = btn.dataset.period;
+
+        const curr = new Date();
+        if (activePeriod === 'today') {
+          filterStartDate = todayStr;
+          filterEndDate = todayStr;
+        } else if (activePeriod === 'yesterday') {
+          const y = new Date(curr);
+          y.setDate(y.getDate() - 1);
+          filterStartDate = formatDateForInput(y);
+          filterEndDate = formatDateForInput(y);
+        } else if (activePeriod === '7d') {
+          const d7 = new Date(curr);
+          d7.setDate(d7.getDate() - 7);
+          filterStartDate = formatDateForInput(d7);
+          filterEndDate = todayStr;
+        } else if (activePeriod === '15d') {
+          const d15 = new Date(curr);
+          d15.setDate(d15.getDate() - 15);
+          filterStartDate = formatDateForInput(d15);
+          filterEndDate = todayStr;
+        } else if (activePeriod === 'month') {
+          const f = new Date(curr.getFullYear(), curr.getMonth(), 1);
+          filterStartDate = formatDateForInput(f);
+          filterEndDate = todayStr;
+        } else if (activePeriod === 'lastMonth') {
+          const f = new Date(curr.getFullYear(), curr.getMonth() - 1, 1);
+          const l = new Date(curr.getFullYear(), curr.getMonth(), 0);
+          filterStartDate = formatDateForInput(f);
+          filterEndDate = formatDateForInput(l);
+        } else if (activePeriod === 'year') {
+          const f = new Date(curr.getFullYear(), 0, 1);
+          filterStartDate = formatDateForInput(f);
+          filterEndDate = todayStr;
+        } else if (activePeriod === 'all') {
+          filterStartDate = '';
+          filterEndDate = '';
+        }
+
+        container.querySelector('#rep-filter-start').value = filterStartDate;
+        container.querySelector('#rep-filter-end').value = filterEndDate;
+        currentPage = 1;
+        updateView();
+      });
+    });
+
+    // 2. Inputs de Data
+    container.querySelector('#rep-filter-start')?.addEventListener('change', (e) => {
+      filterStartDate = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+    container.querySelector('#rep-filter-end')?.addEventListener('change', (e) => {
+      filterEndDate = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+
+    // 3. Selects
+    container.querySelector('#rep-filter-client')?.addEventListener('change', (e) => {
+      filterClientId = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+    container.querySelector('#rep-filter-status')?.addEventListener('change', (e) => {
+      filterStatus = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+    container.querySelector('#rep-filter-method')?.addEventListener('change', (e) => {
+      filterMethod = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+    container.querySelector('#rep-filter-type')?.addEventListener('change', (e) => {
+      filterRecordType = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+    container.querySelector('#rep-filter-operator')?.addEventListener('change', (e) => {
+      filterOperator = e.target.value;
+      currentPage = 1;
+      updateView();
+    });
+
+    // 4. Busca instantânea com debounce leve
+    let searchTimeout = null;
+    container.querySelector('#rep-filter-search')?.addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        filterSearch = e.target.value;
+        currentPage = 1;
+        updateView();
+      }, 150);
+    });
+
+    // 5. Reset Filtros
+    container.querySelector('#rep-btn-reset-filters')?.addEventListener('click', () => {
+      activePeriod = 'month';
+      const f = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      filterStartDate = formatDateForInput(f);
+      filterEndDate = todayStr;
+      filterClientId = 'all';
+      filterStatus = 'all';
+      filterMethod = 'all';
+      filterRecordType = 'all';
+      filterOperator = 'all';
+      filterSearch = '';
+      activeTableTab = 'all';
+      currentPage = 1;
+
+      container.querySelectorAll('.rep-period-chip').forEach(b => {
+        b.className = b.dataset.period === 'month' ? 'btn btn-primary btn-sm rep-period-chip active' : 'btn btn-secondary btn-sm rep-period-chip';
+      });
+      container.querySelector('#rep-filter-start').value = filterStartDate;
+      container.querySelector('#rep-filter-end').value = filterEndDate;
+      container.querySelector('#rep-filter-client').value = 'all';
+      container.querySelector('#rep-filter-status').value = 'all';
+      container.querySelector('#rep-filter-method').value = 'all';
+      container.querySelector('#rep-filter-type').value = 'all';
+      container.querySelector('#rep-filter-operator').value = 'all';
+      container.querySelector('#rep-filter-search').value = '';
+
+      container.querySelectorAll('#rep-table-tabs .tab-btn').forEach(b => {
+        b.className = b.dataset.tab === 'all' ? 'tab-btn active' : 'tab-btn';
+      });
+
+      updateView();
+    });
+
+    // 6. Abas da Tabela
+    container.querySelectorAll('#rep-table-tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('#rep-table-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTableTab = btn.dataset.tab;
+        currentPage = 1;
+        updateView();
+      });
+    });
+
+    // 7. Paginação
+    container.querySelector('#rep-prev-page')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        updateView();
+      }
+    });
+    container.querySelector('#rep-next-page')?.addEventListener('click', () => {
+      currentPage++;
+      updateView();
+    });
+
+    // 8. Exportação CSV com dados filtrados exatos
+    const exportHandler = () => {
+      exportFilteredCSV(lastFilteredRecords);
+    };
+    container.querySelector('#btn-export-csv')?.addEventListener('click', exportHandler);
+    container.querySelector('#btn-export-csv-table')?.addEventListener('click', exportHandler);
+
+    // 9. Impressão
+    container.querySelector('#btn-print-reports')?.addEventListener('click', () => {
+      window.print();
+    });
+
+    // 10. Modal PDF Oficial
+    container.querySelector('#btn-generate-pdf-report')?.addEventListener('click', () => {
+      openMonthlyReportModal();
+    });
+  }
+
+  // Inicialização
   setTimeout(() => {
+    updateView();
+    attachFilterEvents();
     initCharts(container);
-    attachReportActions(container);
   }, 50);
 
   return container;
@@ -1038,6 +1830,49 @@ function attachReportActions(container) {
   container.querySelector('#btn-generate-pdf-report')?.addEventListener('click', () => {
     openMonthlyReportModal();
   });
+}
+
+/**
+ * Gera arquivo CSV com extrato financeiro filtrado completo para download
+ */
+function exportFilteredCSV(records) {
+  if (!records || records.length === 0) {
+    exportFinancialCSV();
+    return;
+  }
+
+  const headers = ['Data', 'Tipo', 'Cliente', 'Telefone', 'Score', 'Contrato / Ref', 'Nº Parcela', 'Meio', 'Principal (R$)', 'Juros/Multas (R$)', 'Desconto (R$)', 'Total (R$)', 'Status', 'Operador', 'Observações'];
+
+  const rows = records.map(r => {
+    return [
+      `"${r.date}"`,
+      `"${r.typeLabel}"`,
+      `"${r.clientName}"`,
+      `"${r.clientPhone || ''}"`,
+      `"${r.clientScore || ''}"`,
+      `"${r.contractId || ''}"`,
+      `"${r.installmentNumber || ''}"`,
+      `"${r.method || ''}"`,
+      Number(r.principalAmount || 0).toFixed(2),
+      Number(r.interestAmount || 0).toFixed(2),
+      Number(r.discountAmount || 0).toFixed(2),
+      Number(r.totalAmount || 0).toFixed(2),
+      `"${r.statusLabel}"`,
+      `"${r.operatorName || ''}"`,
+      `"${(r.notes || '').replace(/"/g, '""')}"`
+    ].join(',');
+  });
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `relatorio_analitico_vandomotos_${formatDateForInput()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**
