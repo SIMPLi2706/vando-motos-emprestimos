@@ -772,7 +772,7 @@ function createEditInstallmentModal() {
           </div>
 
           <div id="edit-inst-paid-box" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--r-sm); padding: 12px; flex-direction: column; gap: 10px;">
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="form-grid">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" style="font-size: 0.75rem;">Data da Quitação</label>
                 <input type="date" class="form-control" id="edit-inst-paid-date">

@@ -394,13 +394,10 @@ export function renderReports() {
           <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="year">Ano Atual</button>
           <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="all">Todo o Período</button>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="lastMonth">Mês Passado</button>
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="year">Ano Atual</button>
-        <button type="button" class="btn btn-secondary btn-sm rep-period-chip" data-period="all">Todo o Período</button>
       </div>
 
       <!-- Linha 2: Grade de Filtros Selecionáveis -->
-      <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
+      <div class="form-grid reports-filter-grid">
         <div class="form-group" style="margin-bottom: 0;">
           <label class="form-label">Data Início</label>
           <input type="date" class="form-control" id="rep-filter-start" value="${filterStartDate}">

@@ -234,7 +234,7 @@ export function renderSettings() {
         </div>
 
         <form id="form-add-operator" style="margin-bottom: 16px; background: var(--bg-3); padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--border-soft);">
-          <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          <div class="form-grid operator-form-grid">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label">Nome do Operador *</label>
               <input type="text" class="form-control" id="op-name" placeholder="Ex: João Cobrador" required>

@@ -117,7 +117,7 @@ export function renderLoans(options = {}) {
             </div>
 
             <!-- Data de Início, Periodicidade e Meio de Liberação -->
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+            <div class="form-grid sim-row-grid">
               <div class="form-group">
                 <label class="form-label">Data do Empréstimo *</label>
                 <input type="date" class="form-control" id="sim-data-inicio" value="${todayStr}" required>

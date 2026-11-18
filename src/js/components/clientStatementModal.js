@@ -37,7 +37,7 @@ export function createClientStatementModal() {
         </div>
 
         <!-- Grade de KPIs do Extrato -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div class="kpi-grid statement-kpi-grid" style="margin-bottom: 20px;">
           <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; padding: 12px;">
             <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Capital Emprestado</div>
             <div style="font-size: 1.15rem; font-weight: 800; color: var(--yellow); margin-top: 4px;" id="st-kpi-principal">R$ 0,00</div>

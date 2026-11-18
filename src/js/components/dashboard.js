@@ -345,7 +345,7 @@ export function renderDashboard() {
         </div>
       </div>
       <div class="card-body" style="padding: 16px 20px;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+        <div class="kpi-grid dashboard-interest-kpis" style="margin-bottom: 0;">
           
           <div style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 4px; padding: 14px;">
             <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Juros Realizados no Mês</div>

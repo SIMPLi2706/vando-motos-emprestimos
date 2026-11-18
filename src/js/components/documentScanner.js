@@ -380,7 +380,7 @@ function getOrCreateScannerModal() {
                 <input type="text" class="form-control" id="scan-out-cpf" placeholder="000.000.000-00">
               </div>
 
-              <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-grid">
                 <div class="form-group">
                   <label class="form-label">Data de Nascimento</label>
                   <input type="text" class="form-control" id="scan-out-birth" placeholder="DD/MM/AAAA">

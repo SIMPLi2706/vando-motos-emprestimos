@@ -1696,7 +1696,7 @@ export function openAdvancedReportPdfModal(presetFilters = {}) {
         </div>
 
         <!-- Intervalo de Datas -->
-        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-grid pdf-modal-dates-grid">
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label">Data Inicial</label>
             <input type="date" class="form-control" id="adv-pdf-start" value="${initStart}">
@@ -1708,7 +1708,7 @@ export function openAdvancedReportPdfModal(presetFilters = {}) {
         </div>
 
         <!-- Filtros de Cliente, Status e Meio -->
-        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;">
+        <div class="form-grid pdf-modal-filters-grid">
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label">Cliente</label>
             <select class="form-control" id="adv-pdf-client">
@@ -1741,38 +1741,38 @@ export function openAdvancedReportPdfModal(presetFilters = {}) {
         </div>
 
         <!-- Seções a Incluir -->
-        <div style="background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: var(--r-sm); padding: 12px 14px;">
-          <div style="font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-            ${icon('checkCircle', 14)} Seções a Incluir no Documento PDF
+        <div class="pdf-modal-sections-card">
+          <div class="pdf-modal-sections-header">
+            ${icon('checkCircle', 15)} Seções a Incluir no Documento PDF
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; font-size: 0.82rem;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="chk-pdf-kpis" checked style="accent-color: var(--yellow);">
-              <span>Resumo Executivo & KPIs</span>
+          <div class="pdf-modal-sections-grid">
+            <label class="pdf-modal-section-item">
+              <input type="checkbox" id="chk-pdf-kpis" checked>
+              <span class="pdf-modal-section-text">Resumo Executivo & KPIs</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="chk-pdf-loans" checked style="accent-color: var(--yellow);">
-              <span>Novos Contratos Concedidos (Saídas)</span>
+            <label class="pdf-modal-section-item">
+              <input type="checkbox" id="chk-pdf-loans" checked>
+              <span class="pdf-modal-section-text">Novos Contratos Concedidos (Saídas)</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="chk-pdf-payments" checked style="accent-color: var(--yellow);">
-              <span>Recebimentos & Lucro em Juros (Entradas)</span>
+            <label class="pdf-modal-section-item">
+              <input type="checkbox" id="chk-pdf-payments" checked>
+              <span class="pdf-modal-section-text">Recebimentos & Lucro em Juros (Entradas)</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="chk-pdf-overdue" checked style="accent-color: var(--yellow);">
-              <span>Inadimplência & Cobrança (Atrasos)</span>
+            <label class="pdf-modal-section-item">
+              <input type="checkbox" id="chk-pdf-overdue" checked>
+              <span class="pdf-modal-section-text">Inadimplência & Cobrança (Atrasos)</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="chk-pdf-upcoming" checked style="accent-color: var(--yellow);">
-              <span>Carteira a Vencer (Fluxo Futuro)</span>
+            <label class="pdf-modal-section-item">
+              <input type="checkbox" id="chk-pdf-upcoming" checked>
+              <span class="pdf-modal-section-text">Carteira a Vencer (Fluxo Futuro)</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="chk-pdf-cash" checked style="accent-color: var(--yellow);">
-              <span>Movimentações de Caixa & Despesas</span>
+            <label class="pdf-modal-section-item">
+              <input type="checkbox" id="chk-pdf-cash" checked>
+              <span class="pdf-modal-section-text">Movimentações de Caixa & Despesas</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; grid-column: span 2;">
-              <input type="checkbox" id="chk-pdf-signatures" checked style="accent-color: var(--yellow);">
-              <span>Declaração de Conformidade & Assinaturas</span>
+            <label class="pdf-modal-section-item pdf-modal-section-item-full">
+              <input type="checkbox" id="chk-pdf-signatures" checked>
+              <span class="pdf-modal-section-text">Declaração de Conformidade & Assinaturas</span>
             </label>
           </div>
         </div>

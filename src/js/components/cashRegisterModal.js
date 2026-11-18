@@ -43,7 +43,7 @@ export function createCashRegisterModal() {
           <div style="font-size: 0.85rem; font-weight: 700; color: var(--yellow); margin-bottom: 10px;">
             Novo Lançamento Manual no Caixa
           </div>
-          <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px;">
+          <div class="form-grid cash-form-grid">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label">Operação</label>
               <select class="form-control" id="cf-type">
@@ -84,7 +84,7 @@ export function createCashRegisterModal() {
         </form>
 
         <!-- Grade de KPIs: Entradas, Saídas, Saldo Líquido e Gaveta -->
-        <div class="kpi-grid" style="margin-bottom: 14px; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));">
+        <div class="kpi-grid" style="margin-bottom: 14px;">
           <div class="kpi-card" style="border-left: 4px solid var(--emerald-500);">
             <div class="kpi-header">
               <span class="kpi-label">Entradas (+)</span>
