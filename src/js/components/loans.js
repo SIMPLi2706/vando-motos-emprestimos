@@ -569,8 +569,8 @@ export function renderLoans(options = {}) {
                 <button class="btn btn-secondary btn-sm btn-print-promissoria" data-loan-id="${loan.id}">
                   ${icon('fileText', 13)} Docs / Contrato
                 </button>
-                <button class="btn btn-whatsapp btn-sm btn-wpp-promissoria" data-loan-id="${loan.id}" style="background: #25d366; color: #fff; font-weight: 700; border: none; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;" title="Enviar Promissória e Link de Assinatura via WhatsApp">
-                  ${icon('whatsapp', 13)} WhatsApp
+                <button class="btn btn-whatsapp btn-sm btn-wpp-promissoria" data-loan-id="${loan.id}" style="background: #25d366; color: #fff; font-weight: 700; border: none; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;" title="Enviar Contrato para Assinar no Gov.br via WhatsApp">
+                  ${icon('whatsapp', 13)} WhatsApp Gov.br
                 </button>
                 <button class="btn btn-secondary btn-sm btn-ver-parcelas-loan" data-loan-id="${loan.id}">
                   Parcelas
@@ -598,8 +598,8 @@ export function renderLoans(options = {}) {
                 <button class="btn btn-secondary btn-sm btn-ver-parcelas-loan" data-loan-id="${loan.id}">
                   ${icon('calendar', 12)} Parcelas
                 </button>
-                <button class="btn btn-whatsapp btn-sm btn-wpp-promissoria" data-loan-id="${loan.id}" title="Enviar Contrato via WhatsApp">
-                  ${icon('whatsapp', 12)} WhatsApp
+                <button class="btn btn-whatsapp btn-sm btn-wpp-promissoria" data-loan-id="${loan.id}" title="Enviar Contrato para Assinar no Gov.br via WhatsApp">
+                  ${icon('whatsapp', 12)} Gov.br
                 </button>
                 <button class="btn btn-secondary btn-sm btn-print-promissoria" data-loan-id="${loan.id}">
                   ${icon('fileText', 12)} Docs
@@ -661,7 +661,23 @@ export function renderLoans(options = {}) {
         const dueVal = inst ? inst.dueDate : loan.startDate;
         const numDesc = isSingle ? 'Única' : (inst ? `#01/${String(loanInsts.length).padStart(2, '0')}` : 'Carnê');
 
-        const msg = `🏍️ *VANDO MOTOS LOCADORA - DOCUMENTOS DO CONTRATO*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nOlá, *${client.name}*!\n\nSegue o resumo da sua Nota Promissória e Contrato referente ao seu empréstimo:\n\n📄 *Título:* Nota Promissória Oficial ${numDesc}\n💰 *Valor do Título:* ${formatBRL(amountVal)}\n📅 *Vencimento:* ${formatDate(dueVal)}\n🏛️ *Credor:* ${settings.businessName}\n📍 *Praça de Pagamento:* ${settings.creditorCity || 'PORTO VELHO RONDONIA'}\n\n✍️ *ASSINE SEUS DOCUMENTOS ONLINE:*\nAcesse o link seguro abaixo para conferir a Nota Promissória e o Contrato de Confissão de Dívida e assinar com o dedo na tela do seu celular:\n👉 ${signingUrl}\n\n_Documento com validade jurídica integral (MP nº 2.200-2/2001 e Lei Federal nº 14.063/2020)._\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+        const msg = `🏍️ *VANDO MOTOS LOCADORA - ASSINATURA ELETRÔNICA GOV.BR*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `Olá, *${client.name}*!\n\n` +
+          `Segue o seu documento oficial de empréstimo para assinatura digital pelo *Gov.br*:\n\n` +
+          `📄 *Documento:* Nota Promissória e Contrato de Confissão de Dívida ${numDesc}\n` +
+          `💰 *Valor:* ${formatBRL(amountVal)}\n` +
+          `📅 *Vencimento:* ${formatDate(dueVal)}\n` +
+          `🏛️ *Credor:* ${settings.businessName}\n` +
+          `📍 *Praça de Pagamento:* ${settings.creditorCity || 'PORTO VELHO RONDONIA'}\n\n` +
+          `📋 *COMO ASSINAR PELO GOV.BR (GRATUITO):*\n\n` +
+          `1️⃣ *Acesse o portal do seu contrato:* Visualize e baixe o PDF oficial:\n` +
+          `👉 ${signingUrl}\n\n` +
+          `2️⃣ *Acesse o Assinador Oficial do Governo:* Entre com sua conta Gov.br (Prata ou Ouro):\n` +
+          `👉 https://assinador.iti.br/\n\n` +
+          `3️⃣ *Assine e nos devolva:* Carregue o PDF baixado no site do Gov.br, confirme a assinatura digital com seu código no celular e nos envie de volta o PDF assinado aqui no WhatsApp!\n\n` +
+          `_Validade jurídica nacional garantida pela Lei Federal nº 14.063/2020 e Decreto nº 10.543/2020._\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
         if (client.phone) {
           const url = createWhatsAppUrl(client.phone, msg);

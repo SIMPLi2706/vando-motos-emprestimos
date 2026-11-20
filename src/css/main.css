@@ -923,6 +923,13 @@ body.modal-open #app {
 }
 
 /* Modais de Exportação PDF & Formulários Responsivos */
+.pdf-modal-card {
+  max-width: 620px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .pdf-modal-sections-card {
   background: var(--bg-3);
   border: 1px solid var(--border-soft);
@@ -941,86 +948,144 @@ body.modal-open #app {
 }
 
 .pdf-modal-sections-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (min-width: 641px) {
+  .pdf-modal-sections-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    font-size: 0.85rem;
+  }
 }
 
 .pdf-modal-section-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
+  gap: 12px;
+  padding: 12px 14px;
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
   min-width: 0;
+  width: 100%;
   box-sizing: border-box;
 }
 
-.pdf-modal-section-item:hover {
-  background: rgba(245, 197, 24, 0.06);
-  border-color: rgba(245, 197, 24, 0.3);
+.pdf-modal-section-item:hover,
+.pdf-modal-section-item:active {
+  background: rgba(245, 197, 24, 0.08);
+  border-color: rgba(245, 197, 24, 0.4);
 }
 
 .pdf-modal-section-item input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   accent-color: var(--yellow);
   cursor: pointer;
+  margin: 0;
 }
 
 .pdf-modal-section-text {
-  color: #f1f5f9;
+  color: #f8fafc;
+  font-size: 0.88rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
   word-break: normal;
   overflow-wrap: break-word;
   min-width: 0;
+  flex: 1;
 }
 
 .pdf-modal-section-item-full {
-  grid-column: span 2;
+  grid-column: span 1;
+}
+
+@media (min-width: 641px) {
+  .pdf-modal-section-item-full {
+    grid-column: span 2;
+  }
 }
 
 .pdf-modal-dates-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+@media (min-width: 520px) {
+  .pdf-modal-dates-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .pdf-modal-filters-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+@media (min-width: 641px) {
+  .pdf-modal-filters-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .reports-filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 641px) {
+  .reports-filter-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
 }
 
 .sim-row-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+@media (min-width: 641px) {
+  .sim-row-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .cash-form-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+@media (min-width: 641px) {
+  .cash-form-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .operator-form-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+@media (min-width: 641px) {
+  .operator-form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* Tabs Bar */
@@ -5880,5 +5945,52 @@ html, body {
     border-radius: 999px !important;
     padding: 8px 14px !important;
   }
+
+  /* Fluxo de Assinatura Eletrônica GOV.BR no Mobile */
+  .gov-signing-card {
+    padding: 16px 12px !important;
+  }
+  .gov-step-item {
+    padding: 14px 12px !important;
+  }
+  .gov-step-item > div[style*="margin-left: 34px"],
+  .gov-step-item > p[style*="margin: 0 0 12px 34px"] {
+    margin-left: 0 !important;
+  }
+  .gov-step-item .btn,
+  .gov-step-item a.btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 48px !important;
+  }
 }
+
+/* ---- FLUXO OFICIAL DE ASSINATURA GOV.BR (DESKTOP E GLOBAL) ---- */
+.gov-signing-card {
+  background: var(--bg-2);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.gov-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.gov-step-item {
+  border-radius: 12px;
+  padding: 16px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.gov-step-item .btn {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
 

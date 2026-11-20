@@ -1,8 +1,8 @@
 // public/sw.js
 // Service Worker para Gestão de Crédito & Finanças - PWA Offline & Auto-Update
-// Versão do Cache: v13 (Envio WhatsApp Promissória, Assinatura Digital e Impressão)
+// Versão do Cache: v17 (Assinador Oficial Gov.br e Layout Mobile Refinado)
 
-const CACHE_NAME = 'vandomotos-fintech-v16';
+const CACHE_NAME = 'vandomotos-fintech-v17';
 
 const PRECACHE_ASSETS = [
   '/',

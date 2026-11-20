@@ -460,7 +460,7 @@ state.subscribe(() => {
 });
 
 // Versão da Aplicação e Gestão de Cache PWA
-const CURRENT_APP_VERSION = '3.2.1';
+const CURRENT_APP_VERSION = '3.2.2';
 try {
   const lastVersion = localStorage.getItem('vando_app_version');
   if (lastVersion !== CURRENT_APP_VERSION) {

@@ -1667,7 +1667,7 @@ export function openAdvancedReportPdfModal(presetFilters = {}) {
   modal.id = 'modal-advanced-pdf-picker';
 
   modal.innerHTML = `
-    <div class="modal-card" style="max-width: 620px; max-height: 94vh; display: flex; flex-direction: column;">
+    <div class="modal-card pdf-modal-card">
       <div class="modal-header" style="border-bottom: 1px solid var(--border-soft); padding: 16px 20px;">
         <div>
           <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">

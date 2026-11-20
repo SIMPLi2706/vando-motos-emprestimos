@@ -5,7 +5,6 @@
 import { state } from '../state.js';
 import { formatBRL, formatDate, formatDateExtenso, numeroParaExtenso, createWhatsAppUrl, showToast, escapeHtml } from '../utils.js';
 import { BRASAO_BRASIL_B64 } from '../brasaoBase64.js';
-import { openSignaturePad } from './signaturePad.js';
 import { getPromissorySigningUrl } from './publicSignPortal.js';
 import { icon } from '../icons.js';
 
@@ -60,6 +59,14 @@ export function renderSinglePromissoryCard(installment, loan, client, settings, 
     } catch (e) {}
   }
   let signatureAreaHtml = `
+    <div style="border: 1.5px dashed #1351b4; background: rgba(19, 81, 180, 0.04); border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; text-align: center;">
+      <div style="font-size: 7.2pt; font-weight: 800; color: #1351b4; text-transform: uppercase; letter-spacing: 0.03em;">
+        🏛️ Área Reservada p/ Assinatura Eletrônica GOV.BR
+      </div>
+      <div style="font-size: 6pt; color: #475569; margin-top: 2px;">
+        Autenticação Oficial: https://assinador.iti.br • Lei Federal nº 14.063/2020
+      </div>
+    </div>
     <div class="paw-line"></div>
     <div class="paw-name" style="color: #000000 !important;">${escapeHtml(emitenteNome)}</div>
   `;
@@ -211,7 +218,15 @@ export function renderDebtConfessionContract(loan, client, loanInsts = [], setti
   }
 
   let debtorSigHtml = `
-    <div style="border-top: 1px solid #0f172a; margin-top: 38px; padding-top: 5px; font-weight: 700; font-size: 9pt;">
+    <div style="border: 1.5px dashed #1351b4; background: rgba(19, 81, 180, 0.04); border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; text-align: center;">
+      <div style="font-size: 7.2pt; font-weight: 800; color: #1351b4; text-transform: uppercase; letter-spacing: 0.03em;">
+        🏛️ Área Reservada p/ Assinatura Eletrônica GOV.BR
+      </div>
+      <div style="font-size: 6pt; color: #475569; margin-top: 2px;">
+        Autenticação Oficial: https://assinador.iti.br • Lei Federal nº 14.063/2020
+      </div>
+    </div>
+    <div style="border-top: 1px solid #0f172a; margin-top: 10px; padding-top: 5px; font-weight: 700; font-size: 9pt;">
       ${escapeHtml(client.name || 'Devedor')}<br>
       <span style="font-weight: 400; font-size: 8pt;">DEVEDOR(A) • CPF/CNPJ: ${escapeHtml(client.cpf || 'N/I')}</span>
     </div>
@@ -466,9 +481,13 @@ export function createReceiptModal() {
 
       <div class="modal-footer" style="flex-wrap: wrap; gap: 8px; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary" id="doc-modal-close-btn">Fechar</button>
-        <button type="button" class="btn btn-secondary" id="doc-modal-copy-link-btn" title="Copiar link de assinatura para enviar ao cliente">${icon('link', 14)} Copiar Link</button>
-        <button type="button" class="btn btn-secondary" id="doc-modal-sign-btn">${icon('pen', 14)} Assinar na Tela</button>
-        <button type="button" class="btn btn-whatsapp" id="doc-modal-wpp-btn" style="background: #25d366; color: #fff; font-weight: 700; border: none;">${icon('whatsapp', 14)} Enviar WhatsApp c/ Link</button>
+        <button type="button" class="btn btn-secondary" id="doc-modal-copy-link-btn" title="Copiar link do contrato para enviar ao cliente">${icon('link', 14)} Copiar Link</button>
+        <a href="https://assinador.iti.br/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="doc-modal-gov-btn" style="color: #93c5fa; border-color: rgba(96, 165, 250, 0.4); font-weight: 700;" title="Abrir Assinador Eletrônico Oficial do Gov.br">
+          ${icon('externalLink', 14)} Assinador Gov.br
+        </a>
+        <button type="button" class="btn btn-whatsapp" id="doc-modal-wpp-btn" style="background: #25d366; color: #fff; font-weight: 700; border: none;">
+          ${icon('whatsapp', 14)} Enviar p/ Assinar no Gov.br
+        </button>
         <button type="button" class="btn btn-primary" id="doc-modal-print-btn">${icon('print', 14)} Imprimir / Salvar PDF</button>
       </div>
     </div>
@@ -479,7 +498,6 @@ export function createReceiptModal() {
   const closeBtn = modal.querySelector('#doc-modal-close');
   const closeBtn2 = modal.querySelector('#doc-modal-close-btn');
   const printBtn = modal.querySelector('#doc-modal-print-btn');
-  const signBtn = modal.querySelector('#doc-modal-sign-btn');
   const wppBtn = modal.querySelector('#doc-modal-wpp-btn');
   const copyLinkBtn = modal.querySelector('#doc-modal-copy-link-btn');
   const body = modal.querySelector('#doc-modal-body');
@@ -553,55 +571,7 @@ export function createReceiptModal() {
     });
   }
 
-  // Assinatura na tela (quando o cliente assina presencialmente com o operador)
-  signBtn.addEventListener('click', async () => {
-    const signature = await openSignaturePad({
-      title: 'Assinatura Digital do Cliente',
-      signerName: currentDebtorName
-    });
-
-    if (signature) {
-      const now = new Date();
-      const protocol = `VM-NP-${now.getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const sigData = {
-        dataUrl: signature.dataUrl,
-        timestamp: signature.timestamp || now.toISOString(),
-        dateFormatted: signature.dateFormatted || formatDate(now),
-        protocol,
-        signer: currentDebtorName
-      };
-
-      if (currentLoan) {
-        currentLoan.signature = sigData;
-        state.updateLoan(currentLoan.id, {
-          signature: sigData,
-          signedAt: sigData.timestamp,
-          signProtocol: protocol
-        });
-        state.logAudit('DOCUMENT_SIGNED_ONSITE', `Assinatura presencial coletada para ${currentDebtorName} (${protocol})`, 'loan', currentLoan.id);
-        localStorage.setItem(`vando_signed_${currentLoan.id}`, JSON.stringify(sigData));
-      }
-
-      if (renderCurrentDocFn) {
-        renderCurrentDocFn();
-      } else {
-        const sigAreas = body.querySelectorAll('.paw-signature-area, .recibo-assinatura-box');
-        sigAreas.forEach(area => {
-          area.innerHTML = `
-            <div style="text-align: center; margin-bottom: 2px;">
-              <img src="${signature.dataUrl}" style="max-height: 48px; max-width: 200px; display: inline-block;" alt="Assinatura Digital">
-            </div>
-            <div class="paw-line" style="border-top: 1.5px solid #000; width: 220px; margin: 0 auto 3px;"></div>
-            <div class="paw-name" style="font-weight: 800; font-size: 8pt; color: #000;">${escapeHtml(currentDebtorName)}</div>
-            <div style="font-size: 6pt; color: #166534; font-family: monospace; margin-top: 2px; font-weight: 700;">✓ Assinado digitalmente em ${signature.dateFormatted} • Protocolo: ${protocol}</div>
-          `;
-        });
-      }
-      showToast('Assinatura digital gravada e vinculada ao contrato com sucesso!', 'success');
-    }
-  });
-
-  // Envio de WhatsApp com Promissória e Link de Assinatura
+  // Envio de WhatsApp com Contrato/Promissória e Passo a Passo para Assinar no GOV.BR
   wppBtn.addEventListener('click', () => {
     if (!currentLoan || !currentClient) {
       showToast('Nenhum empréstimo selecionado.', 'error');
@@ -620,8 +590,25 @@ export function createReceiptModal() {
     const amountVal = isSingle ? currentLoan.totalPayable : (inst ? inst.installmentAmount : currentLoan.totalPayable);
     const dueVal = inst ? inst.dueDate : currentLoan.startDate;
     const numDesc = isSingle ? 'Única' : (inst ? `#${String(inst.number).padStart(2, '0')}/${String(currentInstallments.length).padStart(2, '0')}` : 'Carnê');
+    const docTitle = currentDocTab === 'contract' ? 'Contrato de Confissão de Dívida' : `Nota Promissória Oficial ${numDesc}`;
 
-    const msg = `🏍️ *VANDO MOTOS LOCADORA - NOTA PROMISSÓRIA*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nOlá, *${currentClient.name}*!\n\nSegue o resumo da sua Nota Promissória referente ao seu empréstimo:\n\n📄 *Título:* Nota Promissória Oficial ${numDesc}\n💰 *Valor do Título:* ${formatBRL(amountVal)}\n📅 *Vencimento:* ${formatDate(dueVal)}\n🏛️ *Credor:* ${settings.businessName}\n📍 *Praça de Pagamento:* ${settings.creditorCity || 'PORTO VELHO RONDONIA'}\n\n✍️ *ASSINE SUA NOTA PROMISSÓRIA ONLINE:*\nAcesse o link seguro abaixo para visualizar o documento oficial e assinar com o dedo na tela do seu celular:\n👉 ${signingUrl}\n\n_Documento com validade jurídica integral (MP nº 2.200-2/2001 e Lei Federal nº 14.063/2020)._\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    const msg = `🏍️ *VANDO MOTOS LOCADORA - ASSINATURA ELETRÔNICA GOV.BR*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `Olá, *${currentClient.name}*!\n\n` +
+      `Segue o seu documento oficial de empréstimo para assinatura digital pelo *Gov.br*:\n\n` +
+      `📄 *Documento:* ${docTitle}\n` +
+      `💰 *Valor do Título:* ${formatBRL(amountVal)}\n` +
+      `📅 *Vencimento:* ${formatDate(dueVal)}\n` +
+      `🏛️ *Credor:* ${settings.businessName}\n` +
+      `📍 *Praça de Pagamento:* ${settings.creditorCity || 'PORTO VELHO RONDONIA'}\n\n` +
+      `📋 *COMO ASSINAR PELO GOV.BR (GRATUITO):*\n\n` +
+      `1️⃣ *Acesse o portal do seu contrato:* Visualize e baixe o PDF oficial:\n` +
+      `👉 ${signingUrl}\n\n` +
+      `2️⃣ *Acesse o Assinador Oficial do Governo:* Entre com sua conta Gov.br (Prata ou Ouro):\n` +
+      `👉 https://assinador.iti.br/\n\n` +
+      `3️⃣ *Assine e nos devolva:* Carregue o PDF baixado no site do Gov.br, confirme a assinatura digital com seu código no celular e nos envie de volta o PDF assinado aqui no WhatsApp!\n\n` +
+      `_Validade jurídica nacional garantida pela Lei Federal nº 14.063/2020 e Decreto nº 10.543/2020._\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
     if (currentClient.phone) {
       const url = createWhatsAppUrl(currentClient.phone, msg);
@@ -639,7 +626,7 @@ export function createReceiptModal() {
     }
   });
 
-  // Copiar Link de Assinatura Digital
+  // Copiar Link do Contrato e do Gov.br
   copyLinkBtn.addEventListener('click', () => {
     if (!currentLoan || !currentClient) return;
 
@@ -650,8 +637,9 @@ export function createReceiptModal() {
       : currentInstallments[0];
 
     const signingUrl = getPromissorySigningUrl(currentLoan, currentClient, inst, settings);
-    navigator.clipboard.writeText(signingUrl).then(() => {
-      showToast('Link de assinatura digital copiado para a área de transferência!');
+    const copyText = `📄 *Contrato Vando Motos:* ${signingUrl}\n🏛️ *Assinador Oficial Gov.br:* https://assinador.iti.br/`;
+    navigator.clipboard.writeText(copyText).then(() => {
+      showToast('Links do contrato e do Assinador Gov.br copiados!');
     });
   });
 

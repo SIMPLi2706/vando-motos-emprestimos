@@ -188,7 +188,7 @@ export function renderPublicSigningPortal(container, rawData) {
             </div>
           </div>
           <div class="public-portal-badge">
-            ${icon('shield', 15)} Ambiente Seguro • MP nº 2.200-2/2001
+            ${icon('shield', 15)} Assinador Oficial GOV.BR • Lei nº 14.063/2020
           </div>
         </div>
       </header>
@@ -241,16 +241,16 @@ export function renderPublicSigningPortal(container, rawData) {
           <div class="public-promissory-scroll-box" id="public-promissory-container"></div>
         </div>
 
-        <!-- Seção de Assinatura Digital Touch -->
+        <!-- Seção Oficial de Assinatura GOV.BR -->
         <div class="public-signing-action-section" id="public-signing-action-area">
-          ${isAlreadySigned ? renderSignedSuccessBanner(data.signature, data) : renderSignatureForm(data)}
+          ${renderGovSigningForm(data)}
         </div>
       </main>
 
       <footer class="public-portal-footer">
         <p>Vando Motos Locadora LTDA • CNPJ ${escapeHtml(data.creditorCpfCnpj)} • ${escapeHtml(data.creditorCity)}</p>
         <p class="public-legal-footer-note">
-          Validade jurídica integral conforme Art. 10 da Medida Provisória nº 2.200-2/2001 e Art. 4º da Lei Federal nº 14.063/2020.
+          Validade jurídica integral conforme Lei Federal nº 14.063/2020 e Decreto nº 10.543/2020 (Assinatura Eletrônica Avançada GOV.BR).
         </p>
       </footer>
     </div>
@@ -259,8 +259,6 @@ export function renderPublicSigningPortal(container, rawData) {
   function renderPublicDocPreview() {
     const promContainer = container.querySelector('#public-promissory-container');
     if (!promContainer) return;
-    mockInstallment.signature = data.signature;
-    mockLoan.signature = data.signature;
     if (activeDocType === 'contract') {
       promContainer.innerHTML = renderDebtConfessionContract(mockLoan, mockClient, contractInsts, mockSettings);
     } else {
@@ -278,280 +276,111 @@ export function renderPublicSigningPortal(container, rawData) {
     });
   });
 
-  // Inicializa o comportamento da assinatura se ainda não estiver assinado
-  if (!isAlreadySigned) {
-    setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockClient, mockSettings, renderPublicDocPreview);
-  } else {
-    setupSignedActions(container, data);
-  }
+  // Configura as ações do fluxo de assinatura Gov.br
+  setupGovSigningActions(container, data);
 }
 
 /**
- * Renderiza o formulário de assinatura digital na tela
+ * Renderiza o painel oficial de instrução e assinatura GOV.BR
  */
-function renderSignatureForm(data) {
+function renderGovSigningForm(data) {
   return `
-    <div class="public-sig-card">
-      <div class="public-sig-header">
-        <div class="psh-badge">Assinatura Eletrônica na Tela</div>
-        <h3 class="psh-title">${icon('pen', 18)} Assine com o dedo no quadro abaixo</h3>
-        <p class="psh-desc">Use a ponta do seu dedo ou caneta touch diretamente na tela do seu celular para assinar:</p>
-      </div>
-
-      <div class="public-sig-canvas-wrap">
-        <canvas id="public-sig-canvas" class="public-sig-canvas"></canvas>
-        <div class="public-sig-guide-line">
-          <span>Área de Assinatura de ${data.clientName}</span>
+    <div class="public-sig-card gov-signing-card">
+      <div class="public-sig-header" style="text-align: center; border-bottom: 1px solid var(--border-soft); padding-bottom: 16px;">
+        <div class="psh-badge" style="background: rgba(19, 81, 180, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.4); margin: 0 auto 10px; display: inline-flex; align-items: center; gap: 6px;">
+          🏛️ Assinatura Oficial GOV.BR
         </div>
+        <h3 class="psh-title" style="color: #fff; font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">
+          Assine seu Contrato pelo Portal Gov.br
+        </h3>
+        <p class="psh-desc" style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; max-width: 600px; margin: 0 auto;">
+          Este documento possui validade jurídica oficial em todo o território nacional conforme a <strong>Lei Federal nº 14.063/2020</strong> e <strong>Decreto nº 10.543/2020</strong>. Siga os 3 passos simples abaixo:
+        </p>
       </div>
 
-      <div class="public-sig-terms">
-        <label class="public-sig-checkbox-label">
-          <input type="checkbox" id="chk-accept-terms" />
-          <span>Declaro sob as penas da lei que li e concordo com todos os valores, prazos e termos desta Nota Promissória, autorizando a aposição da minha assinatura eletrônica.</span>
-        </label>
+      <div class="gov-steps-list" style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+        
+        <!-- Passo 1 -->
+        <div class="gov-step-item" style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px;">
+          <div style="font-weight: 800; font-size: 0.98rem; color: #fff; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <span style="background: var(--yellow); color: #000; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 900; flex-shrink: 0;">1</span>
+            Baixar Documento Oficial em PDF
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 12px 34px; line-height: 1.4;">
+            Gere o arquivo PDF oficial do seu contrato / nota promissória para enviar ao site do Gov.br.
+          </p>
+          <div style="margin-left: 34px;">
+            <button type="button" class="btn btn-secondary" id="btn-gov-download-pdf" style="font-weight: 700; padding: 10px 18px; border-radius: 8px;">
+              ${icon('download', 16)} Baixar / Salvar Contrato em PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Passo 2 -->
+        <div class="gov-step-item" style="background: rgba(19, 81, 180, 0.08); border: 1.5px solid rgba(96, 165, 250, 0.4); border-radius: 12px; padding: 16px;">
+          <div style="font-weight: 800; font-size: 0.98rem; color: #93c5fd; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <span style="background: #1d4ed8; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 900; flex-shrink: 0;">2</span>
+            Acessar o Assinador Eletrônico Oficial Gov.br (Gratuito)
+          </div>
+          <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0 0 12px 34px; line-height: 1.45;">
+            Entre no site oficial do Governo (<strong>assinador.iti.br</strong>) com sua conta Gov.br (nível Prata ou Ouro). Carregue o PDF baixado no Passo 1, posicione a assinatura na área indicada e confirme com o código SMS/Gov.
+          </p>
+          <div style="margin-left: 34px;">
+            <a href="https://assinador.iti.br/" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="btn-gov-open-portal" style="background: #1351b4; border-color: #1d4ed8; color: #fff; font-weight: 800; padding: 11px 20px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+              ${icon('externalLink', 16)} Abrir Assinador Gov.br (assinador.iti.br) ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- Passo 3 -->
+        <div class="gov-step-item" style="background: var(--bg-1); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px;">
+          <div style="font-weight: 800; font-size: 0.98rem; color: #fff; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <span style="background: #10b981; color: #000; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 900; flex-shrink: 0;">3</span>
+            Devolver o Documento Assinado no WhatsApp
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 12px 34px; line-height: 1.4;">
+            Ao concluir no Gov.br, baixe o PDF assinado (ele conterá o selo oficial e código de autenticidade) e envie de volta para a Vando Motos para liberação imediata.
+          </p>
+          <div style="margin-left: 34px;">
+            <button type="button" class="btn btn-whatsapp" id="btn-gov-send-wpp" style="background: #25d366; color: #fff; font-weight: 800; padding: 11px 20px; border-radius: 8px; border: none; display: inline-flex; align-items: center; gap: 8px;">
+              ${icon('whatsapp', 16)} Devolver Contrato Assinado via WhatsApp
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      <div class="public-sig-buttons">
-        <button type="button" class="btn btn-secondary" id="btn-public-clear-sig">
-          ${icon('trash', 14)} Limpar
-        </button>
-        <button type="button" class="btn btn-primary btn-pulse" id="btn-public-confirm-sig" style="flex: 1; padding: 12px 20px; font-size: 1rem; font-weight: 800;">
-          ${icon('checkCircle', 18)} Gravar e Assinar Nota Promissória
-        </button>
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--border-soft); border-radius: 8px; padding: 12px 16px; font-size: 0.78rem; color: var(--text-400); line-height: 1.45; display: flex; align-items: center; gap: 10px;">
+        ${icon('info', 18)}
+        <span><strong>Dúvidas sobre como assinar?</strong> Nossa equipe está disponível no WhatsApp para auxiliar em caso de qualquer dúvida sobre o login Gov.br!</span>
       </div>
     </div>
   `;
 }
 
 /**
- * Renderiza o banner de sucesso e botões de ação após assinar
+ * Configura as ações dos botões do fluxo de assinatura Gov.br
  */
-function renderSignedSuccessBanner(sig, data) {
-  const protocol = sig.protocol || `VM-NP-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  const dateFormatted = sig.dateFormatted || formatDate(sig.timestamp || new Date());
+function setupGovSigningActions(container, data) {
+  const downloadBtn = container.querySelector('#btn-gov-download-pdf');
+  const wppBtn = container.querySelector('#btn-gov-send-wpp');
 
-  return `
-    <div class="public-signed-success-card">
-      <div class="pssc-icon">
-        ${icon('checkCircle', 42)}
-      </div>
-      <h3 class="pssc-title">Nota Promissória Assinada com Sucesso!</h3>
-      <p class="pssc-desc">Sua assinatura foi vinculada e autenticada digitalmente no documento oficial.</p>
-
-      <div class="pssc-badge-box">
-        <div class="pssc-badge-row">
-          <span>Protocolo de Autenticidade:</span>
-          <strong>${protocol}</strong>
-        </div>
-        <div class="pssc-badge-row">
-          <span>Data e Hora do Carimbo:</span>
-          <strong>${dateFormatted}</strong>
-        </div>
-        <div class="pssc-badge-row">
-          <span>Assinante:</span>
-          <strong>${data.clientName} (CPF: ${data.clientCpf || 'Registrado'})</strong>
-        </div>
-      </div>
-
-      <div class="pssc-actions">
-        <button type="button" class="btn btn-primary" id="btn-public-print" style="padding: 12px 18px; font-size: 0.95rem; font-weight: 700;">
-          ${icon('print', 16)} Imprimir / Salvar PDF da Promissória
-        </button>
-        <button type="button" class="btn btn-whatsapp" id="btn-public-wpp-confirm" style="padding: 12px 18px; font-size: 0.95rem; font-weight: 700; background: #25d366; color: #fff; border: none;">
-          ${icon('whatsapp', 16)} Enviar Confirmação p/ Vando Motos via WhatsApp
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Configura o canvas interativo de assinatura touch
- */
-function setupSignatureCanvas(container, data, mockInstallment, mockLoan, mockClient, mockSettings, renderPublicDocPreview) {
-  const canvas = container.querySelector('#public-sig-canvas');
-  const clearBtn = container.querySelector('#btn-public-clear-sig');
-  const confirmBtn = container.querySelector('#btn-public-confirm-sig');
-  const chkTerms = container.querySelector('#chk-accept-terms');
-
-  if (!canvas) return;
-
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    const displayWidth = rect.width || Math.min(window.innerWidth - 48, 520);
-    const displayHeight = 180;
-
-    canvas.width = displayWidth * dpr;
-    canvas.height = displayHeight * dpr;
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
-
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 2.8;
-    ctx.strokeStyle = '#000000'; // Traço preto oficial
-  }
-
-  resizeCanvas();
-  window.addEventListener('resize', () => {
-    // Não limpa o desenho caso o usuário rotacione a tela se possível
-  });
-
-  let isDrawing = false;
-  let hasDrawn = false;
-
-  function getCoords(e) {
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches && e.touches.length > 0) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top
-      };
-    }
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  }
-
-  function start(e) {
-    isDrawing = true;
-    hasDrawn = true;
-    canvas.dataset.hasDrawing = 'true';
-    const { x, y } = getCoords(e);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    if (e.cancelable) e.preventDefault();
-  }
-
-  function move(e) {
-    if (!isDrawing) return;
-    hasDrawn = true;
-    canvas.dataset.hasDrawing = 'true';
-    const { x, y } = getCoords(e);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    if (e.cancelable) e.preventDefault();
-  }
-
-  function stop() {
-    isDrawing = false;
-    ctx.closePath();
-  }
-
-  canvas.addEventListener('touchstart', start, { passive: false });
-  canvas.addEventListener('touchmove', move, { passive: false });
-  canvas.addEventListener('touchend', stop);
-  canvas.addEventListener('touchcancel', stop);
-
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', stop);
-
-  clearBtn.addEventListener('click', () => {
-    const rect = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, rect.width, 180);
-    hasDrawn = false;
-    canvas.dataset.hasDrawing = 'false';
-  });
-
-  confirmBtn.addEventListener('click', () => {
-    if (!hasDrawn && canvas.dataset.hasDrawing !== 'true') {
-      showToast('Por favor, faça sua assinatura na tela antes de confirmar.', 'error');
-      return;
-    }
-
-    if (!chkTerms.checked) {
-      showToast('Por favor, marque a caixa concordando com os termos do documento para concluir a assinatura.', 'error');
-      chkTerms.focus();
-      return;
-    }
-
-    const dataUrl = canvas.toDataURL('image/png');
-    const now = new Date();
-    const protocol = `VM-NP-${now.getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const dateFormatted = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }).format(now);
-
-    const signatureData = {
-      dataUrl,
-      timestamp: now.toISOString(),
-      dateFormatted,
-      protocol,
-      signer: data.clientName,
-      signerCpf: data.clientCpf
-    };
-
-    // 1. Salva no localStorage local
-    localStorage.setItem(`vando_signed_${data.loanId}`, JSON.stringify(signatureData));
-
-    // 2. Se a aplicação local tiver o state e o empréstimo (ex: admin ou sync):
-    if (window.state && state.getLoanById(data.loanId)) {
-      state.updateLoan(data.loanId, {
-        signature: signatureData,
-        signedAt: signatureData.timestamp,
-        signProtocol: protocol
-      });
-    }
-
-    // 3. Atualiza os mocks e a tela
-    data.signature = signatureData;
-    mockInstallment.signature = signatureData;
-    mockLoan.signature = signatureData;
-
-    // Atualiza a prévia do documento imediatamente para mostrar a assinatura carimbada
-    if (typeof renderPublicDocPreview === 'function') {
-      renderPublicDocPreview();
-    } else {
-      const promContainer = container.querySelector('#public-promissory-container');
-      if (promContainer) {
-        promContainer.innerHTML = renderSinglePromissoryCard(mockInstallment, mockLoan, mockClient, mockSettings, data.instNum || 1, data.totalCount || 1);
-      }
-    }
-
-    // Atualiza o card de resumo
-    const statusTag = container.querySelector('.public-summary-status-tag');
-    if (statusTag) {
-      statusTag.className = 'public-summary-status-tag tag-signed';
-      statusTag.innerHTML = `${icon('checkCircle', 14)} Documento Assinado Digitalmente`;
-    }
-
-    // Substitui a área de assinatura pelo banner de sucesso
-    const actionArea = container.querySelector('#public-signing-action-area');
-    if (actionArea) {
-      actionArea.innerHTML = renderSignedSuccessBanner(signatureData, data);
-      setupSignedActions(container, data);
-    }
-
-    // Rola suavemente até o comprovante
-    actionArea.scrollIntoView({ behavior: 'smooth' });
-  });
-}
-
-/**
- * Configura os botões de ação após o documento estar assinado
- */
-function setupSignedActions(container, data) {
-  const printBtn = container.querySelector('#btn-public-print');
-  const wppBtn = container.querySelector('#btn-public-wpp-confirm');
-
-  if (printBtn) {
-    printBtn.addEventListener('click', () => {
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
       window.print();
     });
   }
 
   if (wppBtn) {
     wppBtn.addEventListener('click', () => {
-      const sig = data.signature || {};
-      const msg = `Olá Vando Motos! Eu, *${data.clientName}*, acabei de assinar digitalmente a Nota Promissória referente ao meu empréstimo de *${formatBRL(data.amount)}* (Vencimento: ${formatDate(data.dueDate)}).\n\n📄 *Protocolo de Assinatura:* ${sig.protocol || 'Autenticado'}\n🕒 *Data:* ${sig.dateFormatted || formatDate(new Date())}\n\nO documento está autenticado com sucesso!`;
-
-      // Telefone do Vando Motos para envio da confirmação
       const vandoPhone = data.creditorPhone || '69992323382';
+      const msg = `Olá, Vando Motos! Eu, *${data.clientName}*, já realizei a assinatura do meu contrato pelo *Gov.br*.\n\n` +
+        `📄 *Documento:* Contrato / Nota Promissória\n` +
+        `💰 *Valor:* ${formatBRL(data.amount)}\n` +
+        `📅 *Vencimento:* ${formatDate(data.dueDate)}\n` +
+        `👤 *CPF:* ${data.clientCpf || 'Registrado'}\n\n` +
+        `Estou anexando o arquivo PDF assinado com o carimbo oficial do Governo Federal aqui nesta conversa para validação!`;
+
       const url = createWhatsAppUrl(vandoPhone, msg);
       window.open(url, '_blank');
     });

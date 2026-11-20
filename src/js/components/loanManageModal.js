@@ -476,6 +476,7 @@ function createAttachmentsModal() {
             <div class="form-group">
               <label class="form-label">Categoria do Anexo</label>
               <select class="form-control" id="att-category">
+                <option value="Contrato Assinado no GOV.BR" selected>Contrato Assinado no GOV.BR (Oficial)</option>
                 <option value="Comprovante PIX Liberado">Comprovante PIX Liberado</option>
                 <option value="Foto da Garantia / Moto">Foto da Garantia / Moto</option>
                 <option value="Documento / Selfie do Cliente">Documento / Selfie do Cliente</option>
@@ -485,13 +486,13 @@ function createAttachmentsModal() {
             </div>
             <div class="form-group">
               <label class="form-label">Legenda / Descrição (opcional)</label>
-              <input type="text" class="form-control" id="att-caption" placeholder="Ex: Placa moto / Recibo PIX Banco Inter">
+              <input type="text" class="form-control" id="att-caption" placeholder="Ex: PDF Assinado Gov.br / Recibo PIX">
             </div>
           </div>
 
           <label class="btn btn-primary" style="cursor: pointer; width: 100%; justify-content: center;">
-            ${icon('camera', 16)} Selecionar Foto ou Tirar Foto com Câmera
-            <input type="file" id="att-file-input" accept="image/*" style="display: none;">
+            ${icon('upload', 16)} Anexar Contrato Assinado no Gov.br ou Foto
+            <input type="file" id="att-file-input" accept="image/*,application/pdf" style="display: none;">
           </label>
           <div style="font-size: 0.72rem; color: var(--text-400); text-align: center; margin-top: 6px;">
             Otimização automática para sincronização em nuvem (máx. 8 imagens por contrato).
