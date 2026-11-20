@@ -1,8 +1,8 @@
 // public/sw.js
 // Service Worker para Gestão de Crédito & Finanças - PWA Offline & Auto-Update
-// Versão do Cache: v17 (Assinador Oficial Gov.br e Layout Mobile Refinado)
+// Versão do Cache: v18 (Correção da abertura de Nota Promissória / Contrato)
 
-const CACHE_NAME = 'vandomotos-fintech-v17';
+const CACHE_NAME = 'vandomotos-fintech-v18';
 
 const PRECACHE_ASSETS = [
   '/',

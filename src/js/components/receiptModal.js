@@ -500,6 +500,7 @@ export function createReceiptModal() {
   const printBtn = modal.querySelector('#doc-modal-print-btn');
   const wppBtn = modal.querySelector('#doc-modal-wpp-btn');
   const copyLinkBtn = modal.querySelector('#doc-modal-copy-link-btn');
+  const govBtn = modal.querySelector('#doc-modal-gov-btn');
   const body = modal.querySelector('#doc-modal-body');
   const controls = modal.querySelector('#doc-modal-controls');
   const viewTabs = modal.querySelector('#doc-view-tabs');
@@ -663,7 +664,7 @@ export function createReceiptModal() {
     controls.style.display = 'none';
     copyLinkBtn.style.display = 'none';
     wppBtn.style.display = 'none';
-    signBtn.style.display = 'none';
+    if (govBtn) govBtn.style.display = 'none';
     modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Recibo de Pagamento`;
 
     const lastPayment = (inst.paymentHistory && inst.paymentHistory.length > 0)
@@ -814,7 +815,7 @@ export function createReceiptModal() {
     modal.querySelector('#doc-modal-title').innerHTML = `${icon('fileText', 18)} Documentos do Contrato`;
     copyLinkBtn.style.display = 'inline-flex';
     wppBtn.style.display = 'inline-flex';
-    signBtn.style.display = 'inline-flex';
+    if (govBtn) govBtn.style.display = 'inline-flex';
 
     // Monta as opções do seletor
     selectView.innerHTML = `
